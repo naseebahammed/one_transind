@@ -1,36 +1,31 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# One Transind
 
-## Getting Started
+Next.js 16 dashboard for sales (from a read-only Postgres view), deals, companies and the Al Manzil hotel P&L.
 
-First, run the development server:
+## Run
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev     # http://localhost:3000
+npm test        # unit tests for the pure helpers in lib/
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Settings go in `.env.local`:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Variable | Needed | What it does |
+| --- | --- | --- |
+| `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGPASSWORD` | yes | Postgres connection. `PGPORT` defaults to 5432. |
+| `PGSSL` | no | `true` turns on SSL. |
+| `SALES_TABLE` | yes | The sales view the dashboard reads (columns `DOC_DATE`, `NET_AMOUNT`, `NET_COST`, ...). |
+| `SALES_PERIOD` | no | `YYYY-MM` pins "this month". Default: the latest complete month in the table. |
+| `OPENAI_API_KEY` | no | Turns on the "Ask" box. `OPENAI_MODEL` picks the model (default `gpt-4o-mini`). |
+| `DB_INIT` | production only | `true` creates the `app` schema and loads seed data when the server starts. |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Database setup
 
-## Learn More
+The app keeps its own tables in the `app` schema. In development they are created and seeded on the first request.
+In production this is skipped. Start the server once with `DB_INIT=true` on first deploy and after any change to `lib/schema.ts`, open a page, then remove it.
 
-To learn more about Next.js, take a look at the following resources:
+## Al Manzil P&L
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Figures live in `data/al-manzil.csv` and `data/al-manzil-daily.csv` on the server's disk. Edits and uploads from the admin pages write that file, so run a single instance with a writable disk.

@@ -1,0 +1,54 @@
+const W = 720, H = 260, PL = 52, PR = 10, PT = 12, PB = 26;
+const k = (v: number) => `${Math.round(v / 1000)}k`;
+
+type Series = { name: string; color: string; data: number[] };
+
+/** Grouped monthly bars on a shared zero baseline; negatives hang below it. */
+export function MonthBars({ months, series, label }: { months: string[]; series: Series[]; label: string }) {
+  const all = series.flatMap((s) => s.data);
+  const step = 10 ** Math.floor(Math.log10(Math.max(...all.map(Math.abs)) || 1));
+  const hi = Math.ceil(Math.max(...all, 0) / step) * step, lo = Math.floor(Math.min(...all, 0) / step) * step;
+  const y = (v: number) => PT + (H - PT - PB) * (1 - (v - lo) / (hi - lo));
+  const gw = (W - PL - PR) / months.length, bw = gw / (series.length + 1);
+  const ticks: number[] = []; for (let v = lo; v <= hi; v += step) ticks.push(v);
+  return (
+    <>
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label={label}>
+        {ticks.map((v) => (
+          <g key={v} opacity={0.7}>
+            <line x1={PL} x2={W - PR} y1={y(v)} y2={y(v)} stroke="currentColor" strokeOpacity={v === 0 ? 0.6 : 0.15} />
+            <text x={PL - 6} y={y(v) + 4} textAnchor="end" fontSize="11" fill="currentColor">{k(v)}</text>
+          </g>
+        ))}
+        {months.map((m, i) => (
+          <g key={m}>
+            {series.map((s, j) => {
+              const v = s.data[i], top = y(Math.max(v, 0)), h = Math.max(1, Math.abs(y(v) - y(0)));
+              return <rect key={s.name} x={PL + i * gw + bw / 2 + j * bw} y={top} width={bw - 2} height={h} rx="2" fill={s.color}><title>{`${m} · ${s.name}: ${v.toLocaleString("en")}`}</title></rect>;
+            })}
+            <text x={PL + i * gw + gw / 2} y={H - 8} textAnchor="middle" fontSize="11" fill="currentColor" opacity={0.7}>{m}</text>
+          </g>
+        ))}
+      </svg>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 16, fontSize: 13, opacity: 0.7 }}>
+        {series.map((s) => <span key={s.name} style={{ display: "flex", alignItems: "center", gap: 6 }}><i style={{ background: s.color, width: 10, height: 10, borderRadius: 2 }} />{s.name}</span>)}
+      </div>
+    </>
+  );
+}
+
+/** Horizontal bars sized against the largest row. */
+export function HBars({ rows }: { rows: [string, number][] }) {
+  const max = Math.max(...rows.map(([, v]) => v), 1), total = rows.reduce((s, [, v]) => s + v, 0);
+  return (
+    <div className="space-y-2">
+      {rows.map(([name, v]) => (
+        <div key={name} className="grid grid-cols-[9rem_1fr_9rem] items-center gap-3 text-sm">
+          <span className="truncate">{name}</span>
+          <div className="h-3 rounded bg-muted"><div className="h-3 rounded bg-blue-500" style={{ width: `${(v / max) * 100}%` }} /></div>
+          <span className="text-right tabular-nums text-muted-foreground">{v.toLocaleString("en")} · {((v / total) * 100).toFixed(1)}%</span>
+        </div>
+      ))}
+    </div>
+  );
+}

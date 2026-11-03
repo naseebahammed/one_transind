@@ -1,0 +1,80 @@
+import type { PoolClient } from "pg";
+import seed from "@/data/seed.json";
+import { SECTORS } from "@/lib/org";
+import { ACCOUNT_SEED } from "@/lib/accounts-seed";
+import { pg } from "@/lib/pg";
+import { SCHEMA } from "@/lib/schema";
+
+async function init() {
+  const c = await pg.connect();
+  try {
+    await c.query("BEGIN");
+    await c.query("SELECT pg_advisory_xact_lock(7451)"); // concurrent first requests/instances must not double-seed
+    await c.query(SCHEMA);
+    const empty = async (t: string) => !(await c.query(`SELECT 1 FROM app.${t} LIMIT 1`)).rowCount;
+    if (await empty("sectors")) for (const [k, v] of SECTORS) await c.query("INSERT INTO app.sectors VALUES($1,$2)", [k, v]);
+    if (await empty("accounts")) {
+      let i = 0;
+      for (const [m, subs] of Object.entries(ACCOUNT_SEED)) { i++; for (const s of subs) await c.query("INSERT INTO app.accounts(main,sub,main_order) VALUES($1,$2,$3)", [m, s, i]); }
+    }
+    if (await empty("deals")) {
+      for (const x of seed.deals) await c.query("INSERT INTO app.deals(id,sector,acc_ar,acc_en,cust,value,stage,owner,close,so) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)", [x.id, x.sector, x.acc[0], x.acc[1], x.cust, x.value, x.stage, x.owner, x.close, x.so]);
+      for (const x of seed.invoices) await c.query("INSERT INTO app.invoices VALUES($1,$2,$3,$4,$5,$6,$7)", [x.number, x.customerId, x.date, x.dueDate, x.amount, x.balance, x.bucket]);
+      for (const x of [...seed.log].reverse()) await c.query("INSERT INTO app.log(t,job,ok,n) VALUES($1,$2,$3,$4)", [x.t, x.job, x.ok ? 1 : 0, x.n]); // seed log is newest-first
+    }
+    await c.query("COMMIT");
+  } catch (e) {
+    await c.query("ROLLBACK");
+    throw e;
+  } finally {
+    c.release();
+  }
+}
+
+// Lazy: connecting (and seeding) at import time collides across Next build workers.
+const g = globalThis as unknown as { _dbReady?: Promise<void> };
+// Production skips schema/seed on requests: run once per deploy with DB_INIT=true.
+const autoInit = process.env.NODE_ENV !== "production" || process.env.DB_INIT === "true";
+const ready = () => (g._dbReady ??= (autoInit ? init() : Promise.resolve()).catch((e) => ((g._dbReady = undefined), Promise.reject(e))));
+
+/** Run SQL against the app schema (tables are `app.<name>`); returns the rows. */
+export async function q<T = Record<string, unknown>>(text: string, params: unknown[] = []) {
+  await ready();
+  return (await pg.query(text, params)).rows as T[];
+}
+/** Run fn in one transaction under an app-wide lock, so "max + 1" numbers cannot collide between concurrent requests. */
+export async function numbering<T>(fn: (c: PoolClient) => Promise<T>) {
+  await ready();
+  const c = await pg.connect();
+  try {
+    await c.query("BEGIN");
+    await c.query("SELECT pg_advisory_xact_lock(7452)");
+    const r = await fn(c);
+    await c.query("COMMIT");
+    return r;
+  } catch (e) {
+    await c.query("ROLLBACK");
+    throw e;
+  } finally {
+    c.release();
+  }
+}
+export const q1 = async <T = Record<string, unknown>>(text: string, params: unknown[] = []) => (await q<T>(text, params))[0];
+
+type DealRow = { id: string; sector: string; acc_ar: string; acc_en: string; cust: string | null; value: number; stage: number; owner: number; close: string; so: string | null };
+// Shape the dashboard already uses (acc is an [ar, en] pair).
+export const toDeal = (r: DealRow) => ({ id: r.id, sector: r.sector, acc: [r.acc_ar, r.acc_en], cust: r.cust, value: r.value, stage: r.stage, owner: r.owner, close: r.close, so: r.so });
+export const getDeal = async (id: string) => {
+  const r = await q1<DealRow>("SELECT * FROM app.deals WHERE id=$1", [id]);
+  return r && toDeal(r);
+};
+export const listDeals = async () => (await q<DealRow>("SELECT * FROM app.deals ORDER BY seq")).map(toDeal);
+export const listLog = async () =>
+  (await q<{ t: string; job: string; ok: number; n: number }>("SELECT t,job,ok,n FROM app.log ORDER BY id DESC LIMIT 50")).map((x) => ({ ...x, ok: !!x.ok }));
+export const addLog = async (job: string, ok = true, n = 1) => {
+  const t = new Date().toTimeString().slice(0, 5);
+  await q("INSERT INTO app.log(t,job,ok,n) VALUES($1,$2,$3,$4)", [t, job, ok ? 1 : 0, n]);
+  return { t, job, ok, n };
+};
+export const listInvoices = (customerId?: string | null) =>
+  customerId ? q('SELECT * FROM app.invoices WHERE "customerId"=$1', [customerId]) : q("SELECT * FROM app.invoices");
