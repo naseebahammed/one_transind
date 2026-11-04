@@ -108,7 +108,6 @@ test("monthStatuses marks months", () => {
 });
 
 test("profileGaps lists blank fields", () => {
-  const full = { legal_name: "A", ownership_pct: 0, started: "2024-01-01", erp_code: "1", data_owner: "B" };
-  assert.deepEqual(profileGaps(full), []);
-  assert.deepEqual(profileGaps({ ...full, data_owner: "", ownership_pct: null }), ["Ownership %", "Data owner"]);
+  assert.deepEqual(profileGaps({ erp_code: "1" }), []);
+  assert.deepEqual(profileGaps({ erp_code: "" }), ["ERP code"]);
 });

@@ -85,7 +85,6 @@ export function monthStatuses(section: "pnl" | FigureSection, year: number, fill
 }
 
 /** Labels of the profile fields still blank. */
-export function profileGaps(c: { legal_name: string; ownership_pct: number | null; started: string; erp_code: string; data_owner: string }) {
-  return ([["Legal name", c.legal_name], ["Ownership %", c.ownership_pct], ["Start date", c.started], ["ERP code", c.erp_code], ["Data owner", c.data_owner]] as const)
-    .filter(([, v]) => v === null || v === "").map(([l]) => l);
+export function profileGaps(c: { erp_code: string }) {
+  return c.erp_code ? [] : ["ERP code"];
 }

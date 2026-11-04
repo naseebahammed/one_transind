@@ -55,7 +55,7 @@ export function LineChart({ actual: rawA, target: rawT }: { actual: number[]; ta
           })} />)}
         </svg>
       </div>
-      <div className="legend"><span><i></i>Actual</span><span><i className="t"></i>Target</span></div>
+      <div className="legend"><span><i></i>Actual</span>{rawT.length > 0 && <span><i className="t"></i>Target</span>}</div>
     </ChartTip>
   );
 }

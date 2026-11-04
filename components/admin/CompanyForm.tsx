@@ -108,12 +108,7 @@ export function CompanyForm({ company, sectors, propertyTypes }: { company?: Com
                 </Select>
               </div>
             </Field>
-            <Field id="legalName" label="Legal name"><Input id="legalName" name="legalName" maxLength={160} defaultValue={company?.legal_name} /></Field>
-            <Field id="ownershipPct" label="Ownership %"><Input id="ownershipPct" name="ownershipPct" type="number" min={0} max={100} step="0.01" defaultValue={company?.ownership_pct ?? ""} /></Field>
-            <Field id="started" label="Start date"><Input id="started" name="started" type="date" defaultValue={company?.started} /></Field>
-            <Field id="erpCode" label="ERP code"><Input id="erpCode" name="erpCode" maxLength={20} defaultValue={company?.erp_code} /></Field>
-            <Field id="dataOwner" label="Data owner"><Input id="dataOwner" name="dataOwner" maxLength={120} defaultValue={company?.data_owner} /></Field>
-          </div>
+            <Field id="erpCode" label="ERP code"><Input id="erpCode" name="erpCode" maxLength={20} defaultValue={company?.erp_code} /></Field>          </div>
           {sector === "re" /* Real Estate, per lib/org.ts SECTORS */ && (
             <div className="space-y-2 border-t pt-2">
               <h3 className="pb-2 text-sm font-medium mb-0!">Real estate details</h3>

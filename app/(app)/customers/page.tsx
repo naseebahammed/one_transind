@@ -41,9 +41,9 @@ async function Content({ searchParams }: { searchParams: Promise<{ c?: string }>
         </Panel>
         <Panel title={`Brand sales · ${label}`}><BrandList brands={c.brands} /></Panel>
         <Panel title={`Monthly sales ${d.year}`} src="QAR"><MonthBars series={series} /></Panel>
-        <Panel title="AR aging"><p className="empty">—</p></Panel>
-        <Panel title="Invoices"><p className="empty">—</p></Panel>
-        <Panel title="Opportunities"><p className="empty">—</p></Panel>
+        <Panel title="AR aging"><p className="empty">Not connected</p></Panel>
+        <Panel title="Invoices"><p className="empty">Not connected</p></Panel>
+        <Panel title="Opportunities"><p className="empty">Not connected</p></Panel>
       </div>
     </div>
   );

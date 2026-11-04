@@ -5,12 +5,12 @@ import { getOverview, getSalesmen } from "@/lib/data";
 import { fmt, MONTHS } from "@/lib/format";
 import { DEPTS, JOBS, SECTORS } from "@/lib/org";
 import { link, parsePath } from "@/lib/url";
-import { Empty, HBars, Kpi, Panel } from "@/components/ui";
+import { Empty, Kpi, NotConnected, Panel } from "@/components/ui";
 
 export const metadata = { title: "Human resources · One Transind" };
 type Params = Promise<{ h?: string }>;
 
-// No HR source is connected: the organisation structure is the legacy one, every headcount is 0.
+// No HR source is connected: the organisation structure is the legacy one, with no headcounts.
 export default function Page({ searchParams }: { searchParams: Params }) {
   return <Suspense fallback={<p className="empty">Loading…</p>}><Content searchParams={searchParams} /></Suspense>;
 }
@@ -23,7 +23,7 @@ async function Content({ searchParams }: { searchParams: Params }) {
   const team = await getSalesmen(o.month);
   const sec = SECTORS.find((s) => s[0] === p[0]);
   const rows: { k: string; l: string; sub?: string }[] | null =
-    p.length === 0 ? SECTORS.map((s) => ({ k: s[0], l: s[1], sub: DEPTS.map((d) => `${d} 0`).join(" · ") }))
+    p.length === 0 ? SECTORS.map((s) => ({ k: s[0], l: s[1], sub: DEPTS.join(" · ") }))
     : p.length === 1 ? DEPTS.map((d, i) => ({ k: String(i), l: d, sub: JOBS[p[0]][i].join(", ") }))
     : p.length === 2 ? JOBS[p[0]][+p[1]].map((j, i) => ({ k: String(i), l: j })) : null;
   const level = ["Sectors", "Departments", "Job titles", "Employees"][p.length];
@@ -32,16 +32,16 @@ async function Content({ searchParams }: { searchParams: Params }) {
   return (
     <>
       <div className="kpis">
-        <Kpi label="Employees" value="0" delta="New hires: 0" spark={[0, 0]} />
-        <Kpi label="Sales staff" value="0" />
-        <Kpi label="Maintenance staff" value="0" />
-        <Kpi label="Pending leave requests" value="0" />
-        <Kpi label="Documents expiring" value="0" />
+        <Kpi label="Employees" value={<NotConnected />} />
+        <Kpi label="Sales staff" value={<NotConnected />} />
+        <Kpi label="Maintenance staff" value={<NotConnected />} />
+        <Kpi label="Pending leave requests" value={<NotConnected />} />
+        <Kpi label="Documents expiring" value={<NotConnected />} />
       </div>
       <div className="grid">
         <section className="panel c12">
           <header><h2>Employee directory</h2></header>
-          <div className="mtd"><span className="big">0</span><span className="src">Employees</span></div>
+          <div className="mtd"><NotConnected /><span className="src">Employees</span></div>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
             <nav className="crumbs" aria-label="breadcrumb">
               {p.length ? <Link href="/hr">All</Link> : <span className="cur">All</span>}
@@ -54,12 +54,12 @@ async function Content({ searchParams }: { searchParams: Params }) {
               <Link key={r.k} className="dr" href={link("/hr", { h: [...p, r.k].join("|") })}>
                 <span className="lab">{r.l}{r.sub && <small>{r.sub}</small>}</span>
                 <span className="track"><span className="fill" style={{ width: "1%" }} /></span>
-                <span className="num" style={{ textAlign: "end" }}>0</span><span className="chev" aria-hidden="true">›</span>
+                <span className="num" style={{ textAlign: "end" }}>—</span><span className="chev" aria-hidden="true">›</span>
               </Link>))}</div>
           ) : (
             <div className="tw scroll"><table>
               <thead><tr><th>Name</th><th>Employee ID</th><th>Job title</th><th>Department</th><th>Location</th><th>Nationality</th><th>Joined</th></tr></thead>
-              <tbody><Empty cols={7} /></tbody>
+              <tbody><Empty cols={7} text="Not connected" /></tbody>
             </table></div>
           )}
         </section>
@@ -71,17 +71,17 @@ async function Content({ searchParams }: { searchParams: Params }) {
             </table></div>
           </Panel>
         )}
-        <Panel span={5} title="Maintenance staff by sector"><HBars rows={SECTORS.map((s) => ({ l: s[1], v: 0 }))} /></Panel>
+        <Panel span={5} title="Maintenance staff by sector"><p className="empty">Not connected</p></Panel>
         <Panel span={7} title="Leave requests">
           <div className="tw"><table>
             <thead><tr><th>Name</th><th>Sector</th><th>Type</th><th>From</th><th className="n">Days</th><th>Status</th></tr></thead>
-            <tbody><Empty cols={6} /></tbody>
+            <tbody><Empty cols={6} text="Not connected" /></tbody>
           </table></div>
         </Panel>
         <Panel span={12} title="Documents expiring">
           <div className="tw"><table>
             <thead><tr><th>Name</th><th>Sector</th><th>Document</th><th>Expires</th><th className="n">Left</th></tr></thead>
-            <tbody><Empty cols={5} /></tbody>
+            <tbody><Empty cols={5} text="Not connected" /></tbody>
           </table></div>
         </Panel>
       </div>

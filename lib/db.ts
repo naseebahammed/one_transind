@@ -1,5 +1,4 @@
 import type { PoolClient } from "pg";
-import seed from "@/data/seed.json";
 import { SECTORS } from "@/lib/org";
 import { PROPERTY_TYPES } from "@/lib/company-input";
 import { ACCOUNT_SEED } from "@/lib/accounts-seed";
@@ -18,11 +17,6 @@ async function init() {
     if (await empty("accounts")) {
       let i = 0;
       for (const [m, subs] of Object.entries(ACCOUNT_SEED)) { i++; for (const s of subs) await c.query("INSERT INTO app.accounts(main,sub,main_order) VALUES($1,$2,$3)", [m, s, i]); }
-    }
-    if (await empty("deals")) {
-      for (const x of seed.deals) await c.query("INSERT INTO app.deals(id,sector,acc_ar,acc_en,cust,value,stage,owner,close,so) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)", [x.id, x.sector, x.acc[0], x.acc[1], x.cust, x.value, x.stage, x.owner, x.close, x.so]);
-      for (const x of seed.invoices) await c.query("INSERT INTO app.invoices VALUES($1,$2,$3,$4,$5,$6,$7)", [x.number, x.customerId, x.date, x.dueDate, x.amount, x.balance, x.bucket]);
-      for (const x of [...seed.log].reverse()) await c.query("INSERT INTO app.log(t,job,ok,n) VALUES($1,$2,$3,$4)", [x.t, x.job, x.ok ? 1 : 0, x.n]); // seed log is newest-first
     }
     await c.query("COMMIT");
   } catch (e) {

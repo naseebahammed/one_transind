@@ -1,7 +1,7 @@
 // Pure (only a relative, import-free sibling) so `node --test` can load it without the Next alias setup.
 import type { RoomType } from "./companies.shared.ts";
 
-export type CompanyInput = { name: string; sector: string; email: string; phone: string; active: number; totalRooms: number; roomTypes: RoomType[]; propertyType: string; legalName: string; ownershipPct: number | null; started: string; erpCode: string; dataOwner: string };
+export type CompanyInput = { name: string; sector: string; email: string; phone: string; active: number; totalRooms: number; roomTypes: RoomType[]; propertyType: string; erpCode: string };
 
 export const PROPERTY_TYPES = [["apartments", "Apartments"], ["villa", "Villa"]] as const;
 
@@ -35,10 +35,5 @@ export function parseCompany(f: FormData, sectors: readonly string[], propertyTy
   if (!roomTypes) return { error: "Room types are invalid." };
   const propertyType = str(f, "propertyType", 20);
   if (propertyType && !propertyTypes.includes(propertyType)) return { error: "Choose a valid property type." };
-  const rawPct = str(f, "ownershipPct", 10), ownershipPct = rawPct ? Number(rawPct) : null;
-  if (ownershipPct !== null && !(ownershipPct >= 0 && ownershipPct <= 100)) return { error: "Ownership must be between 0 and 100." };
-  const started = str(f, "started", 10);
-  const startedAt = new Date(started + "T00:00:00Z");
-  if (started && (isNaN(+startedAt) || startedAt.toISOString().slice(0, 10) !== started)) return { error: "Enter a valid start date." };
-  return { data: { ...data, totalRooms, roomTypes, propertyType, legalName: str(f, "legalName", 160), ownershipPct, started, erpCode: str(f, "erpCode", 20), dataOwner: str(f, "dataOwner", 120) } };
+  return { data: { ...data, totalRooms, roomTypes, propertyType, erpCode: str(f, "erpCode", 20) } };
 }

@@ -8,7 +8,7 @@ import { link, parsePath } from "@/lib/url";
 import { Drill } from "@/components/Drill";
 import { CompareChart } from "@/components/charts";
 import { MonthSelect } from "@/components/MonthSelect";
-import { Delta, Insights, Kpi, Panel } from "@/components/ui";
+import { Delta, Insights, Kpi, NotConnected, Panel } from "@/components/ui";
 
 export const metadata = { title: "Sales · One Transind" };
 type Params = Promise<{ m?: string; p?: string; all?: string }>;
@@ -49,10 +49,10 @@ async function Content({ searchParams }: { searchParams: Params }) {
   if (g25[peak]) out.push(["plain", `${MONTHS[peak]} was the strongest month of ${years[1]} with ${fmt(g25[peak], 1)} M.`]);
 
   const credit = sum(dep.rows.map((r) => r.cr));
-  const sectorKpis: [string, string, string?][] = [
-    ["Van sales", "0%"], ["Key accounts", "0%"], ["HORECA", "0%"], ["Wholesale", "0%"],
+  const sectorKpis: [string, string?][] = [
+    ["Van sales"], ["Key accounts"], ["HORECA"], ["Wholesale"],
     ["Returns rate", `${fmt(sum(top.map((r) => r.v)) ? -credit / sum(top.map((r) => r.v)) * 100 : 0, 1)}%`],
-    ["Out-of-stock loss", "0%"], ["Price realisation", "0%"], ["Promo uplift", "0%"],
+    ["Out-of-stock loss"], ["Price realisation"], ["Promo uplift"],
   ];
 
   return (
@@ -67,8 +67,8 @@ async function Content({ searchParams }: { searchParams: Params }) {
       <div className="kpis">
         <Kpi label={`Sales ${mn}`} value={`${fmt(g26[month], 2)} M`} delta={<><Delta a={g26[month]} b={g25[month]} /> vs {mn} {years[1]}</>} spark={g26.slice(0, o.month + 1)} />
         <Kpi label={`vs ${mn} ${years[0]}`} value={`${fmt(g24[month], 2)} M`} delta={<Delta a={g26[month]} b={g24[month]} />} spark={g24} />
-        <Kpi label="Year to date" value={`${fmt(ytd, 1)} M`} delta={<><Delta a={ytd} b={ytdL} /> vs same period last year</>} spark={[ytdL * 0.3, ytdL * 0.52, ytdL * 0.78, ytdL, ytd]} />
-        <Kpi label="Target attainment" value="0%" delta={`${fmt(g26[month], 1)} / 0 M`} />
+        <Kpi label="Year to date" value={`${fmt(ytd, 1)} M`} delta={<><Delta a={ytd} b={ytdL} /> vs same period last year</>} spark={g26.slice(0, month + 1)} />
+        <Kpi label="Target attainment" value={<NotConnected />} />
       </div>
       <div className="grid">
         <Panel span={12} title={`Monthly comparison: ${years[2]} vs ${years[1]} and ${years[0]}${dept ? " · " + (sectors.find((s) => s.k === dept)?.label ?? dept) : ""}`}>
@@ -82,7 +82,7 @@ async function Content({ searchParams }: { searchParams: Params }) {
         <Insights title="Analysis" items={out} />
         <Panel span={6} title={`Sector indicators · ${dept ? sectors.find((s) => s.k === dept)?.label : "All"}`}>
           <div className="kpis" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))" }}>
-            {sectorKpis.map(([l, v]) => <div className="kpi" key={l} style={{ padding: "10px 12px" }}><span className="l">{l}</span><span className="v" style={{ fontSize: 20 }}>{v}</span></div>)}
+            {sectorKpis.map(([l, v]) => <div className="kpi" key={l} style={{ padding: "10px 12px" }}><span className="l">{l}</span><span className="v" style={{ fontSize: 20 }}>{v ?? <NotConnected />}</span></div>)}
           </div>
         </Panel>
       </div>

@@ -43,6 +43,9 @@ export const Insights = ({ title, src, items }: { title: string; src?: string; i
   </Panel>
 );
 
+/** Stands in for a figure with no data source, so it never reads as a real 0. */
+export const NotConnected = () => <span style={{ fontSize: 15, color: "var(--muted)" }}>Not connected</span>;
+
 export const Empty = ({ cols, text = "—" }: { cols: number; text?: string }) => <tr><td colSpan={cols} className="empty">{text}</td></tr>;
 
 export const Change = ({ pct }: { pct: number }) => (

@@ -8,18 +8,12 @@ const propertyTypes = ["apartments", "villa"];
 const parse = (f: FormData) => parseCompany(f, sectors, propertyTypes);
 
 test("accepts a valid company and trims the name", () => {
-  assert.deepEqual(parse(form({ name: "  Acme ", sector: "log", active: "on" })), { data: { name: "Acme", sector: "log", email: "", phone: "", active: 1, totalRooms: 0, roomTypes: [], propertyType: "", legalName: "", ownershipPct: null, started: "", erpCode: "", dataOwner: "" } });
+  assert.deepEqual(parse(form({ name: "  Acme ", sector: "log", active: "on" })), { data: { name: "Acme", sector: "log", email: "", phone: "", active: 1, totalRooms: 0, roomTypes: [], propertyType: "", erpCode: "" } });
 });
 
-test("parses profile fields", () => {
-  const ok = parse(form({ name: "A", sector: "log", legalName: " A WLL ", ownershipPct: "75.5", started: "2024-03-01", erpCode: "501", dataOwner: "Finance" }));
-  assert.deepEqual("data" in ok && [ok.data.legalName, ok.data.ownershipPct, ok.data.started, ok.data.erpCode, ok.data.dataOwner], ["A WLL", 75.5, "2024-03-01", "501", "Finance"]);
-});
-
-test("rejects bad ownership and start date", () => {
-  assert.ok("error" in parse(form({ name: "A", sector: "log", ownershipPct: "101" })));
-  assert.ok("error" in parse(form({ name: "A", sector: "log", ownershipPct: "-1" })));
-  assert.ok("error" in parse(form({ name: "A", sector: "log", started: "2024-13-40" })));
+test("parses ERP code", () => {
+  const ok = parse(form({ name: "A", sector: "log", erpCode: " 501 " }));
+  assert.deepEqual("data" in ok && ok.data.erpCode, "501");
 });
 
 test("rejects bad input", () => {
