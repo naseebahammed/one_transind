@@ -17,3 +17,10 @@ export const saveFigures = (companyId: number, section: FigureSection, figures: 
 
 export const deleteFigureMonth = (companyId: number, section: FigureSection, year: number, month: number) =>
   q("DELETE FROM app.company_figures WHERE company_id=$1 AND section=$2 AND year=$3 AND month=$4", [companyId, section, year, month]);
+
+/** Which months of a year each section has on file. */
+export async function listFilledMonths(companyId: number, year: number) {
+  const out: Record<FigureSection, Set<number>> = { balance: new Set(), budget: new Set(), people: new Set() };
+  for (const r of await q<{ section: FigureSection; month: number }>("SELECT DISTINCT section, month FROM app.company_figures WHERE company_id=$1 AND year=$2", [companyId, year])) out[r.section]?.add(r.month);
+  return out;
+}
