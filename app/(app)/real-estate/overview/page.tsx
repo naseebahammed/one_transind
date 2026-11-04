@@ -3,7 +3,7 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { fmt } from "@/lib/format";
 import { link } from "@/lib/url";
-import { keyFor, MONTHS, report, sum, years } from "@/lib/al-manzil";
+import { keyFor, MONTHS, report, sum, years, loadReports } from "@/lib/al-manzil";
 import { listCompanies } from "@/lib/companies";
 import { listPropertyTypes } from "@/lib/property-types";
 import { YearSelect } from "@/components/YearSelect";
@@ -38,6 +38,7 @@ const Card = ({ label, value, neg, hl, children }: { label: string; value: strin
 
 async function Content({ searchParams }: { searchParams: Params }) {
   await connection(); // the P&L files can change when a statement is uploaded
+  await loadReports();
   const { year } = await searchParams;
   const [companies, types] = await Promise.all([listCompanies("", "re"), listPropertyTypes()]);
   const withData = companies.filter((c) => c.active && !c.hidden && years(keyFor(c)).length);

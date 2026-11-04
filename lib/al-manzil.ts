@@ -1,5 +1,6 @@
-// Al Manzil P&L (QAR), Jan-Dec, read from data/al-manzil.csv (monthly statements 2024-2025). Costs are positive here.
-import { readFileSync, renameSync, writeFileSync } from "fs";
+// Al Manzil P&L (QAR), Jan-Dec (monthly statements 2024-2025). Costs are positive here.
+// Each "file" below is a CSV text stored as a row of app.report_files; the data/*.csv files only seed it.
+import { existsSync, readdirSync, readFileSync } from "fs";
 import { join } from "path";
 import type ExcelJS from "exceljs";
 
@@ -9,10 +10,10 @@ export const sum = (a: number[]) => a.reduce((s, v) => s + v, 0);
 export const AL_MANZIL_KEY = "al-manzil";
 /** File key for a company's P&L/daily data: Al Manzil keeps its original filenames, every other company is keyed by id. */
 export const keyFor = (c: { id: number; name: string }) => (c.name.trim().toLowerCase() === "al manzil" ? AL_MANZIL_KEY : String(c.id));
-export const pnlPath = (key: string) => join(process.cwd(), "data", key === AL_MANZIL_KEY ? "al-manzil.csv" : `pl-${key}.csv`);
-export const dailyPath = (key: string) => join(process.cwd(), "data", key === AL_MANZIL_KEY ? "al-manzil-daily.csv" : `daily-${key}.csv`);
+export const pnlPath = (key: string) => (key === AL_MANZIL_KEY ? "al-manzil.csv" : `pl-${key}.csv`);
+export const dailyPath = (key: string) => (key === AL_MANZIL_KEY ? "al-manzil-daily.csv" : `daily-${key}.csv`);
 /** Monthly sales totals, P&L-shaped (year,main,sub,Jan..Dec) - edited directly, same as the P&L grid. The daily file stays the source for occupancy/ADR elsewhere. */
-export const salesPath = (key: string) => join(process.cwd(), "data", key === AL_MANZIL_KEY ? "al-manzil-sales.csv" : `sales-${key}.csv`);
+export const salesPath = (key: string) => (key === AL_MANZIL_KEY ? "al-manzil-sales.csv" : `sales-${key}.csv`);
 export const PNL_HEADER = "year,main,sub," + MONTHS.join(",");
 export const DAILY_HEADER = "date,long_guests,long_rate,long_total,short_guests,short_rate,short_total,rooms_occupied,room_revenue,other_revenue,avg_rate,rooms_available,occ";
 
@@ -73,7 +74,7 @@ export function dailyFromWorkbook(wb: ExcelJS.Workbook) {
   return lines;
 }
 
-export const unitsPath = (key: string) => join(process.cwd(), "data", `units-${key}.csv`);
+export const unitsPath = (key: string) => `units-${key}.csv`;
 const UNIT_METRICS = [["availability", "Available"], ["long stay", "Long stay"], ["short stay", "Short stay"], ["revenue", "Room revenue"]] as const;
 
 /** Monthly totals per unit type (e.g. "1 BHK") from a unit-type sales workbook, P&L-shaped, plus the "year-monthIndex" keys it covers.
@@ -151,26 +152,74 @@ export function mergeDaily(existing: string, upload: string) {
   return [DAILY_HEADER, ...[...byDate].sort(([a], [b]) => (a < b ? -1 : 1)).map(([, l]) => l)].join("\n") + "\n";
 }
 
-export const CSV = pnlPath(AL_MANZIL_KEY);
-// Re-read on every call so an uploaded statement shows up without a restart. No upload yet reads as empty.
-const readCsv = (path: string) => { try { return readFileSync(path, "utf8").trim().split("\n"); } catch { return []; } };
-
-/** First read of a company's sales grid: back-fill it from any daily report already on file, so nothing uploaded before this grid existed goes missing. */
-function ensureSalesFile(key: string) {
-  const path = salesPath(key);
-  try { readFileSync(path); return; } catch { /* not created yet */ }
-  let daily: string;
-  try { daily = readFileSync(dailyPath(key), "utf8"); } catch { return; } // nothing to back-fill
-  const yrs = [...new Set(daily.trim().split("\n").slice(1).map((l) => +l.slice(0, 4)))];
-  writeCsv([PNL_HEADER, ...yrs.flatMap((y) => aggregateSales(daily, y))].join("\n") + "\n", path);
+/** Sales CSV text with the uploaded months set on the year's "Sales" line; every other month and line stays as it is. */
+export function mergeSales(existing: string, figures: { year: number; month: number; value: number }[]) {
+  const [head = PNL_HEADER, ...lines] = existing.trim() ? existing.trim().split(/\r?\n/) : [];
+  const rows = lines.map((l) => l.split(","));
+  for (const f of figures) {
+    let row = rows.find((c) => +c[0] === f.year && c[1] === "REVENUE" && c[2] === "Sales");
+    if (!row) rows.push(row = [String(f.year), "REVENUE", "Sales", ...Array<string>(12).fill("0")]);
+    row[3 + f.month] = String(f.value);
+  }
+  return [head, ...rows.map((c) => c.join(","))].join("\n") + "\n";
 }
+
+const db = () => import("@/lib/db"); // lazy so the pure helpers above stay loadable by `node --test` without the Next alias
+
+let imported: Promise<void> | undefined;
+/** One-time seed of app.report_files from data/*.csv (rows already in the table win). shortcut: runs once per process; drop it once every environment is migrated. */
+function importLegacy() {
+  return (imported ??= (async () => {
+    const dir = join(process.cwd(), "data");
+    if (!existsSync(dir)) return;
+    const { q } = await db();
+    for (const f of readdirSync(dir).filter((x) => x.endsWith(".csv")))
+      await q("INSERT INTO app.report_files(name, body) VALUES($1,$2) ON CONFLICT DO NOTHING", [f, readFileSync(join(dir, f), "utf8")]);
+  })().catch((e) => ((imported = undefined), Promise.reject(e))));
+}
+
+/** The stored CSV text, or null if that file was never uploaded. */
+export async function readFile(name: string) {
+  await importLegacy();
+  const { q1 } = await db();
+  return (await q1<{ body: string }>("SELECT body FROM app.report_files WHERE name=$1", [name]))?.body ?? null;
+}
+/** Like readFile, but a missing file is an error (editing a cell of a file that does not exist). */
+export const needFile = async (name: string) => (await readFile(name)) ?? Promise.reject(new Error("No data on file yet."));
+
+/** Replace a whole CSV in one statement, so a crash never leaves half a file. */
+export async function writeCsv(text: string, name: string) {
+  const { q } = await db();
+  await q("INSERT INTO app.report_files(name, body, updated) VALUES($1,$2,now()) ON CONFLICT(name) DO UPDATE SET body=EXCLUDED.body, updated=now()", [name, text]);
+}
+
+// The readers below are synchronous over a snapshot; every page/route that uses them calls `await loadReports()` first, so an upload shows up on the next request.
+let snap: Map<string, string> | null = null;
+/** Load every report CSV from the database; also back-fills a company's sales grid from a daily report already on file, so nothing uploaded before that grid existed goes missing. */
+export async function loadReports() {
+  await importLegacy();
+  const { q } = await db();
+  const m = new Map((await q<{ name: string; body: string }>("SELECT name, body FROM app.report_files")).map((r) => [r.name, r.body]));
+  for (const [name, daily] of [...m]) {
+    const key = name === "al-manzil-daily.csv" ? AL_MANZIL_KEY : name.match(/^daily-(.+)\.csv$/)?.[1];
+    if (!key || m.has(salesPath(key))) continue;
+    const yrs = [...new Set(daily.trim().split("\n").slice(1).map((l) => +l.slice(0, 4)))];
+    const text = [PNL_HEADER, ...yrs.flatMap((y) => aggregateSales(daily, y))].join("\n") + "\n";
+    await writeCsv(text, salesPath(key));
+    m.set(salesPath(key), text);
+  }
+  snap = m;
+}
+const readCsv = (name: string) => {
+  if (!snap) throw new Error("loadReports() must be awaited before reading reports.");
+  return snap.get(name)?.trim().split("\n") ?? [];
+};
 
 type Kind = "pnl" | "sales" | "units";
 type Key = string | string[];
 /** key can be one company's key, or several to combine (e.g. "All" real-estate companies). */
 const load = (key: Key = AL_MANZIL_KEY, kind: Kind = "pnl") => {
   const keys = Array.isArray(key) ? key : [key];
-  if (kind === "sales") for (const k of keys) ensureSalesFile(k);
   return keys.flatMap((k) => readCsv(kind === "sales" ? salesPath(k) : kind === "units" ? unitsPath(k) : pnlPath(k)).slice(1)).map((l) => {
     const [year, main, sub, ...m] = l.split(",");
     return { year: +year, main, sub, m: m.map(Number) };
@@ -197,15 +246,9 @@ const label: Record<string, string> = {
   "MISCELLANEOUS": "Miscellaneous", "MARKETING & ADVERTISING": "Marketing", "VEHICLE EXPENSES": "Vehicle", "LEGAL AND PROFESSIONAL EXP": "Legal & professional",
 };
 
-/** Write a whole CSV via a temp file so a crash never leaves half a file. */
-export function writeCsv(text: string, path = CSV) {
-  writeFileSync(path + ".tmp", text);
-  renameSync(path + ".tmp", path);
-}
-
 const locks = new Map<string, Promise<unknown>>();
-/** Serializes read-modify-write on one file: two requests racing on the same path must not read-before-the-other's-write and silently drop it. */
-export function withFileLock<T>(path: string, fn: () => T): Promise<T> {
+/** Serializes read-modify-write on one file within this process (shortcut: two server instances can still race - use a row lock if the app is ever scaled out): two requests racing on the same path must not read-before-the-other's-write and silently drop it. */
+export function withFileLock<T>(path: string, fn: () => T | Promise<T>): Promise<T> {
   const run = (locks.get(path) ?? Promise.resolve()).then(fn, fn) as Promise<T>;
   locks.set(path, run.catch(() => {}));
   return run;

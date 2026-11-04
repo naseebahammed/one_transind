@@ -1,6 +1,6 @@
 import { getSalesSectors } from "@/lib/sales-sectors";
 import { listSectors } from "@/lib/sectors";
-import { keyFor, plRows, report, sum as amSum, years } from "@/lib/al-manzil";
+import { keyFor, plRows, report, sum as amSum, years, loadReports } from "@/lib/al-manzil";
 import { listCompanies } from "@/lib/companies";
 import { Suspense } from "react";
 import { connection } from "next/server";
@@ -21,6 +21,7 @@ export default function Page({ searchParams }: { searchParams: Params }) {
 
 async function Content({ searchParams }: { searchParams: Params }) {
   await connection();
+  await loadReports();
   const { p, all } = await searchParams;
   const path = parsePath(p);
   const o = await getOverview();

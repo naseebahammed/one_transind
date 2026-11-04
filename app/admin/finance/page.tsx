@@ -12,7 +12,7 @@ import { Trash2 } from "lucide-react";
 import { Switch } from "@/components/admin/ui/switch";
 import { deleteDailyYear, deletePnlYear, savePnlCell, saveSalesCell, saveUnitsCell } from "../al-manzil/actions";
 import { toggleCompanyHidden } from "../companies/actions";
-import { keyFor, MONTHS, plRows, report, sum, years } from "@/lib/al-manzil";
+import { keyFor, MONTHS, plRows, report, sum, years, loadReports } from "@/lib/al-manzil";
 import { listCompanies, type Company } from "@/lib/companies";
 import { listSectors } from "@/lib/sectors";
 import { link } from "@/lib/url";
@@ -47,6 +47,7 @@ export default function Finance({ searchParams }: { searchParams: Search }) {
 }
 
 async function Summary({ searchParams }: { searchParams: Search }) {
+  await loadReports();
   const { company, year: yr, sales: sy, units: uy } = await searchParams;
   const sectors = await listSectors();
   // Hidden companies stay in the tables (so they can be switched back on) but are left out of the charts.
@@ -88,7 +89,7 @@ async function Summary({ searchParams }: { searchParams: Search }) {
               <span key={l}><span className="text-muted-foreground">{l}: </span><span className="font-medium">{v || "-"}</span></span>
             ))}
           </div>
-          <UploadReport companyKey={key!} />
+          <UploadReport companyId={one.id} companyKey={key!} sector={one.sector} />
         </Card>
       )}
       {!company && (

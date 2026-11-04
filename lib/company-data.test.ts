@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { LINES, monthStatuses, parseGrid, profileGaps, templateTitle, type Cell, type FigureSection } from "./company-data.ts";
+import { LINES, monthStatuses, parseGrid, profileGaps, templatePeriod, templateTitle, type Cell, type FigureSection } from "./company-data.ts";
 
 const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const today = new Date(2026, 10, 4);
@@ -110,4 +110,22 @@ test("monthStatuses marks months", () => {
 test("profileGaps lists blank fields", () => {
   assert.deepEqual(profileGaps({ erp_code: "1" }), []);
   assert.deepEqual(profileGaps({ erp_code: "" }), ["ERP code"]);
+});
+
+test("templatePeriod defaults to last month", () => {
+  assert.deepEqual(templatePeriod(null, null, today), { year: 2026, month: 9 });
+  assert.deepEqual(templatePeriod(null, null, new Date(2026, 0, 15)), { year: 2025, month: 11 });
+});
+
+test("templatePeriod uses the chosen month and year", () => {
+  assert.deepEqual(templatePeriod("2025", "3", today), { year: 2025, month: 3 });
+  assert.deepEqual(templatePeriod(null, "3", today), { year: 2026, month: 3 });
+  assert.deepEqual(templatePeriod("2025", null, today), { year: 2025, month: 9 });
+});
+
+test("templatePeriod rejects a bad month or year", () => {
+  assert.equal(templatePeriod("20x5", "3", today), null);
+  assert.equal(templatePeriod("1999", "3", today), null);
+  assert.equal(templatePeriod("2025", "12", today), null);
+  assert.equal(templatePeriod("2025", "1.5", today), null);
 });

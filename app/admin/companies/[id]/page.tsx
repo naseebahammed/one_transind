@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { loadReports } from "@/lib/al-manzil";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { CompanyForm } from "@/components/admin/CompanyForm";
@@ -30,6 +31,7 @@ export default function EditCompany({ params, searchParams }: { params: Params; 
 }
 
 async function Edit({ params, searchParams }: { params: Params; searchParams: Search }) {
+  await loadReports();
   const id = Number((await params).id);
   const { section: rawSection, year: rawYear } = await searchParams;
   const [company, ids, sectors, propertyTypes] = await Promise.all([getCompany(id), listCompanyIds(), listSectors(), listPropertyTypes()]);
@@ -74,7 +76,8 @@ async function Edit({ params, searchParams }: { params: Params; searchParams: Se
       {section === "pnl" && <PnlSectionView company={company} year={year} statuses={pnlStatuses} />}
       {isFigureSection(section) && <FigureSectionView company={company} section={section} year={year} statuses={figureStatuses[section]} />}
       {section === "profile" && <>
-      <CompanyForm company={company} sectors={sectors} propertyTypes={propertyTypes} />
+      {/* Activity keeps this page's DOM across navigation, so remount when saved data changes or the inputs show stale values (and re-save them). */}
+      <CompanyForm key={JSON.stringify(company)} company={company} sectors={sectors} propertyTypes={propertyTypes} />
       <Card className="border-destructive/40">
         <CardHeader>
           <CardTitle className="text-destructive">Delete company</CardTitle>

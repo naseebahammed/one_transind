@@ -5,7 +5,7 @@ import { Badge } from "@/components/admin/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/admin/ui/card";
 import { Table, TableBody, TableCell, TableRow } from "@/components/admin/ui/table";
 import { MonthBars } from "@/components/admin/FinanceCharts";
-import { MONTHS, report, years } from "@/lib/al-manzil";
+import { MONTHS, report, years, loadReports } from "@/lib/al-manzil";
 import { listLog } from "@/lib/db";
 import { listCompanies } from "@/lib/companies";
 
@@ -18,6 +18,7 @@ export default function Overview() {
 }
 
 async function Stats() {
+  await loadReports();
   const [log, companies] = await Promise.all([listLog(), listCompanies()]);
   const alManzilId = companies.find((c) => c.name.trim().toLowerCase() === "al manzil")?.id;
   return (

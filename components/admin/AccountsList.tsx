@@ -17,6 +17,7 @@ export function AccountsList({ rows }: { rows: Account[] }) {
   const [main, setMain] = useState("");
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<number | null>(null);
+  const [editError, setEditError] = useState("");
   const [open, setOpen] = useState<Set<string>>(new Set());
   const mains = [...new Set(rows.map((a) => a.main))]; // rows arrive in sheet order
   const needle = q.trim().toLowerCase();
@@ -88,12 +89,13 @@ export function AccountsList({ rows }: { rows: Account[] }) {
                   editing === a.id ? (
                     <TableRow key={a.id}>
                       <TableCell colSpan={2} className="pl-11">
-                        <form action={async (f) => { await updateAccount(f); setEditing(null); }} className="flex flex-wrap items-center gap-2">
+                        <form action={async (f) => { const r = await updateAccount(f); setEditError(r.error ?? ""); if (!r.error) setEditing(null); }} className="flex flex-wrap items-center gap-2">
                           <input type="hidden" name="id" value={a.id} />
                           <Input name="main" defaultValue={a.main} required maxLength={80} aria-label="Main account" className="h-8 max-w-56" />
                           <Input name="sub" defaultValue={a.sub} required maxLength={80} autoFocus aria-label="Sub ledger account" className="h-8 max-w-sm flex-1" />
                           <Button type="submit" size="icon-sm" aria-label="Save"><Check /></Button>
                           <Button type="button" size="icon-sm" variant="ghost" aria-label="Cancel" onClick={() => setEditing(null)}><X /></Button>
+                          {editError && <p role="alert" className="text-sm text-destructive">{editError}</p>}
                         </form>
                       </TableCell>
                     </TableRow>
@@ -102,7 +104,7 @@ export function AccountsList({ rows }: { rows: Account[] }) {
                       <TableCell className="pl-11">{a.sub}</TableCell>
                       <TableCell>
                         <div className="flex justify-end gap-1">
-                          <Button type="button" size="icon-sm" variant="ghost" aria-label={`Edit ${a.sub}`} onClick={() => setEditing(a.id)}><Pencil /></Button>
+                          <Button type="button" size="icon-sm" variant="ghost" aria-label={`Edit ${a.sub}`} onClick={() => { setEditing(a.id); setEditError(""); }}><Pencil /></Button>
                           <form action={deleteAccount}>
                             <input type="hidden" name="id" value={a.id} />
                             <ConfirmButton size="icon-sm" variant="ghost" aria-label={`Delete ${a.sub}`} className="text-destructive hover:text-destructive" message={`Delete ${a.sub}?`}><Trash2 /></ConfirmButton>

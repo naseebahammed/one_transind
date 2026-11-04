@@ -1,8 +1,8 @@
 // Excel side of the company page's sections: builds the templates to send out and reads uploaded ones into a grid for parseGrid.
 import ExcelJS from "exceljs";
-import { LINES, MONTHS, templateTitle, type Cell, type FigureSection } from "./company-data.ts";
+import { LINES, MONTHS, templateTitle, type Cell, type GridSection } from "./company-data.ts";
 
-export function buildFigureTemplate(company: string, section: FigureSection, year: number) {
+export function buildFigureTemplate(company: string, section: GridSection, year: number) {
   const wb = new ExcelJS.Workbook(), ws = wb.addWorksheet("Data");
   ws.addRow([templateTitle(company, section, year)]).font = { bold: true };
   ws.addRow(["Line", ...MONTHS]).font = { bold: true };
@@ -20,6 +20,29 @@ export function buildPnlTemplate(year: number, month: number, accounts: { main: 
   ws.getRow(1).font = { bold: true };
   accounts.forEach((a, i) => { ws.getCell(i + 3, 1).value = a.main; ws.getCell(i + 3, 4).value = a.sub; });
   ws.getColumn(1).width = 30; ws.getColumn(4).width = 34;
+  return wb;
+}
+
+const daysOf = (year: number, month: number) => Array.from({ length: new Date(Date.UTC(year, month + 1, 0)).getUTCDate() }, (_, d) => new Date(Date.UTC(year, month, d + 1)));
+
+/** Same columns dailyFromWorkbook reads: guests, rate and total sit side by side. Dates are filled in, and days left blank are skipped on upload. */
+export function buildDailyTemplate(year: number, month: number, rooms: number) {
+  const wb = new ExcelJS.Workbook(), ws = wb.addWorksheet("Daily sales");
+  ws.addRow(["Date", "Long Stay Guests", "Long Rate", "Long Total", "Short Stay Guests", "Short Rate", "Short Total", "Total Room Occupancy", "Daily Revenue", "Other Revenue", "Daily Avg Rate", "Rms/Avl."]).font = { bold: true };
+  for (const d of daysOf(year, month)) ws.addRow([d, ...Array<null>(10).fill(null), rooms || null]);
+  ws.getColumn(1).numFmt = "yyyy-mm-dd"; ws.getColumn(1).width = 12;
+  return wb;
+}
+
+/** Same layout unitsFromWorkbook reads: a group name over a unit type in every column, not merged, so each column names both. */
+export function buildUnitsTemplate(year: number, month: number, roomTypes: string[]) {
+  const wb = new ExcelJS.Workbook(), ws = wb.addWorksheet("Unit types");
+  const types = roomTypes.length ? [...new Set(roomTypes)] : ["1 BHK", "2 BHK"];
+  const groups = ["Availability", "Long Stay", "Short Stay", "Room Revenue"];
+  ws.addRow(["Date", ...groups.flatMap((g) => types.map(() => g))]).font = { bold: true };
+  ws.addRow([null, ...groups.flatMap(() => types)]).font = { bold: true };
+  for (const d of daysOf(year, month)) ws.addRow([d]);
+  ws.getColumn(1).numFmt = "yyyy-mm-dd"; ws.getColumn(1).width = 12;
   return wb;
 }
 

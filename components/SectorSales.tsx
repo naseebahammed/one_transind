@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { connection } from "next/server";
-import { keyFor, plRows, report, years } from "@/lib/al-manzil";
+import { keyFor, plRows, report, years, loadReports } from "@/lib/al-manzil";
 import { listCompanies } from "@/lib/companies";
 import { fmt, money, MONTHS, pct, sum } from "@/lib/format";
 import { link } from "@/lib/url";
@@ -23,6 +23,7 @@ const sales = (y: number, key: string | string[]) => report(y, key, plRows(y, ke
 
 async function Content({ searchParams, sector, path, title }: Props) {
   await connection(); // sales files change when figures are edited in admin
+  await loadReports();
   const { year, company } = await searchParams;
   const cos = (await listCompanies("", sector)).filter((c) => c.active && !c.hidden && years(keyFor(c), "sales").length);
   const all = cos.map(keyFor);

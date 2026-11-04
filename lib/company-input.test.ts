@@ -8,7 +8,7 @@ const propertyTypes = ["apartments", "villa"];
 const parse = (f: FormData) => parseCompany(f, sectors, propertyTypes);
 
 test("accepts a valid company and trims the name", () => {
-  assert.deepEqual(parse(form({ name: "  Acme ", sector: "log", active: "on" })), { data: { name: "Acme", sector: "log", email: "", phone: "", active: 1, totalRooms: 0, roomTypes: [], propertyType: "", erpCode: "" } });
+  assert.deepEqual(parse(form({ name: "  Acme ", sector: "log", active: "on" })), { data: { name: "Acme", sector: "log", active: 1, totalRooms: 0, roomTypes: [], propertyType: "", erpCode: "" } });
 });
 
 test("parses ERP code", () => {
@@ -19,7 +19,6 @@ test("parses ERP code", () => {
 test("rejects bad input", () => {
   assert.ok("error" in parse(form({ name: " ", sector: "log" })));
   assert.ok("error" in parse(form({ name: "A", sector: "nope" })));
-  assert.ok("error" in parse(form({ name: "A", sector: "log", email: "not-an-email" })));
 });
 
 test("defaults to no room types and accepts a valid list", () => {

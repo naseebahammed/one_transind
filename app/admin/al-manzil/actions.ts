@@ -1,8 +1,10 @@
 "use server";
 import ExcelJS from "exceljs";
-import { readFileSync } from "fs";
 import { revalidatePath } from "next/cache";
-import { AL_MANZIL_KEY, DAILY_HEADER, MONTHS, PNL_HEADER, aggregateSales, dailyFromWorkbook, dailyPath, num, mergeDaily, pnlPath, salesPath, setCell, unitsFromWorkbook, unitsPath, withFileLock, writeCsv } from "@/lib/al-manzil";
+import { getCompany } from "@/lib/companies";
+import { parseGrid, sectionName } from "@/lib/company-data";
+import { gridFromWorkbook } from "@/lib/company-template";
+import { AL_MANZIL_KEY, DAILY_HEADER, MONTHS, PNL_HEADER, aggregateSales, dailyFromWorkbook, dailyPath, keyFor, mergeSales, num, mergeDaily, pnlPath, salesPath, setCell, unitsFromWorkbook, unitsPath, withFileLock, writeCsv, readFile, needFile } from "@/lib/al-manzil";
 
 export type UploadState = { error?: string; ok?: string };
 
@@ -51,9 +53,8 @@ export async function uploadPnl(_: UploadState, f: FormData): Promise<UploadStat
   });
   if (!out.some((l) => l.includes(",REVENUE,"))) return { error: "No account rows found - is this the monthly P&L layout?" };
   const path = pnlPath(key);
-  await withFileLock(path, () => {
-    let lines: string[];
-    try { lines = readFileSync(path, "utf8").trim().split("\n"); } catch { lines = [PNL_HEADER]; } // first upload for this company
+  await withFileLock(path, async () => {
+    const lines = (await readFile(path))?.trim().split("\n") ?? [PNL_HEADER]; // first upload for this company
     // Only the uploaded months replace existing figures for that account; other months of the same year are kept as-is.
     const existing = new Map(lines.slice(1).map((l) => [l.split(",").slice(0, 3).join(","), l.split(",")]));
     for (const row of out) {
@@ -64,7 +65,7 @@ export async function uploadPnl(_: UploadState, f: FormData): Promise<UploadStat
       for (const [col, mi] of colMonth) if (colYear.get(col) === year) merged[3 + mi] = cells[3 + mi];
       existing.set(key2, merged);
     }
-    writeCsv([lines[0], ...[...existing.values()].map((c) => c.join(","))].join("\n") + "\n", path);
+    await writeCsv([lines[0], ...[...existing.values()].map((c) => c.join(","))].join("\n") + "\n", path);
   });
   revalidatePath("/admin", "layout"); revalidatePath("/admin/finance"); revalidatePath("/real-estate"); revalidatePath("/finance");
   return { ok: `Loaded ${out.length / years.length} accounts for ${years.join(", ")}.` };
@@ -89,23 +90,21 @@ async function uploadDaily(f: FormData): Promise<UploadState> {
   const path = dailyPath(key);
   let merged: string;
   try {
-    merged = await withFileLock(path, () => {
-      let existing = "";
-      try { existing = readFileSync(path, "utf8"); } catch { /* first upload for this company */ }
+    merged = await withFileLock(path, async () => {
+      const existing = (await readFile(path)) ?? "";
       const out = mergeDaily(existing, text);
-      writeCsv(out, path);
+      await writeCsv(out, path);
       return out;
     });
   } catch (e) { return { error: (e as Error).message }; }
   // Re-aggregate the monthly sales grid for every year touched by this upload, from the full merged daily history.
   const salesCsvPath = salesPath(key);
   const touchedYears = [...new Set(text.trim().split("\n").slice(1).map((l) => +l.slice(0, 4)))];
-  await withFileLock(salesCsvPath, () => {
-    let lines: string[];
-    try { lines = readFileSync(salesCsvPath, "utf8").trim().split("\n"); } catch { lines = [PNL_HEADER]; }
+  await withFileLock(salesCsvPath, async () => {
+    const lines = (await readFile(salesCsvPath))?.trim().split("\n") ?? [PNL_HEADER];
     const kept = lines.slice(1).filter((l) => !touchedYears.includes(+l.split(",")[0]));
     const fresh = touchedYears.flatMap((y) => aggregateSales(merged, y));
-    writeCsv([lines[0], ...kept, ...fresh].join("\n") + "\n", salesCsvPath);
+    await writeCsv([lines[0], ...kept, ...fresh].join("\n") + "\n", salesCsvPath);
   });
   revalidatePath("/admin", "layout"); revalidatePath("/admin/finance"); revalidatePath("/real-estate");
   return { ok: `Loaded ${text.trim().split("\n").length - 1} daily rows.` };
@@ -120,9 +119,8 @@ async function uploadUnits(f: FormData): Promise<UploadState> {
   const { lines, months } = unitsFromWorkbook(wb);
   if (!lines.length) return { error: "No unit-type rows found - is this the 1 BHK / 2 BHK sales report layout?" };
   const path = unitsPath(String(f.get("key") ?? AL_MANZIL_KEY));
-  await withFileLock(path, () => {
-    let old: string[];
-    try { old = readFileSync(path, "utf8").trim().split("\n"); } catch { old = [PNL_HEADER]; } // first upload for this company
+  await withFileLock(path, async () => {
+    const old = (await readFile(path))?.trim().split("\n") ?? [PNL_HEADER]; // first upload for this company
     const rows = new Map(old.slice(1).map((l) => [l.split(",").slice(0, 3).join(","), l.split(",")]));
     for (const l of lines) {
       const cells = l.split(","), k = cells.slice(0, 3).join(",");
@@ -130,36 +128,59 @@ async function uploadUnits(f: FormData): Promise<UploadState> {
       for (let mi = 0; mi < 12; mi++) if (months.has(`${cells[0]}-${mi}`)) merged[3 + mi] = cells[3 + mi];
       rows.set(k, merged);
     }
-    writeCsv([PNL_HEADER, ...[...rows.values()].map((c) => c.join(","))].join("\n") + "\n", path);
+    await writeCsv([PNL_HEADER, ...[...rows.values()].map((c) => c.join(","))].join("\n") + "\n", path);
   });
   revalidatePath("/admin/finance");
   return { ok: `Loaded ${lines.length} unit-type rows.` };
 }
 
-/** One upload form for every report type: "pnl" (monthly P&L workbook), "daily" (daily sales report) or "units" (per unit-type sales). */
+/** Monthly sales template for companies with no stay report (Pavati, Top Perfume): months in the file replace the same months in the sales grid. */
+async function uploadSales(f: FormData): Promise<UploadState> {
+  const file = f.get("file");
+  const company = await getCompany(Number(f.get("companyId")));
+  if (!company) return { error: "Company not found." };
+  if (company.sector === "re") return { error: "Real estate sales come from the daily report." }; // a hotel's grid already has revenue lines, so a Sales line would double count
+  if (!(file instanceof File) || !file.size) return { error: "Choose the filled .xlsx template." };
+  const wb = new ExcelJS.Workbook();
+  try { await wb.xlsx.load(await file.arrayBuffer() as ExcelJS.Buffer); } catch { return { error: "Could not read that file as an Excel workbook." }; }
+  const grid = gridFromWorkbook(wb);
+  const year = Number(String(grid[0]?.[0] ?? "").match(/(\d{4})\s*$/)?.[1]);
+  if (!year) return { error: `This file is not a ${sectionName("sales")} template. Download one and try again.` };
+  const parsed = parseGrid("sales", grid, { company: company.name, year }, new Date());
+  if ("error" in parsed) return parsed;
+  const path = salesPath(keyFor(company));
+  await withFileLock(path, async () => {
+    const existing = (await readFile(path)) ?? "";
+    await writeCsv(mergeSales(existing, parsed.figures), path);
+  });
+  revalidatePath("/admin", "layout"); revalidatePath("/admin/finance"); revalidatePath("/dashboard"); revalidatePath("/health-beauty"); revalidatePath("/retail");
+  return { ok: `Saved ${parsed.figures.length} month${parsed.figures.length > 1 ? "s" : ""} for ${year}: ${parsed.figures.map((x) => MONTHS[x.month]).join(", ")}.` };
+}
+
+/** One upload form for every report type: "pnl" (monthly P&L workbook), "daily" (daily sales report), "units" (per unit-type sales) or "sales" (monthly sales template). */
 export async function uploadReport(s: UploadState, f: FormData): Promise<UploadState> {
   const t = f.get("type");
-  return t === "daily" ? uploadDaily(f) : t === "units" ? uploadUnits(f) : uploadPnl(s, f);
+  return t === "daily" ? uploadDaily(f) : t === "units" ? uploadUnits(f) : t === "sales" ? uploadSales(f) : uploadPnl(s, f);
 }
 
 /** Save one edited unit-type figure: same shape and flow as saveSalesCell, in the units file. */
 export async function saveUnitsCell(year: number, key: string, main: string, sub: string, month: number, value: number) {
   const path = unitsPath(key);
-  await withFileLock(path, () => writeCsv(setCell(readFileSync(path, "utf8"), year, main, sub, month, value), path));
+  await withFileLock(path, async () => writeCsv(setCell(await needFile(path), year, main, sub, month, value), path));
   revalidatePath("/admin/finance");
 }
 
 /** Save one edited figure: year + key bind first so the client component gets a plain (main, sub, month, value) action. */
 export async function savePnlCell(year: number, key: string, main: string, sub: string, month: number, value: number) {
   const path = pnlPath(key);
-  await withFileLock(path, () => writeCsv(setCell(readFileSync(path, "utf8"), year, main, sub, month, value), path));
+  await withFileLock(path, async () => writeCsv(setCell(await needFile(path), year, main, sub, month, value), path));
   revalidatePath("/admin", "layout"); revalidatePath("/admin/finance"); revalidatePath("/real-estate"); revalidatePath("/finance");
 }
 
 /** Save one edited monthly sales figure: same shape and flow as savePnlCell, but in the sales grid's own file. */
 export async function saveSalesCell(year: number, key: string, main: string, sub: string, month: number, value: number) {
   const path = salesPath(key);
-  await withFileLock(path, () => writeCsv(setCell(readFileSync(path, "utf8"), year, main, sub, month, value), path));
+  await withFileLock(path, async () => writeCsv(setCell(await needFile(path), year, main, sub, month, value), path));
   revalidatePath("/admin", "layout"); revalidatePath("/admin/finance"); revalidatePath("/real-estate"); revalidatePath("/finance");
 }
 
@@ -168,10 +189,11 @@ export async function deletePnlYear(f: FormData) {
   const key = String(f.get("key") ?? AL_MANZIL_KEY);
   const year = String(f.get("year"));
   const path = pnlPath(key);
-  await withFileLock(path, () => {
-    let lines: string[];
-    try { lines = readFileSync(path, "utf8").trim().split("\n"); } catch { return; }
-    writeCsv([lines[0], ...lines.slice(1).filter((l) => !l.startsWith(`${year},`))].join("\n") + "\n", path);
+  await withFileLock(path, async () => {
+    const linesText = await readFile(path);
+    if (linesText == null) return;
+    const lines = linesText.trim().split("\n");
+    await writeCsv([lines[0], ...lines.slice(1).filter((l) => !l.startsWith(`${year},`))].join("\n") + "\n", path);
   });
   revalidatePath("/admin", "layout"); revalidatePath("/admin/finance"); revalidatePath("/real-estate"); revalidatePath("/finance");
 }
@@ -181,16 +203,18 @@ export async function deleteDailyYear(f: FormData) {
   const key = String(f.get("key") ?? AL_MANZIL_KEY);
   const year = String(f.get("year"));
   const path = dailyPath(key);
-  await withFileLock(path, () => {
-    let lines: string[];
-    try { lines = readFileSync(path, "utf8").trim().split("\n"); } catch { return; }
-    writeCsv([lines[0], ...lines.slice(1).filter((l) => !l.startsWith(`${year}-`))].join("\n") + "\n", path);
+  await withFileLock(path, async () => {
+    const linesText = await readFile(path);
+    if (linesText == null) return;
+    const lines = linesText.trim().split("\n");
+    await writeCsv([lines[0], ...lines.slice(1).filter((l) => !l.startsWith(`${year}-`))].join("\n") + "\n", path);
   });
   const salesCsvPath = salesPath(key);
-  await withFileLock(salesCsvPath, () => {
-    let lines: string[];
-    try { lines = readFileSync(salesCsvPath, "utf8").trim().split("\n"); } catch { return; }
-    writeCsv([lines[0], ...lines.slice(1).filter((l) => !l.startsWith(`${year},`))].join("\n") + "\n", salesCsvPath);
+  await withFileLock(salesCsvPath, async () => {
+    const linesText = await readFile(salesCsvPath);
+    if (linesText == null) return;
+    const lines = linesText.trim().split("\n");
+    await writeCsv([lines[0], ...lines.slice(1).filter((l) => !l.startsWith(`${year},`))].join("\n") + "\n", salesCsvPath);
   });
   revalidatePath("/admin", "layout"); revalidatePath("/admin/finance"); revalidatePath("/real-estate");
 }

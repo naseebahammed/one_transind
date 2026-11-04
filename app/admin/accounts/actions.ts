@@ -22,11 +22,13 @@ export async function addAccount(_: AccountState, f: FormData): Promise<AccountS
   return {};
 }
 
-export async function updateAccount(f: FormData) {
+export async function updateAccount(f: FormData): Promise<AccountState> {
   const id = Number(f.get("id")), main = text(f, "main"), sub = text(f, "sub");
-  if (!id || !main || !sub || (await taken(main, sub, id))) return;
+  if (!id || !main || !sub) return { error: "Main account and sub ledger account are required." };
+  if (await taken(main, sub, id)) return { error: "This sub ledger account already exists under that main account." };
   await q("UPDATE app.accounts SET main=$1, sub=$2, main_order=$3 WHERE id=$4", [main, sub, await orderOf(main), id]);
   done();
+  return {};
 }
 
 export async function deleteAccount(f: FormData) {

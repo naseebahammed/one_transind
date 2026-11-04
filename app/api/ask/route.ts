@@ -1,10 +1,11 @@
 import { connection } from "next/server";
 import { getOverview, getCustomers } from "@/lib/data";
-import { occupancy, report, revenueLines, sum, years } from "@/lib/al-manzil";
+import { occupancy, report, revenueLines, sum, years, loadReports } from "@/lib/al-manzil";
 
 const MAX_Q = 1000;
 
 async function context() {
+  await loadReports();
   const [o, c] = await Promise.all([getOverview(), getCustomers()]);
   const ys = years(), cur = ys.at(-1);
   const occ = cur ? occupancy(cur) : [];

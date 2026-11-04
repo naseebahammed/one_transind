@@ -3,7 +3,7 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { fmt } from "@/lib/format";
 import { link } from "@/lib/url";
-import { dailyYears, keyFor, MONTHS, occupancy, report, revenueLines, sum, years } from "@/lib/al-manzil";
+import { dailyYears, keyFor, MONTHS, occupancy, report, revenueLines, sum, years, loadReports } from "@/lib/al-manzil";
 import { listCompanies } from "@/lib/companies";
 import { CompareChart } from "@/components/charts";
 import { CompanySelect } from "@/components/CompanySelect";
@@ -19,6 +19,7 @@ export default function Page({ searchParams }: { searchParams: Params }) {
 
 async function Content({ searchParams }: { searchParams: Params }) {
   await connection(); // the P&L and stay-report files can change when a statement is uploaded
+  await loadReports();
   const { view, company, year } = await searchParams;
   const stay = view === "stay";
   const companies = (await listCompanies("", "re")).filter((c) => c.active && !c.hidden);

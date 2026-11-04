@@ -1,7 +1,7 @@
 // Pure (only a relative, import-free sibling) so `node --test` can load it without the Next alias setup.
 import type { RoomType } from "./companies.shared.ts";
 
-export type CompanyInput = { name: string; sector: string; email: string; phone: string; active: number; totalRooms: number; roomTypes: RoomType[]; propertyType: string; erpCode: string };
+export type CompanyInput = { name: string; sector: string; active: number; totalRooms: number; roomTypes: RoomType[]; propertyType: string; erpCode: string };
 
 export const PROPERTY_TYPES = [["apartments", "Apartments"], ["villa", "Villa"]] as const;
 
@@ -25,10 +25,9 @@ function parseRoomTypes(raw: string): RoomType[] | null {
 }
 
 export function parseCompany(f: FormData, sectors: readonly string[], propertyTypes: readonly string[]): { error: string } | { data: CompanyInput } {
-  const data = { name: str(f, "name", 120), sector: str(f, "sector", 20), email: str(f, "email", 120), phone: str(f, "phone", 30), active: f.get("active") ? 1 : 0 };
+  const data = { name: str(f, "name", 120), sector: str(f, "sector", 20), active: f.get("active") ? 1 : 0 };
   if (!data.name) return { error: "Name is required." };
   if (!sectors.includes(data.sector)) return { error: "Choose a sector." };
-  if (data.email && !/^\S+@\S+\.\S+$/.test(data.email)) return { error: "Enter a valid email address." };
   const totalRooms = Number(f.get("totalRooms") ?? 0);
   if (!Number.isInteger(totalRooms) || totalRooms < 0) return { error: "Total rooms must be a non-negative whole number." };
   const roomTypes = parseRoomTypes(String(f.get("roomTypes") ?? ""));

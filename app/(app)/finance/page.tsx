@@ -4,7 +4,7 @@ import { connection } from "next/server";
 import { getOverview } from "@/lib/data";
 import { fmt, MONTHS, sum } from "@/lib/format";
 import { MonthBars } from "@/components/admin/FinanceCharts";
-import { MONTHS as AM_MONTHS, report, years } from "@/lib/al-manzil";
+import { MONTHS as AM_MONTHS, report, years, loadReports } from "@/lib/al-manzil";
 import { Empty, Kpi, NotConnected, Panel } from "@/components/ui";
 
 export const metadata = { title: "Finance · One Transind" };
@@ -15,6 +15,7 @@ export default function Page() {
 
 async function Content() {
   await connection();
+  await loadReports();
   const [o, sectors] = await Promise.all([getOverview(), getSalesSectors(true)]);
   const am = years().map((y) => [y, report(y)] as const), COLORS = ["#5b7cff", "#3ee08f", "#ffbe55", "#c084fc"];
   const rev = sum(sectors.map((s) => s.v)), cost = sum(sectors.map((s) => s.c));
