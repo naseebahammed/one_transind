@@ -28,5 +28,8 @@ CREATE TABLE IF NOT EXISTS app.sales_departments(code TEXT PRIMARY KEY, label TE
 ALTER TABLE app.sales_departments ADD COLUMN IF NOT EXISTS sector TEXT;
 CREATE TABLE IF NOT EXISTS app.accounts(id SERIAL PRIMARY KEY, main TEXT NOT NULL, sub TEXT NOT NULL, main_order INTEGER NOT NULL DEFAULT 0);
 CREATE UNIQUE INDEX IF NOT EXISTS accounts_main_sub ON app.accounts(lower(main), lower(sub));
+CREATE TABLE IF NOT EXISTS app.company_figures(company_id INTEGER NOT NULL REFERENCES app.companies(id) ON DELETE CASCADE,
+  section TEXT NOT NULL, year INTEGER NOT NULL, month INTEGER NOT NULL CHECK (month BETWEEN 0 AND 11), line TEXT NOT NULL,
+  value NUMERIC(18,2) NOT NULL, updated TIMESTAMPTZ NOT NULL DEFAULT now(), PRIMARY KEY(company_id, section, year, month, line));
 CREATE TABLE IF NOT EXISTS app.log(id SERIAL PRIMARY KEY, t TEXT, job TEXT, ok INTEGER, n INTEGER);
 `;
