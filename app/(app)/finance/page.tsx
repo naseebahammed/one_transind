@@ -44,7 +44,7 @@ async function Content() {
           <MonthBars label="Al Manzil net profit or loss" months={AM_MONTHS} series={am.map(([y, r], i) => ({ name: String(y), color: COLORS[i % 4], data: r.net }))} />
         </Panel>
         <Panel span={5} title="Receivables aging">
-          <HBars rows={["Current", "1–30 days", "31–60 days", "61–90 days", "Over 90 days"].map((l, i) => ({ l, v: 0, cls: i === 4 || i === 3 ? "bad" : i === 2 ? "warn" : "" }))} unit=" QAR" />
+          <HBars rows={["Current", "1–30 days", "31–60 days", "61–90 days", "Over 90 days"].map((l, i) => ({ l, v: 0, cls: i === 4 || i === 3 ? "bad" : i === 2 ? "warn" : "" }))} />
         </Panel>
         <Panel span={12} title="Overdue invoices">
           <div className="tw"><table>

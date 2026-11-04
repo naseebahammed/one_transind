@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { Search } from "lucide-react";
+import { CompanyRow } from "@/components/admin/CompanyRow";
 import { Page } from "@/components/admin/Page";
-import { tone } from "@/components/admin/tones";
-import { Badge } from "@/components/admin/ui/badge";
 import { Button } from "@/components/admin/ui/button";
 import { Input } from "@/components/admin/ui/input";
 import { NativeSelect } from "@/components/admin/ui/native-select";
@@ -41,23 +40,15 @@ async function List({ searchParams }: { searchParams: Search }) {
       </form>
       <Table>
         <TableHeader>
-          <TableRow><TableHead>Name</TableHead><TableHead>Sector</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead></TableRow>
+          <TableRow><TableHead>Name</TableHead><TableHead>Sector</TableHead><TableHead>Type</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead></TableRow>
         </TableHeader>
         <TableBody>
           {rows.map((c) => (
-            <TableRow key={c.id}>
-              <TableCell><Link href={`/admin/companies/${c.id}`} className="font-medium hover:text-primary hover:underline">{c.name}</Link></TableCell>
-              <TableCell><Badge variant="outline">{SECTORS.find(([k]) => k === c.sector)?.[1] ?? c.sector}</Badge></TableCell>
-              <TableCell><Badge className={c.active ? tone.green : tone.gray}>{c.active ? "Active" : "Inactive"}</Badge></TableCell>
-              <TableCell className="text-right">
-                <Button asChild variant="ghost" size="sm"><Link href={`/admin/companies/${c.id}#files`}>Files</Link></Button>
-                <Button asChild variant="outline" size="sm"><Link href={`/admin/companies/${c.id}`}>Edit</Link></Button>
-              </TableCell>
-            </TableRow>
+            <CompanyRow key={c.id} company={c} sectorLabel={SECTORS.find(([k]) => k === c.sector)?.[1] ?? c.sector} />
           ))}
           {!rows.length && (
             <TableRow>
-              <TableCell colSpan={4} className="h-24 text-center text-muted-foreground">
+              <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
                 {filtered ? "No companies match your search." : "No companies yet. Click Add company to create the first one."}
               </TableCell>
             </TableRow>

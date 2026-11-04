@@ -1,4 +1,10 @@
 import { fmt, MONTHS } from "@/lib/format";
+import { ChartTip } from "@/components/ChartTip";
+import { tip } from "@/lib/tip";
+
+/** "▲ 4.2% vs <ref>" tooltip footer; empty when there is nothing to compare. */
+const vs = (a: number | null | undefined, b: number | null | undefined, ref: string) =>
+  a == null || !b ? {} : { f: `${a >= b ? "▲" : "▼"} ${fmt(Math.abs((a / b - 1) * 100), 1)}% vs ${ref}`, fc: a >= b ? ("up" as const) : ("down" as const) };
 
 export function Spark({ id, data }: { id: string; data: number[] }) {
   const W = 120, H = 30, mn = Math.min(...data), mx = Math.max(...data), r = mx - mn || 1;
@@ -12,15 +18,23 @@ export function Spark({ id, data }: { id: string; data: number[] }) {
   );
 }
 
-/** Group revenue by month: solid actual line, dashed target line. */
-export function LineChart({ actual, target, unit = "M" }: { actual: number[]; target: number[]; unit?: string }) {
+/** Chart values arrive in millions; when every value is under 1M, show thousands instead. */
+const autoUnit = (vals: (number | null)[]) => {
+  const peak = Math.max(0, ...vals.map((v) => Math.abs(v ?? 0)));
+  return peak > 0 && peak < 1 ? { f: 1000, u: "QAR K" } : { f: 1, u: "QAR M" };
+};
+const scale = (a: (number | null)[], f: number) => a.map((v) => (v == null ? null : v * f));
+
+/** Group revenue by month: solid actual line, dashed target line. Values in QAR M. */
+export function LineChart({ actual: rawA, target: rawT }: { actual: number[]; target: number[] }) {
+  const { f, u: unit } = autoUnit([...rawA, ...rawT]), actual = scale(rawA, f) as number[], target = scale(rawT, f) as number[];
   const W = 640, H = 230, pl = 36, pr = 12, pt = 12, pb = 26, iw = W - pl - pr, ih = H - pt - pb;
   const mx = Math.max(...actual, ...target, 1), step = Math.pow(10, Math.floor(Math.log10(mx))), top = Math.ceil(mx / step) * step;
   const x = (i: number) => pl + i * (iw / 11), y = (v: number) => pt + ih - (v / top) * ih;
   const path = (a: number[]) => a.map((v, i) => `${i ? "L" : "M"}${x(i)},${y(v)}`).join("");
   const ap = path(actual), last = actual.length - 1;
   return (
-    <>
+    <ChartTip>
       <div className="tw">
         <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ minWidth: 420, direction: "ltr" }} role="img" aria-label="Monthly revenue">
           {[0, 1, 2, 3, 4].map((i) => <g key={i}><line x1={pl} x2={W - pr} y1={y(top * i / 4)} y2={y(top * i / 4)} stroke="var(--line)" /><text x={pl - 6} y={y(top * i / 4) + 4} textAnchor="end">{fmt(top * i / 4)}</text></g>)}
@@ -34,25 +48,32 @@ export function LineChart({ actual, target, unit = "M" }: { actual: number[]; ta
           <path d={ap} fill="none" stroke="url(#lcl)" strokeWidth="2.5" strokeLinejoin="round" style={{ filter: "drop-shadow(0 0 6px rgba(58,214,255,.5))" }} />
           <circle cx={x(last)} cy={y(actual[last])} r="4.5" fill="var(--series)" stroke="var(--panel)" strokeWidth="2" />
           <text x={x(last)} y={y(actual[last]) - 10} textAnchor="middle" style={{ fill: "var(--ink)" }}>{fmt(actual[last], 1)}</text>
-          {MONTHS.map((m, i) => <rect key={m} x={x(i) - iw / 22} y={pt} width={iw / 11} height={ih} fill="transparent"><title>{`${m} · Actual: ${actual[i] == null ? "—" : fmt(actual[i], 1)} ${unit} · Target: ${fmt(target[i] ?? 0, 1)}`}</title></rect>)}
+          {MONTHS.map((m, i) => <rect key={m} className="chit" tabIndex={0} aria-label={`${m} revenue`} x={x(i) - iw / 22} y={pt} width={iw / 11} height={ih} data-tip={tip({
+            t: m,
+            r: [["Actual", actual[i] == null ? "—" : `${fmt(actual[i], 1)} ${unit}`, "#3ad6ff"], ["Target", target[i] == null ? "—" : `${fmt(target[i], 1)} ${unit}`, "var(--series-2)", true]],
+            ...vs(actual[i], target[i], "target"),
+          })} />)}
         </svg>
       </div>
       <div className="legend"><span><i></i>Actual</span><span><i className="t"></i>Target</span></div>
-    </>
+    </ChartTip>
   );
 }
 
 const YEAR_FILLS = ["rgba(140,160,255,.28)", "#4a63ff", "url(#cmpg)"];
+const swatch = (i: number) => (i === 2 ? "linear-gradient(#3ad6ff,#4a63ff)" : YEAR_FILLS[i]);
 
 /** Three-year grouped bars per month, with the selected month highlighted. Values in QAR M. */
-export function CompareChart({ years, series, sel, href }: { years: number[]; series: (number | null)[][]; sel: number; href?: (m: number) => string }) {
+export function CompareChart({ years, series: raw, sel, href }: { years: number[]; series: (number | null)[][]; sel: number; href?: (m: number) => string }) {
+  const { f, u } = autoUnit(raw.flat()), series = raw.map((a) => scale(a, f));
   const W = 720, H = 250, pl = 38, pr = 10, pt = 14, pb = 28, iw = W - pl - pr, ih = H - pt - pb, gw = iw / 12, bw = gw / 4.2;
   const mx = Math.max(1, ...series.flat().map((v) => v ?? 0)) * 1.12, yy = (v: number) => pt + ih - v / mx * ih;
-  const step = mx > 60 ? 20 : mx > 25 ? 10 : mx > 12 ? 5 : mx > 5 ? 2 : mx > 2 ? 1 : 0.5;
+  // ~5 gridlines on a 1/2/5 step, whatever the magnitude (thousands need far bigger steps than millions).
+  const p = 10 ** Math.floor(Math.log10(mx / 5)), step = [1, 2, 5, 10].find((m) => m * p >= mx / 5)! * p;
   const grid: number[] = []; for (let v = 0; v <= mx; v += step) grid.push(v);
   const off = 3 - years.length;
   return (
-    <>
+    <ChartTip>
       <div className="tw">
         <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ minWidth: 560, direction: "ltr" }} role="img" aria-label="Monthly comparison">
           <defs><linearGradient id="cmpg" x1="0" x2="0" y1="0" y2="1"><stop offset="0" style={{ stopColor: "#3ad6ff" }} /><stop offset="1" style={{ stopColor: "#4a63ff" }} /></linearGradient></defs>
@@ -64,8 +85,11 @@ export function CompareChart({ years, series, sel, href }: { years: number[]; se
                 {m === sel && <rect x={x0 + 1} y={pt - 4} width={gw - 2} height={ih + 4} rx="6" fill="rgba(58,214,255,.08)" stroke="rgba(58,214,255,.35)" />}
                 {years.map((y, i) => { const v = series[i][m]; return v == null ? null : <rect key={y} x={x0 + gw * 0.1 + i * bw * 1.05} y={yy(v)} width={bw} height={Math.max(1, ih - (yy(v) - pt))} rx="3" fill={YEAR_FILLS[i + off]} />; })}
                 {(() => {
-                  const cell = <rect x={x0} y={pt} width={gw} height={ih} fill="transparent" style={{ cursor: href ? "pointer" : "default" }}><title>{`${mn} · ${years.map((y, i) => `${y}: ${series[i][m] == null ? "—" : fmt(series[i][m]!, 1)}`).join(" · ")}`}</title></rect>;
-                  return href ? <a href={href(m)}>{cell}</a> : cell;
+                  const cell = <rect className="chit" tabIndex={href ? -1 : 0} x={x0} y={pt} width={gw} height={ih} data-tip={tip({
+                    t: mn,
+                    r: years.map((y, i) => [String(y), series[i][m] == null ? "—" : `${fmt(series[i][m]!, 2)} ${u}`, swatch(i + off)]),
+                    ...(years.length > 1 ? vs(series[years.length - 1][m], series[years.length - 2][m], String(years[years.length - 2])) : {}),                  })} />;
+                  return href ? <a href={href(m)} aria-label={`${mn} details`}>{cell}</a> : cell;
                 })()}
                 <text x={x0 + gw / 2} y={H - 8} textAnchor="middle" style={{ fontFamily: "var(--f-body)" }}>{mn}</text>
               </g>
@@ -73,8 +97,8 @@ export function CompareChart({ years, series, sel, href }: { years: number[]; se
           })}
         </svg>
       </div>
-      <div className="legend">{years.map((y, i) => <span key={y}><i style={{ background: i + off === 2 ? "linear-gradient(#3ad6ff,#4a63ff)" : YEAR_FILLS[i + off], height: 10, width: 10, borderRadius: 2 }} />{y}</span>)}<span className="src">QAR M</span></div>
-    </>
+      <div className="legend">{years.map((y, i) => <span key={y}><i style={{ background: swatch(i + off), height: 10, width: 10, borderRadius: 2 }} />{y}</span>)}<span className="src">{u}</span></div>
+    </ChartTip>
   );
 }
 
@@ -82,11 +106,12 @@ export function HourBars({ values }: { values: number[] }) {
   const W = 640, H = 220, pl = 36, pt = 10, pb = 24, iw = W - pl - 10, ih = H - pt - pb, bw = iw / values.length;
   const top = Math.max(30, ...values), y = (v: number) => pt + ih - v / top * ih;
   return (
-    <div className="tw">
+    <ChartTip><div className="tw">
       <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ minWidth: 420, direction: "ltr" }} role="img" aria-label="Sales by hour">
         {[0, 10, 20, 30].map((v) => <g key={v}><line x1={pl} x2={W - 10} y1={y(v)} y2={y(v)} stroke="var(--line)" /><text x={pl - 6} y={y(v) + 4} textAnchor="end">{v}</text></g>)}
-        {values.map((v, i) => <g key={i}><rect x={pl + i * bw + 2} y={y(v)} width={bw - 4} height={Math.max(0, ih - (y(v) - pt))} rx="3" fill="var(--series)"><title>{`${i + 7}:00 · ${v}k QAR`}</title></rect><text x={pl + i * bw + bw / 2} y={H - 6} textAnchor="middle">{i + 7}</text></g>)}
+        {values.map((v, i) => <g key={i}><rect x={pl + i * bw + 2} y={y(v)} width={bw - 4} height={Math.max(0, ih - (y(v) - pt))} rx="3" fill="var(--series)" /><text x={pl + i * bw + bw / 2} y={H - 6} textAnchor="middle">{i + 7}</text>
+          <rect className="chit" tabIndex={0} x={pl + i * bw} y={pt} width={bw} height={ih} data-tip={tip({ t: `${String(i + 7).padStart(2, "0")}:00 – ${String(i + 8).padStart(2, "0")}:00`, r: [["Sales", `${fmt(v)} QAR K`, "var(--series)"]] })} /></g>)}
       </svg>
-    </div>
+    </div></ChartTip>
   );
 }

@@ -175,7 +175,7 @@ function branchHTML() {
   }).join("")}</div>`
 }
 function bindBranch() {
-  const box = $("#brBox"); if (!box) return;
+  const box = qs("#brBox"); if (!box) return;
   box.querySelectorAll("[data-br]").forEach(b => b.onclick = () => { if (S.branch == null) { S.branch = +b.dataset.br; box.innerHTML = branchHTML(); bindBranch() } });
   box.querySelectorAll("[data-bb]").forEach(b => b.onclick = () => { S.branch = null; box.innerHTML = branchHTML(); bindBranch() })
 }
@@ -396,35 +396,35 @@ const sName = id => S.lang === "ar" ? SEC[id].ar : SEC[id].en;
 const fmt = (n, d = 0) => new Intl.NumberFormat("en-US", { maximumFractionDigits: d, minimumFractionDigits: d }).format(n);
 const money = n => n >= 1e6 ? fmt(n / 1e6, 2) + " " + t("m") : fmt(n);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-const $ = s => document.querySelector(s);
+const qs = s => document.querySelector(s);
 function scope() { const r = ROLES[S.role]; return r.lock || S.sector }
 function inScope(sid) { const sc = scope(); return sc === "all" || sc === sid }
 
 /* ===================== shell ===================== */
 function renderShell() {
   document.documentElement.lang = S.lang; document.documentElement.dir = S.lang === "ar" ? "rtl" : "ltr";
-  $("#brandName").textContent = t("brand"); const rf = $("#railFoot"); if (rf) rf.textContent = t("foot"); const sb = $("#sampleBadge"); if (sb) sb.textContent = t("sample"); $("#liveTxt").textContent = t("live") + " · " + (DATA.log[0]?.t ?? "");
-  $("#lblSector").textContent = t("sector"); $("#lblRole").textContent = t("role"); $("#langBtn").textContent = S.lang === "ar" ? "English" : "العربية";
+  qs("#brandName").textContent = t("brand"); const rf = qs("#railFoot"); if (rf) rf.textContent = t("foot"); const sb = qs("#sampleBadge"); if (sb) sb.textContent = t("sample"); qs("#liveTxt").textContent = t("live") + " · " + (DATA.log[0]?.t ?? "");
+  qs("#lblSector").textContent = t("sector"); qs("#lblRole").textContent = t("role"); qs("#langBtn").textContent = S.lang === "ar" ? "English" : "العربية";
   const r = ROLES[S.role]; if (!r.views.includes(S.view)) S.view = r.views[0];
-  $("#nav").innerHTML = VIEWS.filter(v => r.views.includes(v[0])).map(v => `<button type="button" data-v="${v[0]}" ${S.view === v[0] ? 'aria-current="page"' : ""}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${v[1]}</svg>${t("v_" + v[0])}</button>`).join("");
-  const ss = $("#sectorSel"); ss.innerHTML = `<option value="all">${t("all")}</option>` + SECTORS.map(s => `<option value="${s.id}">${sName(s.id)}</option>`).join("");
+  qs("#nav").innerHTML = VIEWS.filter(v => r.views.includes(v[0])).map(v => `<button type="button" data-v="${v[0]}" ${S.view === v[0] ? 'aria-current="page"' : ""}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${v[1]}</svg>${t("v_" + v[0])}</button>`).join("");
+  const ss = qs("#sectorSel"); ss.innerHTML = `<option value="all">${t("all")}</option>` + SECTORS.map(s => `<option value="${s.id}">${sName(s.id)}</option>`).join("");
   ss.value = r.lock || S.sector; ss.disabled = !!r.lock;
-  $("#roleSel").innerHTML = Object.keys(ROLES).map(k => `<option value="${k}">${t("r_" + k)}</option>`).join(""); $("#roleSel").value = S.role;
-  $("#viewTitle").textContent = t("v_" + S.view);
+  qs("#roleSel").innerHTML = Object.keys(ROLES).map(k => `<option value="${k}">${t("r_" + k)}</option>`).join(""); qs("#roleSel").value = S.role;
+  qs("#viewTitle").textContent = t("v_" + S.view);
   VIEW_FN[S.view](); save();
 }
-$("#nav").addEventListener("click", e => { const b = e.target.closest("button[data-v]"); if (b) { S.view = b.dataset.v; renderShell() } });
-$("#sectorSel").addEventListener("change", e => { S.sector = e.target.value; S.drill = []; S.hrPath = []; S.sdrill = []; if (S.sector !== "all") S.salesSector = S.sector; renderShell() });
-$("#roleSel").addEventListener("change", e => { S.role = e.target.value; S.drill = []; S.hrPath = []; S.sdrill = []; renderShell() });
-$("#langBtn").addEventListener("click", () => { S.lang = S.lang === "ar" ? "en" : "ar"; renderShell() });
+qs("#nav").addEventListener("click", e => { const b = e.target.closest("button[data-v]"); if (b) { S.view = b.dataset.v; renderShell() } });
+qs("#sectorSel").addEventListener("change", e => { S.sector = e.target.value; S.drill = []; S.hrPath = []; S.sdrill = []; if (S.sector !== "all") S.salesSector = S.sector; renderShell() });
+qs("#roleSel").addEventListener("change", e => { S.role = e.target.value; S.drill = []; S.hrPath = []; S.sdrill = []; renderShell() });
+qs("#langBtn").addEventListener("click", () => { S.lang = S.lang === "ar" ? "en" : "ar"; renderShell() });
 
 /* tooltip */
-const tip = $("#tip");
+const tip = qs("#tip");
 document.addEventListener("pointermove", e => {
   const el = e.target.closest("[data-tip]"); if (!el) { tip.hidden = true; return } tip.textContent = el.dataset.tip; tip.hidden = false;
   const w = tip.offsetWidth; let x = e.clientX + 12; if (x + w > innerWidth - 8) x = e.clientX - w - 12; tip.style.left = Math.max(8, x) + "px"; tip.style.top = (e.clientY + 14) + "px"
 });
-function toast(msg) { const el = $("#toast"); el.textContent = msg; el.hidden = false; clearTimeout(toast.h); toast.h = setTimeout(() => el.hidden = true, 3200) }
+function toast(msg) { const el = qs("#toast"); el.textContent = msg; el.hidden = false; clearTimeout(toast.h); toast.h = setTimeout(() => el.hidden = true, 3200) }
 
 /* ===================== chart helpers ===================== */
 function hbars(rows, { fmtV = v => fmt(v), max } = {}) {
@@ -464,7 +464,7 @@ document.addEventListener("click", e => { const g = e.target.closest("[data-go]"
 renderShell(); scrollTo(0, 0) });
 
 /* ===================== views ===================== */
-const C = $("#content");
+const C = qs("#content");
 function gauge(p, el) {
   const r = 46, cx = 60, cy = 58, ang = a => Math.PI * (1 - a), pt = a => [cx + r * Math.cos(ang(a)), cy - r * Math.sin(ang(a))];
   const [x1, y1] = pt(0), [x2, y2] = pt(Math.min(p, 1)), [ex, ey] = pt(el), [ix, iy] = [cx + (r - 14) * Math.cos(ang(el)), cy - (r - 14) * Math.sin(ang(el))];
@@ -548,12 +548,12 @@ function actual() {
   <section class="panel c6"><header><h2>${t("brandM")}</h2><span class="src">${S.lang === "ar" ? "البراندات اللي مبيعاتها فوق 100 ألف" : "Brands above QAR 100k"}</span></header><div class="tw scroll"><table><thead><tr><th>${t("brands")}</th><th class="n">${t("value")}</th><th class="n">${t("margin")}</th><th class="n">${t("itemsK")}</th><th class="n">${t("custsN")}</th></tr></thead><tbody>${br.map(x => `<tr><td>${esc(x.b)}</td><td class="n num">${fmt(x.s)}</td><td class="n">${mChip(x.s, x.c)}</td><td class="n num">${x.k}</td><td class="n num">${x.cu.size}</td></tr>`).join("")}</tbody></table></div></section>
  </div>`;
   bindAct();
-  const q = $("#actQ"); let tm; q.oninput = () => { clearTimeout(tm); tm = setTimeout(() => { S.actQ = q.value.trim(); $("#actP").innerHTML = actDrillHTML("p"); $("#actC").innerHTML = actDrillHTML("c"); bindAct() }, 250) }
+  const q = qs("#actQ"); let tm; q.oninput = () => { clearTimeout(tm); tm = setTimeout(() => { S.actQ = q.value.trim(); qs("#actP").innerHTML = actDrillHTML("p"); qs("#actC").innerHTML = actDrillHTML("c"); bindAct() }, 250) }
 }
 function bindAct() {
-  C.querySelectorAll("[data-ak]").forEach(b => b.onclick = () => { const [k, v] = b.dataset.ak.split(":"); const max = k === "p" ? 2 : 3; if (S.actPath[k].length >= max) return; S.actPath[k] = [...S.actPath[k], +v]; S.actQ = ""; $("#actQ").value = ""; $(k === "p" ? "#actP" : "#actC").innerHTML = actDrillHTML(k); bindAct() });
-  C.querySelectorAll("[data-ac]").forEach(b => b.onclick = () => { const [k, l] = b.dataset.ac.split(":"); S.actPath[k] = S.actPath[k].slice(0, +l); S.actMore = null; $(k === "p" ? "#actP" : "#actC").innerHTML = actDrillHTML(k); bindAct() });
-  C.querySelectorAll("[data-more]").forEach(b => b.onclick = () => { const k = b.dataset.more; S.actMore = k; $(k === "p" ? "#actP" : "#actC").innerHTML = actDrillHTML(k); bindAct() })
+  C.querySelectorAll("[data-ak]").forEach(b => b.onclick = () => { const [k, v] = b.dataset.ak.split(":"); const max = k === "p" ? 2 : 3; if (S.actPath[k].length >= max) return; S.actPath[k] = [...S.actPath[k], +v]; S.actQ = ""; qs("#actQ").value = ""; qs(k === "p" ? "#actP" : "#actC").innerHTML = actDrillHTML(k); bindAct() });
+  C.querySelectorAll("[data-ac]").forEach(b => b.onclick = () => { const [k, l] = b.dataset.ac.split(":"); S.actPath[k] = S.actPath[k].slice(0, +l); S.actMore = null; qs(k === "p" ? "#actP" : "#actC").innerHTML = actDrillHTML(k); bindAct() });
+  C.querySelectorAll("[data-more]").forEach(b => b.onclick = () => { const k = b.dataset.more; S.actMore = k; qs(k === "p" ? "#actP" : "#actC").innerHTML = actDrillHTML(k); bindAct() })
 }
 
 /* ===================== sales centre ===================== */
@@ -656,13 +656,13 @@ function salesCenter() {
   <section class="panel c12">${analysis()}</section>
   ${(sc ? [sc] : SECTORS.filter(s => inScope(s.id)).map(s => s.id)).map(id => `<section class="panel c6"><header><h2>${t("secKpi")} · ${sName(id)}</h2><span class="sample">${t("sample")}</span></header><div class="kpis" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr))">${SEC_KPI[id].map(k => `<div class="kpi" style="padding:10px 12px"><span class="l">${t(k[0])}</span><span class="v" style="font-size:20px">${k[1]}</span>${k[2] ? `<span class="d ${k[3] || ""}" style="font-size:11.5px">${k[2]}</span>` : ""}</div>`).join("")}</div></section>`).join("")}
  </div>`;
-  $("#monSel").onchange = e => { S.mon = +e.target.value; salesCenter() };
+  qs("#monSel").onchange = e => { S.mon = +e.target.value; salesCenter() };
   C.querySelectorAll("[data-ss]").forEach(b => b.onclick = () => { S.sdrill = b.dataset.ss ? [b.dataset.ss] : []; salesCenter() });
   C.querySelectorAll("[data-mon]").forEach(r => r.onclick = () => { S.mon = +r.dataset.mon; salesCenter() });
   bindSd();
 }
 function bindSd() {
-  const box = $("#sdBox"); if (!box) return;
+  const box = qs("#sdBox"); if (!box) return;
   box.querySelectorAll("[data-sk]").forEach(b => b.onclick = () => { const p = S.sdrill || []; if (p.length >= 2) return; S.sdrill = p.length === 0 ? [b.dataset.sk] : [p[0], +b.dataset.sk]; if (p.length === 0) salesCenter(); else { box.innerHTML = salesDrillHTML(); bindSd() } });
   box.querySelectorAll("[data-sc]").forEach(b => b.onclick = () => { S.sdrill = (S.sdrill || []).slice(0, +b.dataset.sc); salesCenter() })
 }
@@ -690,7 +690,7 @@ function drillHTML() {
   }).join("")}</div>`;
 }
 function bindDrill() {
-  const box = $("#drillBox"); if (!box) return;
+  const box = qs("#drillBox"); if (!box) return;
   box.querySelectorAll("[data-dr]").forEach(b => b.onclick = () => { if (S.drill.length < 2) { S.drill = [...S.drill, +b.dataset.dr]; box.innerHTML = drillHTML(); bindDrill() } });
   box.querySelectorAll("[data-cr]").forEach(b => b.onclick = () => { S.drill = S.drill.slice(0, +b.dataset.cr); box.innerHTML = drillHTML(); bindDrill() });
 }
@@ -762,15 +762,15 @@ function pipeline() {
    <button class="btn primary" type="submit">${t("add")}</button></form></section>`;
   C.querySelectorAll("[data-s]").forEach(b => b.onclick = () => { S.salesSector = b.dataset.s; pipeline(); save() });
   C.querySelectorAll("[data-next]").forEach(b => b.onclick = () => moveDeal(b.dataset.next, null));
-  const pipe = $("#pipe"); let dragId = null;
+  const pipe = qs("#pipe"); let dragId = null;
   pipe.addEventListener("dragstart", e => { const d = e.target.closest(".deal"); if (d) { dragId = d.dataset.id; e.dataTransfer.setData("text/plain", dragId) } });
   pipe.querySelectorAll(".col").forEach(col => {
     col.addEventListener("dragover", e => { e.preventDefault(); col.classList.add("over") }); col.addEventListener("dragleave", () => col.classList.remove("over"));
     col.addEventListener("drop", e => { e.preventDefault(); col.classList.remove("over"); if (dragId) moveDeal(dragId, +col.dataset.stage) })
   });
-  $("#dealForm").onsubmit = e => {
-    e.preventDefault(); const v = +$("#fVal").value; const name = $("#fAcc").value.trim(); if (!name || !v) return;
-    api("/api/deals", "POST", { sector: sid, acc: name, value: v, owner: +$("#fOwn").value, close: $("#fClose").value || dateAdd(30) }).then(d => { DATA.deals.push(d); pipeline() }).catch(() => toast("Could not save deal"))
+  qs("#dealForm").onsubmit = e => {
+    e.preventDefault(); const v = +qs("#fVal").value; const name = qs("#fAcc").value.trim(); if (!name || !v) return;
+    api("/api/deals", "POST", { sector: sid, acc: name, value: v, owner: +qs("#fOwn").value, close: qs("#fClose").value || dateAdd(30) }).then(d => { DATA.deals.push(d); pipeline() }).catch(() => toast("Could not save deal"))
   };
 }
 async function moveDeal(id, to) {
@@ -932,10 +932,10 @@ function hrDirHTML() {
   <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:8px"><nav class="crumbs" aria-label="breadcrumb">${cr.join("<i>›</i>")}</nav><span class="src">${lvl}${rows ? " · " + t("clickHint") : ""}</span></div>${body}`
 }
 function bindHr() {
-  const box = $("#hrDir");
-  box.querySelectorAll("[data-hk]").forEach(b => b.onclick = () => { const k = b.dataset.hk; S.hrPath = [...(S.hrPath || []), S.hrPath && S.hrPath.length ? +k : k]; hr(); $("#hrDir").scrollIntoView({ block: "nearest" }) });
+  const box = qs("#hrDir");
+  box.querySelectorAll("[data-hk]").forEach(b => b.onclick = () => { const k = b.dataset.hk; S.hrPath = [...(S.hrPath || []), S.hrPath && S.hrPath.length ? +k : k]; hr(); qs("#hrDir").scrollIntoView({ block: "nearest" }) });
   box.querySelectorAll("[data-hp]").forEach(b => b.onclick = () => { S.hrPath = (S.hrPath || []).slice(0, +b.dataset.hp); hr() });
-  const q = $("#empQ"); if (q) q.oninput = () => { const v = q.value.trim().toLowerCase(); box.querySelectorAll("#empRows tr").forEach(r => r.hidden = v && !r.dataset.q.includes(v)) }
+  const q = qs("#empQ"); if (q) q.oninput = () => { const v = q.value.trim().toLowerCase(); box.querySelectorAll("#empRows tr").forEach(r => r.hidden = v && !r.dataset.q.includes(v)) }
 }
 function hr() {
   const secs = SECTORS.filter(s => inScope(s.id));
@@ -992,7 +992,7 @@ function fin() {
    <thead><tr><th>${t("invNo")}</th><th>${t("account")}</th><th>${t("due")}</th><th class="n">${t("amount")}</th><th class="n">${t("balance")}</th><th>${t("status")}</th></tr></thead>
    <tbody>${DATA.invoices.filter(i => i.bucket !== "current").sort((a, b) => a.dueDate.localeCompare(b.dueDate)).slice(0, 12).map(i => { const a = FMCG_ACC.find(x => x[2] === i.customerId); return `<tr><td class="mono">${i.number}</td><td>${L(a)}</td><td class="mono">${i.dueDate}</td><td class="n num">${fmt(i.amount)}</td><td class="n num">${fmt(i.balance)}</td><td><span class="chip ${i.bucket === "d30" ? "plain" : i.bucket === "d60" ? "warn" : "bad"}">${t(i.bucket)}</span></td></tr>` }).join("")}</tbody></table></div></section>
  </div>`;
-  $("#syncBtn").onclick = async e => { e.target.disabled = true; await wait(700); const tm = new Date().toTimeString().slice(0, 5); DATA.log.unshift({ t: tm, job: "AR invoices → CRM", ok: true, n: DATA.invoices.length }); $("#syncInfo").textContent = t("lastSync") + ": " + tm; e.target.disabled = false; toast(t("ok") + " · " + DATA.invoices.length + " " + t("records")) };
+  qs("#syncBtn").onclick = async e => { e.target.disabled = true; await wait(700); const tm = new Date().toTimeString().slice(0, 5); DATA.log.unshift({ t: tm, job: "AR invoices → CRM", ok: true, n: DATA.invoices.length }); qs("#syncInfo").textContent = t("lastSync") + ": " + tm; e.target.disabled = false; toast(t("ok") + " · " + DATA.invoices.length + " " + t("records")) };
 }
 
 const VIEW_FN = { sales: salesCenter, act: actual, dash, pipe: pipeline, rest, acc, hr, log: logi, fin };

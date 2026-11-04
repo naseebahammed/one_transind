@@ -43,7 +43,7 @@ export async function POST(req: Request) {
     body: JSON.stringify({
       model: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
       messages: [
-        { role: "system", content: "You are the analyst for One Transind's sales dashboard. Answer concisely using only the data below; if it does not cover the question, say so. Amounts are in the company's currency.\n\nDATA:\n" + data },
+        { role: "system", content: "You are the analyst for One Transind's sales dashboard. Answer concisely using only the data below; if it does not cover the question, say so. Amounts are in QAR.\n\nDATA:\n" + data },
         { role: "user", content: question },
       ],
     }),

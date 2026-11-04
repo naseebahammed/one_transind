@@ -1,5 +1,4 @@
 import { Page } from "@/components/admin/Page";
-import { tone } from "@/components/admin/tones";
 import { Badge } from "@/components/admin/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/admin/ui/table";
 import { listLog } from "@/lib/db";
@@ -19,7 +18,7 @@ async function LogTable() {
           <TableRow key={i}>
             <TableCell className="font-mono">{l.t}</TableCell>
             <TableCell>{l.job}</TableCell>
-            <TableCell><Badge className={l.ok ? tone.green : tone.red}>{l.ok ? "OK" : "Failed"}</Badge></TableCell>
+            <TableCell><Badge variant={l.ok ? "success" : "danger"}>{l.ok ? "OK" : "Failed"}</Badge></TableCell>
             <TableCell className="text-right tabular-nums">{l.n}</TableCell>
           </TableRow>
         ))}

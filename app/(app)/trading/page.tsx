@@ -54,12 +54,12 @@ async function Content({ searchParams }: { searchParams: Params }) {
         <form action="/trading"><input type="hidden" name="m" value={month + 1} /><input className="search" name="q" type="search" defaultValue={q ?? ""} placeholder="Search brand, product or customer" aria-label="Search" /></form>
       </div>
       <div className="kpis">
-        <Kpi label={`Sales ${mn}`} value={`${fmt(tot / 1e6, 2)} M`} delta={`${fmt(tot)} QAR`} up />
+        <Kpi label={`Sales ${mn}`} value={`${fmt(tot / 1e6, 2)} M`} delta={fmt(tot)} up />
         <Kpi label="Gross margin" value={`${fmt(mPct(tot, cost), 1)}%`} delta={`Cost: ${fmt(cost / 1e6, 2)} M`} up />
         <Kpi label="Active customers" value={fmt(active)} delta={`${groups.length} chains`} />
         <Kpi label="Items sold" value={fmt(dept.items)} delta={`${brands.length} brands`} />
         <Kpi label="Returns" value={`${fmt(ret / 1e6, 2)} M`} delta={`${fmt(tot ? -ret / tot * 100 : 0, 1)}% of sales`} />
-        <Kpi label="Avg per customer" value={fmt(active ? tot / active : 0)} delta="QAR" up />
+        <Kpi label="Avg per customer" value={fmt(active ? tot / active : 0)} up />
       </div>
       <div className="grid">
         <Drill span={6} title="Products drill-down" mode="margin" rows={prow} labels={plab} path={pp} levels={["Departments", "Brands", "Products"]} rootLabel="All" q={q} all={all === "p"} href={href("p")} />

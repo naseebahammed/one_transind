@@ -71,7 +71,7 @@ async function Content({ searchParams }: { searchParams: Params }) {
         <Kpi label="Target attainment" value="0%" delta={`${fmt(g26[month], 1)} / 0 M`} />
       </div>
       <div className="grid">
-        <Panel span={12} title={`Monthly comparison: ${years[2]} vs ${years[1]} and ${years[0]} (QAR M)${dept ? " · " + (sectors.find((s) => s.k === dept)?.label ?? dept) : ""}`}>
+        <Panel span={12} title={`Monthly comparison: ${years[2]} vs ${years[1]} and ${years[0]}${dept ? " · " + (sectors.find((s) => s.k === dept)?.label ?? dept) : ""}`}>
           <CompareChart years={years} series={series} sel={month} href={(i) => q({ m: String(i + 1) })} />
         </Panel>
         <Drill

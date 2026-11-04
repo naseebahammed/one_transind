@@ -34,8 +34,8 @@ async function Content({ searchParams }: { searchParams: Promise<{ c?: string }>
       <div style={{ display: "grid", gap: 16, alignContent: "start", minWidth: 0 }}>
         <Panel title={c.name} src={<span className="chip plain"><span className="mono">{c.id}</span></span>}>
           <div className="kpis">
-            <Kpi label={`Sales ${label}`} value={`${fmt(c.mtd)} QAR`} delta={`${ch >= 0 ? "▲" : "▼"} ${fmt(Math.abs(ch), 1)}% vs previous month`} up={ch >= 0} />
-            <Kpi label="Year to date" value={`${fmt(c.ytd)} QAR`} />
+            <Kpi label={`Sales ${label}`} value={fmt(c.mtd)} delta={`${ch >= 0 ? "▲" : "▼"} ${fmt(Math.abs(ch), 1)}% vs previous month`} up={ch >= 0} />
+            <Kpi label="Year to date" value={fmt(c.ytd)} />
             <Kpi label="Channel" value={c.cat || "—"} delta={c.group || undefined} up />
           </div>
         </Panel>

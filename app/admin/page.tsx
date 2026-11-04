@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Activity } from "lucide-react";
 import { Page } from "@/components/admin/Page";
-import { tone } from "@/components/admin/tones";
 import { Badge } from "@/components/admin/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/admin/ui/card";
 import { Table, TableBody, TableCell, TableRow } from "@/components/admin/ui/table";
@@ -29,7 +28,7 @@ async function Stats() {
           <Link href={alManzilId ? `/admin/finance?company=${alManzilId}` : "/admin/finance"} className="text-sm text-primary hover:underline">Full report</Link>
         </CardHeader>
         <CardContent>
-          <MonthBars label="Al Manzil revenue vs total cost" months={MONTHS} series={years().flatMap((y, i) => { const r = report(y); return [{ name: `Revenue ${y}`, color: ["#2563eb", "#059669"][i % 2], data: r.revenue }, { name: `Total cost ${y}`, color: ["#f59e0b", "#dc2626"][i % 2], data: r.totalCost }]; })} />
+          <MonthBars label="Al Manzil revenue vs total cost" months={MONTHS} series={years().flatMap((y, i) => { const r = report(y); return [{ name: `Revenue ${y}`, color: ["var(--chart-1)", "var(--chart-2)"][i % 2], data: r.revenue }, { name: `Total cost ${y}`, color: ["var(--chart-3)", "var(--chart-4)"][i % 2], data: r.totalCost }]; })} />
         </CardContent>
       </Card>
       <div className="grid gap-4 lg:grid-cols-2">
@@ -45,7 +44,7 @@ async function Stats() {
                   <TableRow key={i}>
                     <TableCell className="font-mono text-muted-foreground">{l.t}</TableCell>
                     <TableCell>{l.job}</TableCell>
-                    <TableCell className="text-right"><Badge className={l.ok ? tone.green : tone.red}>{l.ok ? "OK" : "Failed"}</Badge></TableCell>
+                    <TableCell className="text-right"><Badge variant={l.ok ? "success" : "danger"}>{l.ok ? "OK" : "Failed"}</Badge></TableCell>
                   </TableRow>
                 ))}
               </TableBody>

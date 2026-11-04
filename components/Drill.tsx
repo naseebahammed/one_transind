@@ -34,7 +34,7 @@ export function Drill({ title, src, mode, rows, labels, path, levels, rootLabel,
     <section className={`panel c${span}`}>
       <header><h2>{title}</h2>{src != null && <span className="src">{src}</span>}</header>
       <div className="mtd">
-        <span className="big">{fmt(tot)} QAR</span>
+        <span className="big">{fmt(tot)}</span>
         {mode === "mom" && <span className={`d ${tot >= lm ? "up" : "down"}`} style={{ fontSize: 12.5 }}><Delta a={tot} b={lm} /> {momLabel ?? "vs last month"}</span>}
         {mode === "yoy" && yoyLabels && <>
           <span><Delta a={tot} b={ly} /> <span className="src">vs {yoyLabels[0]}</span></span>
@@ -66,7 +66,7 @@ export function Drill({ title, src, mode, rows, labels, path, levels, rootLabel,
               <span className="chev" aria-hidden="true">{leaf ? "" : "›"}</span>
             </>
           );
-          const tip = `${r.label}: ${fmt(r.v)} QAR · share ${fmt(tot ? r.v / tot * 100 : 0, 1)}%`;
+          const tip = `${r.label}: ${fmt(r.v)} · share ${fmt(tot ? r.v / tot * 100 : 0, 1)}%`;
           return leaf
             ? <div className="dr" key={r.k} title={tip} aria-disabled="true">{inner}</div>
             : <Link className="dr" key={r.k} title={tip} href={href([...path, r.k])}>{inner}</Link>;

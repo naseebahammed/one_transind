@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import { fmt, MONTHS } from "@/lib/format";
 import { Spark } from "@/components/charts";
+import { ChartTip } from "@/components/ChartTip";
+import { tip } from "@/lib/tip";
 
 export const Panel = ({ title, src, span, children }: { title: ReactNode; src?: ReactNode; span?: number; children: ReactNode }) => (
   <section className={`panel${span ? ` c${span}` : ""}`}>
@@ -56,7 +58,7 @@ export function HBars({ rows, unit = "", max: fixed }: { rows: { l: string; v: n
         <div className="hbar" key={r.l} title={r.extra}>
           <span className="lab">{r.l}</span>
           <span className="track"><span className={`fill ${r.cls ?? ""}`} style={{ display: "block", width: `${Math.max(1, Math.max(0, r.v) / max * 100)}%` }} /></span>
-          <span className="num">{fmt(r.v)}{unit}</span>
+          <span className="num">{unit !== " M" ? `${fmt(r.v)}${unit}` : r.v && Math.abs(r.v) < 1 ? `${fmt(r.v * 1000)} QAR K` : `${fmt(r.v)} QAR M`}</span>
         </div>
       ))}
     </div>
@@ -73,8 +75,8 @@ export function MonthBars({ series, labels, colors = ["var(--series)"] }: { seri
   const y = (v: number) => pt + ih - Math.max(0, v) / top * ih;
   const n = series.length, w = (bw - 6) / n;
   return (
-    <div className="tw">
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ minWidth: 420, direction: "ltr" }} role="img">
+    <ChartTip><div className="tw">
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ minWidth: 420, direction: "ltr" }} role="img" aria-label="Monthly sales">
         {[0, 1, 2, 3, 4].map((i) => (
           <g key={i}>
             <line x1={pl} x2={W - 10} y1={y(top * i / 4)} y2={y(top * i / 4)} stroke="var(--line)" />
@@ -85,14 +87,16 @@ export function MonthBars({ series, labels, colors = ["var(--series)"] }: { seri
           <g key={m}>
             <text x={pl + i * bw + bw / 2} y={H - 6} textAnchor="middle">{m}</text>
             {series.map((s, j) => s[i] == null ? null : (
-              <rect key={j} x={pl + i * bw + 3 + j * w} y={y(s[i]!)} width={Math.max(2, w - 1)} height={Math.max(1, pt + ih - y(s[i]!))} rx="3" fill={colors[j % colors.length]}>
-                <title>{`${labels?.[j] ? labels[j] + " · " : ""}${m} · ${fmt(s[i]!)} QAR`}</title>
-              </rect>
+              <rect key={j} x={pl + i * bw + 3 + j * w} y={y(s[i]!)} width={Math.max(2, w - 1)} height={Math.max(1, pt + ih - y(s[i]!))} rx="3" fill={colors[j % colors.length]} />
             ))}
+            <rect className="chit" tabIndex={0} x={pl + i * bw} y={pt} width={bw} height={ih} data-tip={tip({
+              t: m,
+              r: series.map((s, j) => [labels?.[j] ?? "Sales", s[i] == null ? "—" : `${fmt(s[i]!)} QAR`, colors[j % colors.length]]),
+            })} />
           </g>
         ))}
       </svg>
-    </div>
+    </div></ChartTip>
   );
 }
 

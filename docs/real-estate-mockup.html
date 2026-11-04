@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Real estate mockup</title>
+<style>
+:root{
+  --bg:#060a18; --panel:#0d1430; --panel-2:#121b3e; --ink:#f1f4ff; --text:#c3cbe6; --muted:#8490b5;
+  --line:rgba(140,160,255,.13); --line-strong:rgba(140,160,255,.26);
+  --brand:#5b7cff; --brand-soft:rgba(91,124,255,.14); --cyan:#3ad6ff; --cost:#6a76a0;
+  --good:#3ee08f; --good-bg:rgba(62,224,143,.12); --warn:#ffbe55; --bad:#ff6b7a; --bad-bg:rgba(255,107,122,.13);
+  --r:14px; --rail:224px;
+}
+*{box-sizing:border-box;margin:0}
+body{background:var(--bg);color:var(--text);font:14px/20px system-ui,"Segoe UI",sans-serif;display:grid;grid-template-columns:var(--rail) 1fr;min-height:100vh}
+.num{font-variant-numeric:tabular-nums}
+aside{border-right:1px solid var(--line);padding:20px 12px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:4px}
+.logo{display:flex;gap:10px;align-items:center;padding:0 8px 20px;color:var(--ink);font-weight:600}
+.logo i{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#4a63ff,#3ad6ff)}
+aside a{padding:8px 12px;border-radius:10px;color:var(--muted);text-decoration:none}
+aside a.on{background:var(--brand-soft);color:var(--ink);box-shadow:inset 2px 0 0 var(--brand)}
+aside small{margin-top:auto;padding:8px 12px;color:var(--muted);font-size:12px}
+main{padding:24px 32px;max-width:1280px;width:100%}
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:24px}
+h1{color:var(--ink);font-size:24px;line-height:32px;letter-spacing:-.01em}
+header p{color:var(--muted)}
+.tabs{display:inline-flex;padding:4px;border:1px solid var(--line);border-radius:12px;background:var(--panel);gap:4px}
+.tabs a{padding:6px 16px;border-radius:8px;color:var(--muted);text-decoration:none}
+.tabs a.on{background:var(--brand);color:#fff}
+.pill{padding:8px 12px;border:1px solid var(--line-strong);border-radius:10px;background:var(--panel);color:var(--ink);font-size:13px;margin-left:8px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+.lbl{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.06em}
+.val{color:var(--ink);font-size:28px;line-height:36px;font-weight:600;margin:4px 0}
+.d{font-size:12px;display:inline-flex;padding:2px 8px;border-radius:99px}
+.up{color:var(--good);background:var(--good-bg)} .dn{color:var(--bad);background:var(--bad-bg)} .flat{color:var(--muted);background:var(--brand-soft)}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:16px}
+.kpis .net{background:linear-gradient(135deg,#16224f,var(--panel) 70%);border-color:var(--line-strong)}
+.ring{display:flex;align-items:center;gap:16px}
+.ring svg{width:64px;height:64px;flex:none}
+.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}
+.s7{grid-column:span 7}.s5{grid-column:span 5}.s12{grid-column:span 12}
+h2{color:var(--ink);font-size:16px;font-weight:600;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+h2 span{color:var(--muted);font-size:12px;font-weight:400}
+.leg{display:flex;gap:16px;font-size:12px;color:var(--muted)}
+.leg i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.pair{margin-bottom:16px}
+.pair .nm{display:flex;justify-content:space-between;color:var(--ink);margin-bottom:4px}
+.pair .nm small{color:var(--muted)}
+.t{height:8px;border-radius:99px;background:var(--panel-2);overflow:hidden;margin-bottom:4px}
+.t b{display:block;height:100%;border-radius:99px}
+.rev{background:linear-gradient(90deg,#4a63ff,#3ad6ff)} .cst{background:var(--cost)}
+.stack{display:flex;height:12px;border-radius:99px;overflow:hidden;gap:2px;margin-bottom:12px}
+.stack b{display:block}
+.row{display:grid;grid-template-columns:110px 1fr;gap:12px;align-items:center}
+table{width:100%;border-collapse:collapse}
+th{color:var(--muted);font-size:12px;font-weight:500;text-transform:uppercase;letter-spacing:.05em;padding:8px;text-align:left;border-bottom:1px solid var(--line-strong)}
+td{padding:12px 8px;border-top:1px solid var(--line)}
+th.n,td.n{text-align:right}
+td.n{color:var(--ink)}
+tfoot td{font-weight:600;color:var(--ink);border-top:1px solid var(--line-strong)}
+.mg{display:inline-flex;align-items:center;gap:8px;justify-content:flex-end}
+.mg i{display:block;width:56px;height:6px;border-radius:99px;background:var(--panel-2);position:relative;overflow:hidden}
+.mg i b{position:absolute;inset:0 auto 0 0;background:var(--good);border-radius:99px}
+tr.hl td{background:var(--brand-soft)}
+.tw{overflow-x:auto}
+.note{color:var(--muted);font-size:12px;margin-top:24px}
+@media(max-width:900px){body{grid-template-columns:1fr}aside{display:none}main{padding:16px}.kpis{grid-template-columns:1fr 1fr}.s7,.s5{grid-column:span 12}}
+@media(max-width:520px){.kpis{grid-template-columns:1fr}.row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<aside>
+  <div class="logo"><i></i>One Transind</div>
+  <a href="#">Dashboard</a><a href="#">Sales</a><a href="#">Finance</a><a class="on" href="#">Real estate</a><a href="#">Restaurants</a><a href="#">Trading</a><a href="#">Logistics</a><a href="#">HR</a>
+  <small>Mockup · sample figures</small>
+</aside>
+<main>
+  <header>
+    <div><h1>Real estate</h1><p>Al Manzil and property companies · QAR</p></div>
+    <div><span class="tabs"><a class="on" href="#">Overview</a><a href="#">Details</a></span><span class="pill">2025 ▾</span></div>
+  </header>
+
+  <section class="kpis">
+    <div class="card"><div class="lbl">Revenue 2025</div><div class="val num">3.92 M</div><span class="d up">▲ 5.1% vs 2024</span></div>
+    <div class="card"><div class="lbl">Total cost 2025</div><div class="val num">2.61 M</div><span class="d dn">▲ 8.3% vs 2024</span></div>
+    <div class="card net"><div class="lbl">Net profit 2025</div><div class="val num">1.31 M</div><span class="d up">▲ 0.9%</span></div>
+    <div class="card ring">
+      <svg viewBox="0 0 36 36" role="img" aria-label="Net margin 33.4 percent"><circle cx="18" cy="18" r="15.9" fill="none" stroke="#121b3e" stroke-width="4"/><circle cx="18" cy="18" r="15.9" fill="none" stroke="#3ee08f" stroke-width="4" stroke-linecap="round" stroke-dasharray="33.4 100" transform="rotate(-90 18 18)"/></svg>
+      <div><div class="lbl">Net margin</div><div class="val num" style="font-size:24px;line-height:32px">33.4%</div></div>
+    </div>
+  </section>
+
+  <section class="grid">
+    <div class="card s7">
+      <h2>Revenue vs cost by property type <span class="leg"><span><i class="rev"></i>Revenue</span><span><i class="cst"></i>Cost</span> · QAR M</span></h2>
+      <div class="pair"><div class="nm"><span>Residential</span><small class="num">1.82 / 1.10</small></div><div class="t"><b class="rev" style="width:100%"></b></div><div class="t"><b class="cst" style="width:60%"></b></div></div>
+      <div class="pair"><div class="nm"><span>Commercial</span><small class="num">1.34 / 0.93</small></div><div class="t"><b class="rev" style="width:74%"></b></div><div class="t"><b class="cst" style="width:51%"></b></div></div>
+      <div class="pair"><div class="nm"><span>Staff housing</span><small class="num">0.54 / 0.38</small></div><div class="t"><b class="rev" style="width:30%"></b></div><div class="t"><b class="cst" style="width:21%"></b></div></div>
+      <div class="pair" style="margin-bottom:0"><div class="nm"><span>Unassigned</span><small class="num">0.22 / 0.20</small></div><div class="t"><b class="rev" style="width:12%"></b></div><div class="t"><b class="cst" style="width:11%"></b></div></div>
+    </div>
+    <div class="card s5">
+      <h2>Where the cost goes <span>share of total</span></h2>
+      <div class="row"><span>Residential</span><div class="stack"><b style="width:38%;background:#4a63ff"></b><b style="width:27%;background:#3ad6ff"></b><b style="width:20%;background:#ffbe55"></b><b style="width:15%;background:#6a76a0"></b></div></div>
+      <div class="row"><span>Commercial</span><div class="stack"><b style="width:30%;background:#4a63ff"></b><b style="width:35%;background:#3ad6ff"></b><b style="width:22%;background:#ffbe55"></b><b style="width:13%;background:#6a76a0"></b></div></div>
+      <div class="row"><span>Staff housing</span><div class="stack"><b style="width:45%;background:#4a63ff"></b><b style="width:20%;background:#3ad6ff"></b><b style="width:25%;background:#ffbe55"></b><b style="width:10%;background:#6a76a0"></b></div></div>
+      <div class="row"><span>Unassigned</span><div class="stack"><b style="width:40%;background:#4a63ff"></b><b style="width:25%;background:#3ad6ff"></b><b style="width:20%;background:#ffbe55"></b><b style="width:15%;background:#6a76a0"></b></div></div>
+      <div class="leg" style="flex-wrap:wrap;margin-top:8px"><span><i style="background:#4a63ff"></i>Salaries</span><span><i style="background:#3ad6ff"></i>Maintenance</span><span><i style="background:#ffbe55"></i>Utilities</span><span><i style="background:#6a76a0"></i>Other</span></div>
+    </div>
+    <div class="card s12">
+      <h2>Comparison <span>QAR · 2025</span></h2>
+      <div class="tw"><table>
+        <thead><tr><th>Property type</th><th class="n">Companies</th><th class="n">Revenue</th><th class="n">Total cost</th><th class="n">Net</th><th class="n">Margin</th></tr></thead>
+        <tbody>
+          <tr class="hl"><td>Residential</td><td class="n num">4</td><td class="n num">1,820,400</td><td class="n num">1,102,300</td><td class="n num">718,100</td><td class="n"><span class="mg num">39.4% <i><b style="width:39%"></b></i></span></td></tr>
+          <tr><td>Commercial</td><td class="n num">3</td><td class="n num">1,342,000</td><td class="n num">931,500</td><td class="n num">410,500</td><td class="n"><span class="mg num">30.6% <i><b style="width:31%"></b></i></span></td></tr>
+          <tr><td>Staff housing</td><td class="n num">2</td><td class="n num">536,800</td><td class="n num">378,900</td><td class="n num">157,900</td><td class="n"><span class="mg num">29.4% <i><b style="width:29%"></b></i></span></td></tr>
+          <tr><td>Unassigned</td><td class="n num">1</td><td class="n num">221,000</td><td class="n num">197,300</td><td class="n num">23,700</td><td class="n"><span class="mg num">10.7% <i><b style="width:11%"></b></i></span></td></tr>
+        </tbody>
+        <tfoot><tr><td>Total</td><td class="n num">10</td><td class="n num">3,920,200</td><td class="n num">2,610,000</td><td class="n num">1,310,200</td><td class="n num">33.4%</td></tr></tfoot>
+      </table></div>
+    </div>
+  </section>
+  <p class="note">Mockup of /real-estate/overview: same data as today (KPIs, revenue and cost by type, comparison, cost breakdown), with revenue and cost paired per type, the cost breakdown as share bars, a margin meter and a totals row. Figures are sample data.</p>
+</main>
+</body>
+</html>

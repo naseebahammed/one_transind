@@ -4,34 +4,44 @@ import { parseCompany } from "./company-input.ts";
 
 const form = (o: Record<string, string>) => Object.entries(o).reduce((f, [k, v]) => (f.set(k, v), f), new FormData());
 const sectors = ["log", "fm"];
+const propertyTypes = ["apartments", "villa"];
+const parse = (f: FormData) => parseCompany(f, sectors, propertyTypes);
 
 test("accepts a valid company and trims the name", () => {
-  assert.deepEqual(parseCompany(form({ name: "  Acme ", sector: "log", active: "on" }), sectors), { data: { name: "Acme", sector: "log", email: "", phone: "", active: 1, totalRooms: 0, roomTypes: [] } });
+  assert.deepEqual(parse(form({ name: "  Acme ", sector: "log", active: "on" })), { data: { name: "Acme", sector: "log", email: "", phone: "", active: 1, totalRooms: 0, roomTypes: [], propertyType: "" } });
 });
 
 test("rejects bad input", () => {
-  assert.ok("error" in parseCompany(form({ name: " ", sector: "log" }), sectors));
-  assert.ok("error" in parseCompany(form({ name: "A", sector: "nope" }), sectors));
-  assert.ok("error" in parseCompany(form({ name: "A", sector: "log", email: "not-an-email" }), sectors));
+  assert.ok("error" in parse(form({ name: " ", sector: "log" })));
+  assert.ok("error" in parse(form({ name: "A", sector: "nope" })));
+  assert.ok("error" in parse(form({ name: "A", sector: "log", email: "not-an-email" })));
 });
 
 test("defaults to no room types and accepts a valid list", () => {
-  const empty = parseCompany(form({ name: "A", sector: "log" }), sectors);
+  const empty = parse(form({ name: "A", sector: "log" }));
   assert.deepEqual("data" in empty && empty.data.roomTypes, []);
   const roomTypes = [{ type: "1BHK", rooms: 4, standardPrice: 3500 }];
-  const ok = parseCompany(form({ name: "A", sector: "log", roomTypes: JSON.stringify(roomTypes) }), sectors);
+  const ok = parse(form({ name: "A", sector: "log", roomTypes: JSON.stringify(roomTypes) }));
   assert.deepEqual("data" in ok && ok.data.roomTypes, roomTypes);
 });
 
 test("rejects malformed room types", () => {
-  assert.ok("error" in parseCompany(form({ name: "A", sector: "log", roomTypes: "not json" }), sectors));
-  assert.ok("error" in parseCompany(form({ name: "A", sector: "log", roomTypes: JSON.stringify([{ type: "", rooms: 1, standardPrice: 1 }]) }), sectors));
-  assert.ok("error" in parseCompany(form({ name: "A", sector: "log", roomTypes: JSON.stringify([{ type: "1BHK", rooms: -1, standardPrice: 1 }]) }), sectors));
+  assert.ok("error" in parse(form({ name: "A", sector: "log", roomTypes: "not json" })));
+  assert.ok("error" in parse(form({ name: "A", sector: "log", roomTypes: JSON.stringify([{ type: "", rooms: 1, standardPrice: 1 }]) })));
+  assert.ok("error" in parse(form({ name: "A", sector: "log", roomTypes: JSON.stringify([{ type: "1BHK", rooms: -1, standardPrice: 1 }]) })));
 });
 
 test("parses total rooms and rejects invalid values", () => {
-  const ok = parseCompany(form({ name: "A", sector: "log", totalRooms: "12" }), sectors);
+  const ok = parse(form({ name: "A", sector: "log", totalRooms: "12" }));
   assert.deepEqual("data" in ok && ok.data.totalRooms, 12);
-  assert.ok("error" in parseCompany(form({ name: "A", sector: "log", totalRooms: "-1" }), sectors));
-  assert.ok("error" in parseCompany(form({ name: "A", sector: "log", totalRooms: "1.5" }), sectors));
+  assert.ok("error" in parse(form({ name: "A", sector: "log", totalRooms: "-1" })));
+  assert.ok("error" in parse(form({ name: "A", sector: "log", totalRooms: "1.5" })));
+});
+
+test("defaults property type to empty and rejects anything outside the configured list", () => {
+  const empty = parse(form({ name: "A", sector: "log" }));
+  assert.deepEqual("data" in empty && empty.data.propertyType, "");
+  const ok = parse(form({ name: "A", sector: "log", propertyType: "villa" }));
+  assert.deepEqual("data" in ok && ok.data.propertyType, "villa");
+  assert.ok("error" in parse(form({ name: "A", sector: "log", propertyType: "studio" })));
 });

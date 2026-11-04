@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Page } from "@/components/admin/Page";
-import { tone } from "@/components/admin/tones";
 import { Badge } from "@/components/admin/ui/badge";
 import { Button } from "@/components/admin/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/admin/ui/card";
@@ -9,13 +8,17 @@ import { HBars } from "@/components/admin/FinanceCharts";
 import { UploadReport } from "@/components/admin/UploadReport";
 import { EditPnlFigure } from "@/components/admin/EditPnlFigure";
 import { ConfirmButton } from "@/components/admin/ConfirmButton";
-import { deleteDailyYear, deletePnlYear, savePnlCell, saveSalesCell } from "../al-manzil/actions";
+import { Trash2 } from "lucide-react";
+import { Switch } from "@/components/admin/ui/switch";
+import { deleteDailyYear, deletePnlYear, savePnlCell, saveSalesCell, saveUnitsCell } from "../al-manzil/actions";
+import { toggleCompanyHidden } from "../companies/actions";
 import { keyFor, MONTHS, plRows, report, sum, years } from "@/lib/al-manzil";
 import { listCompanies, type Company } from "@/lib/companies";
 import { listSectors } from "@/lib/sectors";
+import { link } from "@/lib/url";
 
 const n = (v: number) => Math.round(v).toLocaleString("en");
-const neg = (v: number) => (v < 0 ? "text-red-600" : "");
+const neg = (v: number) => (v < 0 ? "text-destructive" : "");
 
 /** Years on file for this company's P&L, each year's figures. Empty until a statement is uploaded for it. */
 const reportsFor = (c: Company) => { const key = keyFor(c); return years(key).map((year) => { const r = report(year, key); return { year, revenue: r.revenue, cost: r.totalCost, net: r.net, costGroups: r.costGroups }; }); };
@@ -23,28 +26,35 @@ const reportsFor = (c: Company) => { const key = keyFor(c); return years(key).ma
 /** One row per year of the company's monthly sales grid (same shape as P&L), summed over the year. Empty until a report is uploaded. */
 const salesFor = (c: Company) => {
   const key = keyFor(c);
-  return years(key, "sales").map((year) => {
-    const by = new Map(plRows(year, key, "sales").map((r) => [`${r.main}|${r.sub}`, sum(r.m)]));
-    return { year, sold: by.get("ROOMS|Occupied") ?? 0, avail: by.get("ROOMS|Available") ?? 0, room: by.get("REVENUE|Room revenue") ?? 0, other: by.get("REVENUE|Other revenue") ?? 0 };
-  });
+  // Every REVENUE line counts: hotels split room/other revenue, other sectors (e.g. Pavati) have a single "Sales" line.
+  return years(key, "sales").map((year) => ({ year, revenue: sum(plRows(year, key, "sales").filter((r) => r.main === "REVENUE").map((r) => sum(r.m))) }));
 };
 
 type Row = { c: Company; kind: "none" } | { c: Company; kind: "pnl"; r: ReturnType<typeof reportsFor>[number] } | { c: Company; kind: "sales"; r: ReturnType<typeof salesFor>[number] };
 
-type Search = Promise<{ company?: string; year?: string; sales?: string }>;
+type Search = Promise<{ company?: string; year?: string; sales?: string; units?: string; showHidden?: string }>;
+
+const HideToggle = ({ c }: { c: Company }) => (
+  <form action={toggleCompanyHidden} className="flex justify-end">
+    <input type="hidden" name="id" value={c.id} />
+    <input type="hidden" name="hidden" value={c.hidden ? 0 : 1} />
+    <Switch type="submit" checked={!c.hidden} aria-label={`${c.hidden ? "Show" : "Hide"} ${c.name}`} />
+  </form>
+);
 
 export default function Finance({ searchParams }: { searchParams: Search }) {
   return <Page title="Company finance" description="Profit & loss summary for each company with a finance report."><Summary searchParams={searchParams} /></Page>;
 }
 
 async function Summary({ searchParams }: { searchParams: Search }) {
-  const { company, year: yr, sales: sy } = await searchParams;
+  const { company, year: yr, sales: sy, units: uy } = await searchParams;
   const sectors = await listSectors();
+  // Hidden companies stay in the tables (so they can be switched back on) but are left out of the charts.
   const rows = (await listCompanies()).filter((c) => !company || String(c.id) === company).flatMap((c) => { const rs = reportsFor(c); return (rs.length ? rs : [undefined]).map((r) => ({ c, r })); });
   const withData = rows.filter((x) => x.r);
   const companies = new Set(rows.map((x) => x.c.id)).size, withReport = new Set(withData.map((x) => x.c.id)).size;
   const byYear = years().map((year) => {
-    const rs = withData.filter((x) => x.r!.year === year).map((x) => x.r!);
+    const rs = withData.filter((x) => !x.c.hidden && x.r!.year === year).map((x) => x.r!);
     const top = rs.flatMap((r) => r.costGroups).map(([name, d]) => [name, sum(d)] as [string, number]).sort((a, b) => b[1] - a[1]); // all lines, so the percentages are shares of total cost
     return { year, top };
   });
@@ -52,8 +62,13 @@ async function Summary({ searchParams }: { searchParams: Search }) {
   const key = one && keyFor(one);
   const ys = key ? years(key) : [];
   const edit = one && yr && ys.includes(+yr) ? +yr : undefined; // the P&L table shows only after View (?year=) is clicked
+  // View/Hide on a data row toggles that year's grid below; other open grids of the same company stay open.
+  const open = (c: Company) => (one?.id === c.id ? { year: edit ? String(edit) : undefined, sales: salesYear ? String(salesYear) : undefined, units: unitsYear ? String(unitsYear) : undefined } : {});
+  const toggle = (c: Company, param: "year" | "sales" | "units", y: number) => link("/admin/finance", { company: String(c.id), ...open(c), [param]: open(c)[param] === String(y) ? undefined : String(y) });
   const salesRows = [...new Map(rows.map((x) => [x.c.id, x.c])).values()].flatMap((c) => salesFor(c).map((r) => ({ c, r })));
   const salesYear = one && sy && salesRows.some((x) => x.c.id === one.id && x.r.year === +sy) ? +sy : undefined; // the sales grid shows only after View (?sales=) is clicked
+  const unitYears = key ? years(key, "units") : [];
+  const unitsYear = uy && unitYears.includes(+uy) ? +uy : undefined; // the unit-type grid shows only after View (?units=) is clicked
   const uniqueCompanies = [...new Map(rows.map((x) => [x.c.id, x.c])).values()];
   const pnlAll: Row[] = uniqueCompanies.flatMap((c): Row[] => {
     const items: Row[] = rows.filter((x) => x.c.id === c.id && x.r).map((x) => ({ c, kind: "pnl" as const, r: x.r! }));
@@ -66,28 +81,30 @@ async function Summary({ searchParams }: { searchParams: Search }) {
   return (
     <>
       {one && (
-        <>
-          <Card className="flex-row flex-wrap items-center gap-x-8 gap-y-1 px-6 py-3 text-sm">
-            <span className="flex items-center gap-2 font-semibold">{one.name}<Badge className={one.active ? tone.green : tone.gray}>{one.active ? "Active" : "Inactive"}</Badge></span>
+        <Card className="gap-3 px-6 py-3 text-sm">
+          <div className="flex flex-wrap items-center gap-x-8 gap-y-1">
+            <span className="flex items-center gap-2 font-semibold">{one.name}<Badge variant={one.active ? "success" : "neutral"}>{one.active ? "Active" : "Inactive"}</Badge></span>
             {([["Sector", sectors.find(([k]) => k === one.sector)?.[1] ?? one.sector]] as const).map(([l, v]) => (
               <span key={l}><span className="text-muted-foreground">{l}: </span><span className="font-medium">{v || "-"}</span></span>
             ))}
-          </Card>
-          <Card><CardHeader><CardTitle>Upload files</CardTitle></CardHeader><CardContent>
-            <UploadReport companyKey={key!} />
-          </CardContent></Card>
-        </>
+          </div>
+          <UploadReport companyKey={key!} />
+        </Card>
       )}
-      {!company && <p className="text-sm text-muted-foreground">Companies with finance data: {withReport} of {companies}</p>}
-      <Card><CardHeader><CardTitle>Profit &amp; loss</CardTitle></CardHeader><CardContent>
+      {!company && (
+        <p className="text-sm text-muted-foreground">
+          Companies with finance data: {withReport} of {companies}
+        </p>
+      )}
+      <Card className="gap-2 py-3"><CardHeader><CardTitle className="text-sm">Profit &amp; loss</CardTitle></CardHeader><CardContent>
       <Table>
         <TableHeader>
-          <TableRow><TableHead>Company</TableHead><TableHead>Sector</TableHead><TableHead>Period</TableHead><TableHead className="text-right">Revenue</TableHead><TableHead className="text-right">Total cost</TableHead><TableHead className="text-right">Net</TableHead><TableHead className="text-right">Margin</TableHead><TableHead className="text-right">Report</TableHead></TableRow>
+          <TableRow>{!one && <><TableHead>Company</TableHead><TableHead>Sector</TableHead></>}<TableHead>Period</TableHead><TableHead className="text-right">Revenue</TableHead><TableHead className="text-right">Total cost</TableHead><TableHead className="text-right">Net</TableHead><TableHead className="text-right">Margin</TableHead><TableHead className="text-right">Report</TableHead>{!one && <TableHead className="text-right">Visible</TableHead>}</TableRow>
         </TableHeader>
         <TableBody>
           {pnlAll.map((x) => {
-            const { c } = x, head = (<><TableCell className="font-medium">{c.name}</TableCell><TableCell>{sectors.find(([k]) => k === c.sector)?.[1] ?? c.sector}</TableCell></>);
-            if (x.kind === "none") return <TableRow key={`${c.id}-none`}>{head}<TableCell colSpan={6}><Badge className={tone.gray}>No P&amp;L data yet</Badge></TableCell></TableRow>;
+            const { c } = x, head = one ? null : (<><TableCell className="font-medium">{c.name}</TableCell><TableCell>{sectors.find(([k]) => k === c.sector)?.[1] ?? c.sector}</TableCell></>);
+            if (x.kind === "none") return <TableRow key={`${c.id}-none`}>{head}<TableCell colSpan={6}><Badge variant="neutral">No P&amp;L data yet</Badge></TableCell>{!one && <TableCell className="text-right"><HideToggle c={c} /></TableCell>}</TableRow>;
             const r = x.r as ReturnType<typeof reportsFor>[number], rv = sum(r.revenue), nt = sum(r.net);
             return (
               <TableRow key={`${c.id}-pnl-${r.year}`}>
@@ -99,14 +116,15 @@ async function Summary({ searchParams }: { searchParams: Search }) {
                 <TableCell className={`text-right tabular-nums ${neg(nt)}`}>{rv ? `${((nt / rv) * 100).toFixed(1)}%` : "-"}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
-                    <Button asChild variant="outline" size="sm"><Link href={`/admin/finance?company=${c.id}&year=${r.year}`}>View</Link></Button>
+                    <Button asChild variant="outline" size="sm"><Link href={toggle(c, "year", r.year)}>{open(c).year === String(r.year) ? "Hide" : "View"}</Link></Button>
                     <form action={deletePnlYear}>
                       <input type="hidden" name="key" value={keyFor(c)} />
                       <input type="hidden" name="year" value={r.year} />
-                      <ConfirmButton variant="outline" size="sm" message={`Delete ${c.name}'s ${r.year} P&L statement? This cannot be undone.`}>Delete</ConfirmButton>
+                      <ConfirmButton size="icon-sm" variant="ghost" className="text-destructive hover:text-destructive" aria-label={`Delete ${r.year} P&L`} title="Delete" message={`Delete ${c.name}'s ${r.year} P&L statement? This cannot be undone.`}><Trash2 /></ConfirmButton>
                     </form>
                   </div>
                 </TableCell>
+                {!one && <TableCell className="text-right">{pnlAll.find((y) => y.c.id === c.id) === x && <HideToggle c={c} />}</TableCell>}
               </TableRow>
             );
           })}
@@ -114,28 +132,28 @@ async function Summary({ searchParams }: { searchParams: Search }) {
         </TableBody>
       </Table>
       </CardContent></Card>
-      <Card><CardHeader><CardTitle>Monthly sales</CardTitle></CardHeader><CardContent>
+      <Card className="gap-2 py-3"><CardHeader><CardTitle className="text-sm">Monthly sales</CardTitle></CardHeader><CardContent>
       <Table>
         <TableHeader>
-          <TableRow><TableHead>Company</TableHead><TableHead>Sector</TableHead><TableHead>Period</TableHead><TableHead className="text-right">Revenue</TableHead><TableHead className="text-right">Report</TableHead></TableRow>
+          <TableRow>{!one && <><TableHead>Company</TableHead><TableHead>Sector</TableHead></>}<TableHead>Period</TableHead><TableHead className="text-right">Revenue</TableHead><TableHead className="text-right">Report</TableHead></TableRow>
         </TableHeader>
         <TableBody>
           {salesAll.map((x) => {
-            const { c } = x, head = (<><TableCell className="font-medium">{c.name}</TableCell><TableCell>{sectors.find(([k]) => k === c.sector)?.[1] ?? c.sector}</TableCell></>);
-            if (x.kind === "none") return <TableRow key={`${c.id}-none`}>{head}<TableCell colSpan={3}><Badge className={tone.gray}>No monthly sales report yet</Badge></TableCell></TableRow>;
+            const { c } = x, head = one ? null : (<><TableCell className="font-medium">{c.name}</TableCell><TableCell>{sectors.find(([k]) => k === c.sector)?.[1] ?? c.sector}</TableCell></>);
+            if (x.kind === "none") return <TableRow key={`${c.id}-none`}>{head}<TableCell colSpan={3}><Badge variant="neutral">No monthly sales report yet</Badge></TableCell></TableRow>;
             const r = x.r as ReturnType<typeof salesFor>[number];
             return (
               <TableRow key={`${c.id}-sales-${r.year}`}>
                 {head}
                 <TableCell>{MONTHS[0]}-{MONTHS[11]} {r.year}</TableCell>
-                <TableCell className="text-right tabular-nums">{n(r.room + r.other)}</TableCell>
+                <TableCell className="text-right tabular-nums">{n(r.revenue)}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
-                    <Button asChild variant="outline" size="sm"><Link href={`/admin/finance?company=${c.id}&sales=${r.year}`}>View</Link></Button>
+                    <Button asChild variant="outline" size="sm"><Link href={toggle(c, "sales", r.year)}>{open(c).sales === String(r.year) ? "Hide" : "View"}</Link></Button>
                     <form action={deleteDailyYear}>
                       <input type="hidden" name="key" value={keyFor(c)} />
                       <input type="hidden" name="year" value={r.year} />
-                      <ConfirmButton variant="outline" size="sm" message={`Delete ${c.name}'s ${r.year} monthly sales report? This cannot be undone.`}>Delete</ConfirmButton>
+                      <ConfirmButton size="icon-sm" variant="ghost" className="text-destructive hover:text-destructive" aria-label={`Delete ${r.year} monthly sales`} title="Delete" message={`Delete ${c.name}'s ${r.year} monthly sales report? This cannot be undone.`}><Trash2 /></ConfirmButton>
                     </form>
                   </div>
                 </TableCell>
@@ -146,30 +164,34 @@ async function Summary({ searchParams }: { searchParams: Search }) {
         </TableBody>
       </Table>
       </CardContent></Card>
-      {one && salesYear && (
-        <AccountGrid title={`Monthly sales - ${salesYear}`} year={salesYear} rows={plRows(salesYear, key!, "sales")}
-          onSave={saveSalesCell.bind(null, salesYear, key!)} />
+      {one && !one.hidden && !!unitYears.length && (
+        <Card><CardHeader><CardTitle>Sales by unit type</CardTitle></CardHeader><CardContent className="flex flex-wrap gap-2">
+          {unitYears.map((y) => <Button key={y} asChild variant={y === unitsYear ? "secondary" : "outline"} size="sm"><Link href={toggle(one, "units", y)}>{y === unitsYear ? "Hide" : "View"} {y}</Link></Button>)}
+        </CardContent></Card>
       )}
+      {one && !one.hidden && unitsYear && <GridSection title={`Sales by unit type - ${unitsYear}`}><AccountGrid year={unitsYear} rows={plRows(unitsYear, key!, "units")} onSave={saveUnitsCell.bind(null, unitsYear, key!)} /></GridSection>}
+      {one && !one.hidden && salesYear && <GridSection title={`Monthly sales - ${salesYear}`}><AccountGrid year={salesYear} rows={plRows(salesYear, key!, "sales")} onSave={saveSalesCell.bind(null, salesYear, key!)} /></GridSection>}
       {!company && !!withData.length && (
         <div className="grid gap-4 lg:grid-cols-2">
           {byYear.map(({ year, top }) => <Card key={year}><CardHeader><CardTitle>Cost breakdown - {year}</CardTitle></CardHeader><CardContent><HBars rows={top} /></CardContent></Card>)}
         </div>
       )}
-      {edit && (
-        <AccountGrid title={`P&L - ${edit}`} year={edit} rows={plRows(edit, key!)}
-          onSave={savePnlCell.bind(null, edit, key!)} />
-      )}
+      {one && !one.hidden && edit && <GridSection title={`P&L - ${edit}`}><AccountGrid year={edit} rows={plRows(edit, key!)} onSave={savePnlCell.bind(null, edit, key!)} /></GridSection>}
     </>
   );
 }
 
+const GridSection = ({ title, children }: { title: string; children: React.ReactNode }) => (
+  <section className="space-y-3"><h2 className="text-sm font-semibold">{title}</h2>{children}</section>
+);
+
 /** Read-only monthly grid for one year, grouped by main account. Figures are edited one at a time via EditPnlFigure. Shared by P&L and monthly sales. */
-function AccountGrid({ title, year, rows, onSave }: { title: string; year: number; rows: ReturnType<typeof plRows>; onSave: (main: string, sub: string, month: number, value: number) => Promise<void> }) {
+function AccountGrid({ year, rows, onSave }: { year: number; rows: ReturnType<typeof plRows>; onSave: (main: string, sub: string, month: number, value: number) => Promise<void> }) {
   const groups = new Map<string, typeof rows>();
   for (const r of rows) groups.set(r.main, [...(groups.get(r.main) ?? []), r]);
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between"><h2 className="text-lg font-semibold">{title}</h2><EditPnlFigure year={year} months={MONTHS} accounts={rows} onSave={onSave} /></div>
+      <div className="flex justify-end"><EditPnlFigure year={year} months={MONTHS} accounts={rows} onSave={onSave} /></div>
       <div className="overflow-x-auto rounded-xl border bg-card">
         <table className="w-full text-sm">
           <thead><tr className="border-b bg-muted/50 text-left"><th className="sticky left-0 z-10 min-w-56 bg-muted px-2 py-2">Account</th>{MONTHS.map((m) => <th key={m} className="px-1 py-2 text-right">{m}</th>)}<th className="px-2 py-2 text-right">Total</th></tr></thead>

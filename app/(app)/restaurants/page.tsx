@@ -12,9 +12,9 @@ export default function Page() {
   return (
     <>
       <div className="kpis">
-        <Kpi label="Sales today" value="0 QAR" />
+        <Kpi label="Sales today" value="0" />
         <Kpi label="Transactions" value="0" />
-        <Kpi label="Average ticket" value="0.0 QAR" />
+        <Kpi label="Average ticket" value="0.0" />
         <Kpi label="Branches online" value="0 / 0" />
       </div>
       <div className="grid">

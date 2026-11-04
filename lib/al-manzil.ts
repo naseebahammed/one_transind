@@ -1,6 +1,7 @@
 // Al Manzil P&L (QAR), Jan-Dec, read from data/al-manzil.csv (monthly statements 2024-2025). Costs are positive here.
 import { readFileSync, renameSync, writeFileSync } from "fs";
 import { join } from "path";
+import type ExcelJS from "exceljs";
 
 export const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 export const sum = (a: number[]) => a.reduce((s, v) => s + v, 0);
@@ -14,6 +15,105 @@ export const dailyPath = (key: string) => join(process.cwd(), "data", key === AL
 export const salesPath = (key: string) => join(process.cwd(), "data", key === AL_MANZIL_KEY ? "al-manzil-sales.csv" : `sales-${key}.csv`);
 export const PNL_HEADER = "year,main,sub," + MONTHS.join(",");
 export const DAILY_HEADER = "date,long_guests,long_rate,long_total,short_guests,short_rate,short_total,rooms_occupied,room_revenue,other_revenue,avg_rate,rooms_available,occ";
+
+/** Numeric value of a cell; formula cells carry their cached result. Blank or non-numeric reads as 0. */
+export const num = (v: ExcelJS.CellValue) => {
+  const x = typeof v === "object" && v && "result" in v ? v.result : v;
+  return typeof x === "number" ? Math.round(x * 100) / 100 : 0;
+};
+
+/** "YYYY-MM" named by a sheet's title row ("... Report January-2026", "120 Al Sadd Residence Dec-2025"), or "" if none.
+ *  A sheet whose date cells disagree with its title (copied sheet, dates never updated) is re-dated by row order. */
+function sheetYm(ws: ExcelJS.Worksheet) {
+  let ym = "";
+  ws.getRow(1).eachCell((c) => {
+    const tm = String(c.text).match(/([A-Za-z]{3})[a-z]*\s*-?\s*(\d{4})\s*$/), mi = tm ? MONTHS.findIndex((x) => x.toLowerCase() === tm[1].toLowerCase()) : -1;
+    if (!ym && tm && mi >= 0) ym = `${tm[2]}-${String(mi + 1).padStart(2, "0")}`;
+  });
+  return ym;
+}
+
+/** Daily CSV rows (no header) from every sheet of a sales workbook. Columns are found by header text, so the 2024/25 layout (blank spacer column, no "Other Revenue") and the 2026 one both load.
+ *  shortcut: a day with no guests at all is skipped as "not yet happened", so a genuinely empty day is not recorded - fine for a hotel that is always open. */
+export function dailyFromWorkbook(wb: ExcelJS.Workbook) {
+  const lines: string[] = [];
+  for (const ws of wb.worksheets) {
+    const col = new Map<string, number>();
+    let head = 0;
+    for (let i = 1; i <= 5 && !head; i++) {
+      ws.getRow(i).eachCell((c) => { if (String(c.value ?? "").trim().toLowerCase() === "date") head = i; });
+    }
+    if (!head) continue; // not a daily sheet
+    ws.getRow(head).eachCell((c, n) => { const t = String(c.value ?? "").trim().toLowerCase(); if (t && !col.has(t)) col.set(t, n); });
+    const at = (name: string, off = 0) => { const n = col.get(name); return n ? n + off : 0; };
+    const revCol = [...col].find(([t]) => t.includes("daily revenue"))?.[1] ?? 0;
+    const c = { lg: at("long stay guests"), sg: at("short stay guests"), occ: at("total room occupancy"), rev: revCol, other: at("other revenue"), total: at("total revenue"), adr: at("daily avg rate"), avl: at("rms/avl.") };
+    if (!c.lg || !c.sg || !revCol) continue;
+    const titleYm = sheetYm(ws);
+    let remap: boolean | undefined, day = 0, prevTotal = 0, running: boolean | undefined; // running: "Total Revenue" is a month-to-date total (Al Manzil 2023-25), not a per-day figure
+    ws.eachRow({ includeEmpty: false }, (row, i) => {
+      if (i <= head) return;
+      const raw = row.getCell(1).value;
+      const dv = raw && typeof raw === "object" && "result" in raw ? raw.result : raw; // date cells are often =previous+1 formulas
+      let date = dv instanceof Date ? dv.toISOString().slice(0, 10) : /^\d{4}-\d{2}-\d{2}/.test(String(dv ?? "").trim()) ? String(dv).trim().slice(0, 10) : null;
+      if (!date) return; // title, sub total and blank rows have no date
+      remap ??= !!titleYm && date.slice(0, 7) !== titleYm;
+      if (remap) date = `${titleYm}-${String(++day).padStart(2, "0")}`;
+      const n = (k: number) => (k ? num(row.getCell(k).value) : 0);
+      const longG = n(c.lg), shortG = n(c.sg);
+      if (!longG && !shortG) return;
+      const longT = n(c.lg + 2), shortT = n(c.sg + 2);
+      const occupied = n(c.occ) || longG + shortG, avail = n(c.avl);
+      const roomRev = n(c.rev) || longT + shortT;
+      if (c.total && !c.other) { const t = n(c.total); if (prevTotal) running ??= Math.abs(t - prevTotal - roomRev) < 1; prevTotal = t; }
+      lines.push([date, longG, n(c.lg + 1), longT, shortG, n(c.sg + 1), shortT, occupied, roomRev, c.other ? n(c.other) : c.total && !running ? Math.round((n(c.total) - roomRev) * 100) / 100 : 0, // 120 Al Sadd has Supermarket/Spa inside Total Revenue, no "other revenue" column
+         n(c.adr) || (occupied ? Math.round((roomRev / occupied) * 100) / 100 : 0), avail, avail ? Math.round((occupied / avail) * 10000) / 10000 : 0].join(","));
+    });
+  }
+  return lines;
+}
+
+export const unitsPath = (key: string) => join(process.cwd(), "data", `units-${key}.csv`);
+const UNIT_METRICS = [["availability", "Available"], ["long stay", "Long stay"], ["short stay", "Short stay"], ["revenue", "Room revenue"]] as const;
+
+/** Monthly totals per unit type (e.g. "1 BHK") from a unit-type sales workbook, P&L-shaped, plus the "year-monthIndex" keys it covers.
+ *  Layout: a group header row (Availability / Long Stay / Short Stay / ... Revenue) over a row naming the unit type in each column. */
+export function unitsFromWorkbook(wb: ExcelJS.Workbook) {
+  const acc = new Map<string, number[]>(), months = new Set<string>();
+  for (const ws of wb.worksheets) {
+    let g = 0;
+    for (let i = 1; i <= 5 && !g; i++) ws.getRow(i).eachCell((c) => { if (String(c.text).trim().toLowerCase() === "availability") g = i; });
+    if (!g) continue; // not a unit-type sheet
+    const cols: { metric: string; type: string; col: number }[] = [];
+    let dateCol = 0;
+    ws.getRow(g).eachCell((c, n) => {
+      const t = String(c.text).trim().toLowerCase(), m = UNIT_METRICS.find(([k]) => k === (t === "room revenue" ? "revenue" : t)); // Jul-2026 sheets say "Room Revenue"
+      if (t === "date") dateCol = n;
+      // "Other Revenue" is not a unit's own revenue, so only the exact group names count.
+      if (m) cols.push({ metric: m[1], type: String(ws.getRow(g + 1).getCell(n).text).trim(), col: n });
+    });
+    if (!dateCol || !cols.length) continue;
+    const titleYm = sheetYm(ws);
+    let remap: boolean | undefined, day = 0;
+    ws.eachRow({ includeEmpty: false }, (row, i) => {
+      if (i <= g + 1) return;
+      const raw = row.getCell(dateCol).value, dv = raw && typeof raw === "object" && "result" in raw ? raw.result : raw;
+      let date = dv instanceof Date ? dv.toISOString().slice(0, 10) : /^\d{4}-\d{2}-\d{2}/.test(String(dv ?? "").trim()) ? String(dv).trim().slice(0, 10) : null;
+      if (!date) return;
+      remap ??= !!titleYm && date.slice(0, 7) !== titleYm;
+      if (remap) date = `${titleYm}-${String(++day).padStart(2, "0")}`;
+      if (!cols.some((x) => (x.metric === "Long stay" || x.metric === "Short stay") && num(row.getCell(x.col).value))) return; // no guests = day not yet happened
+      const mi = +date.slice(5, 7) - 1;
+      months.add(`${date.slice(0, 4)}-${mi}`);
+      for (const x of cols) {
+        const k = `${date.slice(0, 4)},${x.type},${x.metric}`;
+        const a = acc.get(k) ?? acc.set(k, Array<number>(12).fill(0)).get(k)!;
+        a[mi] += num(row.getCell(x.col).value);
+      }
+    });
+  }
+  return { lines: [...acc].map(([k, m]) => [k, ...m.map((v) => Math.round(v * 100) / 100)].join(",")), months };
+}
 
 /** Sales metrics kept in the monthly grid: [main, sub, column index in DAILY_HEADER]. Rates/occupancy stay derived, not stored - like a P&L total, never typed. */
 const SALES_METRICS: [string, string, number][] = [
@@ -43,6 +143,8 @@ export function mergeDaily(existing: string, upload: string) {
     const d = new Date(c[0] + "T00:00:00Z");
     if (c.length !== n || !/^\d{4}-\d{2}-\d{2}$/.test(c[0]) || isNaN(+d) || d.toISOString().slice(0, 10) !== c[0] || c.slice(1).some((x) => x === "" || !Number.isFinite(Number(x))))
       throw new Error(`Line ${i + 2} is not a valid daily row (date, then ${n - 1} numbers).`);
+    if (+c[n - 1] > 1 || +c[n - 1] < 0)
+      throw new Error(`Line ${i + 2} has occupancy ${(+c[n - 1] * 100).toFixed(1)}% - rooms occupied can't exceed rooms available; check the "Rms/Avl." and occupancy columns in the source report.`);
     byDate.set(c[0], c.join(","));
   });
   if (!lines.length) throw new Error("The file has no daily rows.");
@@ -63,18 +165,22 @@ function ensureSalesFile(key: string) {
   writeCsv([PNL_HEADER, ...yrs.flatMap((y) => aggregateSales(daily, y))].join("\n") + "\n", path);
 }
 
-const load = (key = AL_MANZIL_KEY, kind: "pnl" | "sales" = "pnl") => {
-  if (kind === "sales") ensureSalesFile(key);
-  return readCsv(kind === "sales" ? salesPath(key) : pnlPath(key)).slice(1).map((l) => {
+type Kind = "pnl" | "sales" | "units";
+type Key = string | string[];
+/** key can be one company's key, or several to combine (e.g. "All" real-estate companies). */
+const load = (key: Key = AL_MANZIL_KEY, kind: Kind = "pnl") => {
+  const keys = Array.isArray(key) ? key : [key];
+  if (kind === "sales") for (const k of keys) ensureSalesFile(k);
+  return keys.flatMap((k) => readCsv(kind === "sales" ? salesPath(k) : kind === "units" ? unitsPath(k) : pnlPath(k)).slice(1)).map((l) => {
     const [year, main, sub, ...m] = l.split(",");
     return { year: +year, main, sub, m: m.map(Number) };
   });
 };
-export const years = (key = AL_MANZIL_KEY, kind: "pnl" | "sales" = "pnl") => [...new Set(load(key, kind).map((x) => x.year))].sort();
+export const years = (key: Key = AL_MANZIL_KEY, kind: Kind = "pnl") => [...new Set(load(key, kind).map((x) => x.year))].sort();
 const add = (a: number[], b: number[], s = 1) => a.map((v, i) => v + s * b[i]);
 const zero = () => Array<number>(12).fill(0);
 
-export function report(year: number, key = AL_MANZIL_KEY, rows = load(key)) {
+export function report(year: number, key: Key = AL_MANZIL_KEY, rows = load(key)) {
   const r = rows.filter((x) => x.year === year);
   const by = new Map<string, number[]>();
   for (const x of r) if (x.main !== "REVENUE") by.set(x.main, add(by.get(x.main) ?? zero(), x.m, -1));
@@ -119,21 +225,24 @@ export function setCell(csv: string, year: number, main: string, sub: string, mo
 }
 
 /** Revenue by account line (room rent, space rental, ...) for one year, non-zero lines only. */
-export const revenueLines = (year: number, key = AL_MANZIL_KEY) =>
+export const revenueLines = (year: number, key: Key = AL_MANZIL_KEY) =>
   load(key).filter((x) => x.year === year && x.main === "REVENUE").map((x) => [x.sub, sum(x.m)] as [string, number]).filter(([, v]) => v).sort((a, b) => b[1] - a[1]);
 
 /** Per month for one year from the daily long/short stay sales report: occupancy %, average daily rate, rooms sold, long/short guests, other revenue. */
-export function occupancy(year: number, key = AL_MANZIL_KEY) {
-  const days = readCsv(dailyPath(key)).slice(1).map((l) => l.split(",")).filter((c) => c[0].startsWith(`${year}-`));
+export function occupancy(year: number, key: Key = AL_MANZIL_KEY) {
+  const days = (Array.isArray(key) ? key : [key]).flatMap((k) => readCsv(dailyPath(k)).slice(1)).map((l) => l.split(",")).filter((c) => c[0].startsWith(`${year}-`));
   return MONTHS.map((_, m) => {
     const d = days.filter((c) => +c[0].slice(5, 7) === m + 1).map((c) => c.slice(1).map(Number));
     const [lg, sg, sold, avail, room, other] = [0, 3, 6, 10, 7, 8].map((i) => sum(d.map((c) => c[i])));
-    return { days: d.length, sold, occ: avail ? sold / avail : 0, adr: sold ? room / sold : 0, longShare: sold ? lg / (lg + sg) : 0, room, other };
+    return { days: d.length, sold, avail, occ: avail ? sold / avail : 0, adr: sold ? room / sold : 0, longShare: sold ? lg / (lg + sg) : 0, room, other };
   });
 }
 
 /** Raw daily rows (as in the CSV) for checking: [date, long guests, long rate, long total, short guests, short rate, short total, rooms sold, room revenue, other revenue, ADR, rooms available, occ]. */
 export const dailyRows = (key = AL_MANZIL_KEY) => readCsv(dailyPath(key)).slice(1).map((l) => l.split(","));
 
+/** Years actually covered by the daily report - the P&L can have years the stay report doesn't (and vice versa), so the stay report's year picker needs its own list. */
+export const dailyYears = (key: Key = AL_MANZIL_KEY) => [...new Set((Array.isArray(key) ? key : [key]).flatMap((k) => readCsv(dailyPath(k)).slice(1)).map((l) => +l.slice(0, 4)))].sort();
+
 /** Detail account rows of one year as they are in the CSV, for the editable table. */
-export const plRows = (year: number, key = AL_MANZIL_KEY, kind: "pnl" | "sales" = "pnl") => load(key, kind).filter((x) => x.year === year);
+export const plRows = (year: number, key: Key = AL_MANZIL_KEY, kind: Kind = "pnl") => load(key, kind).filter((x) => x.year === year);

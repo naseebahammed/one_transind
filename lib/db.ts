@@ -1,6 +1,7 @@
 import type { PoolClient } from "pg";
 import seed from "@/data/seed.json";
 import { SECTORS } from "@/lib/org";
+import { PROPERTY_TYPES } from "@/lib/company-input";
 import { ACCOUNT_SEED } from "@/lib/accounts-seed";
 import { pg } from "@/lib/pg";
 import { SCHEMA } from "@/lib/schema";
@@ -13,6 +14,7 @@ async function init() {
     await c.query(SCHEMA);
     const empty = async (t: string) => !(await c.query(`SELECT 1 FROM app.${t} LIMIT 1`)).rowCount;
     if (await empty("sectors")) for (const [k, v] of SECTORS) await c.query("INSERT INTO app.sectors VALUES($1,$2)", [k, v]);
+    if (await empty("property_types")) for (const [k, v] of PROPERTY_TYPES) await c.query("INSERT INTO app.property_types VALUES($1,$2)", [k, v]);
     if (await empty("accounts")) {
       let i = 0;
       for (const [m, subs] of Object.entries(ACCOUNT_SEED)) { i++; for (const s of subs) await c.query("INSERT INTO app.accounts(main,sub,main_order) VALUES($1,$2,$3)", [m, s, i]); }

@@ -1,0 +1,154 @@
+/*
+ * Admin design tokens (PROPOSED, not yet imported anywhere).
+ * Drop-in replacement for the token blocks in app/admin/admin.css (Tailwind v4 + shadcn names kept,
+ * so existing utilities like bg-primary / rounded-md / text-muted-foreground keep working).
+ * Rationale and old->new migration map: /DESIGN.md
+ */
+
+/* Same scoping as today: sheet/select popups portal to <body>, outside .admin. */
+.admin, [data-slot="sheet-content"], [data-slot="select-content"] {
+  /* ---- Neutrals: one cool family (hue 255-265) to match the navy sidebar ---- */
+  --background: oklch(0.975 0.004 255);        /* page canvas */
+  --foreground: oklch(0.18 0.02 265);          /* body ink */
+  --card: oklch(1 0 0);
+  --card-foreground: var(--foreground);
+  --popover: var(--card);
+  --popover-foreground: var(--foreground);
+  --muted: oklch(0.96 0.005 255);              /* table header, hover, subtle fills */
+  --muted-foreground: oklch(0.5 0.02 257);     /* secondary text, AA on card + background */
+  --secondary: var(--muted);                   /* alias kept for shadcn variants */
+  --secondary-foreground: var(--foreground);
+  --accent: var(--muted);                      /* alias: hover surface */
+  --accent-foreground: var(--foreground);
+  --border: oklch(0.92 0.006 255);
+  --input: oklch(0.88 0.008 255);              /* form-control border, one step darker than --border */
+
+  /* ---- Brand: ONE blue ---- */
+  --primary: oklch(0.546 0.215 262);
+  --primary-foreground: oklch(0.985 0 0);
+  --ring: oklch(0.546 0.215 262 / 0.5);        /* focus ring = primary at 50%, drawn 3px */
+
+  /* ---- Status: solid (icons, text, chart) + soft (badge bg / fg) ---- */
+  --destructive: oklch(0.577 0.245 27);
+  --destructive-foreground: oklch(0.985 0 0);
+  --success: oklch(0.596 0.145 163);
+  --warning: oklch(0.769 0.188 70);
+  --info: var(--primary);
+
+  --success-soft: oklch(0.95 0.052 163);   --success-soft-foreground: oklch(0.508 0.118 165);
+  --warning-soft: oklch(0.962 0.059 96);   --warning-soft-foreground: oklch(0.555 0.163 49);
+  --danger-soft:  oklch(0.936 0.032 17);   --danger-soft-foreground:  oklch(0.505 0.213 27);
+  --info-soft:    oklch(0.932 0.032 255);  --info-soft-foreground:    oklch(0.488 0.243 264);
+  --neutral-soft: var(--muted);            --neutral-soft-foreground: oklch(0.45 0.02 257);
+
+  /* ---- Charts: replaces hex literals in app/admin/page.tsx and bg-blue-500 in FinanceCharts ---- */
+  --chart-1: var(--primary);
+  --chart-2: var(--success);
+  --chart-3: var(--warning);
+  --chart-4: var(--destructive);
+
+  /* ---- Sidebar (unchanged hues, deduped lightness steps) ---- */
+  --sidebar: oklch(0.21 0.045 265);
+  --sidebar-foreground: oklch(0.9 0.015 260);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: oklch(0.3 0.055 265);
+  --sidebar-accent-foreground: oklch(1 0 0);
+  --sidebar-border: oklch(0.3 0.04 265);
+  --sidebar-ring: var(--ring);
+
+  /* ---- Layout / density ---- */
+  --control-h: 2.25rem;      /* 36px: Button, Input, Select, NativeSelect */
+  --control-h-sm: 2rem;      /* 32px: row actions, dense forms */
+  --header-h: 3.5rem;        /* 56px top bar */
+  --page-gutter: 1rem;       /* 16px, 32px from md up */
+  --section-gap: 1.5rem;     /* 24px between page sections */
+  --card-pad: 1.5rem;        /* 24px default card */
+  --card-pad-compact: 1rem;  /* 16px compact card (stat tiles, summary strips) */
+}
+
+@media (min-width: 48rem) { .admin { --page-gutter: 2rem; } }
+
+.admin {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-size: 0.875rem;       /* 14px body = text-sm */
+  line-height: 1.25rem;
+}
+
+/* Tailwind v4 theme bridge. Spacing stays on the default 4px scale (--spacing: 0.25rem). */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
+  --color-success-soft: var(--success-soft);
+  --color-success-soft-foreground: var(--success-soft-foreground);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-soft-foreground: var(--warning-soft-foreground);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-soft-foreground: var(--danger-soft-foreground);
+  --color-info-soft: var(--info-soft);
+  --color-info-soft-foreground: var(--info-soft-foreground);
+  --color-neutral-soft: var(--neutral-soft);
+  --color-neutral-soft-foreground: var(--neutral-soft-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+}
+
+/* Literal (non-inline) theme values: emitted as real custom properties on :root. */
+@theme {
+  /* Radius: 4 / 8 / 12 / full. full only for badges, switch, avatars. */
+  --radius-sm: 4px;    /* checkbox, chart bars, inline chips */
+  --radius-md: 8px;    /* buttons, inputs, selects, table container, popovers */
+  --radius-lg: 12px;   /* cards, panels, sheets */
+  --radius-xl: 12px;   /* alias during migration; delete once no rounded-xl remains */
+
+  /* Shadow: 3 levels */
+  --shadow-xs: 0 1px 2px 0 oklch(0 0 0 / 0.05);                                      /* controls */
+  --shadow-sm: 0 1px 3px 0 oklch(0 0 0 / 0.08), 0 1px 2px -1px oklch(0 0 0 / 0.08); /* cards */
+  --shadow-md: 0 10px 24px -6px oklch(0 0 0 / 0.18), 0 2px 6px -2px oklch(0 0 0 / 0.1); /* overlays: select popup, sheet */
+  --shadow-lg: var(--shadow-md); /* alias during migration */
+
+  --font-sans: ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  /* Type scale: 5 sizes. text-3xl and text-base-on-controls are retired. */
+  --text-xs: 0.75rem;   --text-xs--line-height: 1rem;      /* 12 meta, table head, badges */
+  --text-sm: 0.875rem;  --text-sm--line-height: 1.25rem;   /* 14 body, controls, table cells */
+  --text-base: 1rem;    --text-base--line-height: 1.5rem;  /* 16 card titles */
+  --text-lg: 1.125rem;  --text-lg--line-height: 1.75rem;   /* 18 section headings (h2) */
+  --text-2xl: 1.5rem;   --text-2xl--line-height: 2rem;     /* 24 page title (h1), KPI value */
+}
+
+.admin * { border-color: var(--border); }
