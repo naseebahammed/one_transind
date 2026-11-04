@@ -7,7 +7,7 @@ export type MonthStatus = "Submitted" | "Not submitted" | "Not due";
 
 export const SECTIONS: readonly (readonly [Section, string])[] = [["profile", "Profile"], ["pnl", "P&L"], ["balance", "Balance sheet and cash"], ["budget", "Budget"], ["people", "People"]];
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+export const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const AGES = ["current", "1-30 days", "31-60 days", "61-90 days", "over 90 days"];
 const RECEIVABLES = AGES.map((a) => `Receivables: ${a}`), PAYABLES = AGES.map((a) => `Payables: ${a}`);
 const ASSETS = ["Cash at bank", ...RECEIVABLES, "Stock", "Fixed assets", "Other assets"];
