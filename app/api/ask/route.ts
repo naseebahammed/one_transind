@@ -13,9 +13,9 @@ async function context() {
   return JSON.stringify({
     year: o.year,
     latestCompleteMonth: o.month + 1,
-    monthly: o.months.map(({ m, v, c }) => ({ month: m, sales: Math.round(v), cost: Math.round(c) })),
-    brands: o.brands.map(({ n, v, lm }) => ({ brand: n, thisMonth: Math.round(v), lastMonth: Math.round(lm) })),
-    topCustomers: c.customers.slice(0, 20).map((x) => ({ name: x.name, group: x.group, ytd: Math.round(x.ytd), thisMonth: Math.round(x.mtd), lastMonth: Math.round(x.lm) })),
+    monthly: o.months.map(({ month, value, cost }) => ({ month, sales: Math.round(value), cost: Math.round(cost) })),
+    brands: o.brands.map(({ name, value, lastMonth }) => ({ brand: name, thisMonth: Math.round(value), lastMonth: Math.round(lastMonth) })),
+    topCustomers: c.customers.slice(0, 20).map((x) => ({ name: x.name, group: x.group, ytd: Math.round(x.ytd), thisMonth: Math.round(x.mtd), lastMonth: Math.round(x.lastMonth) })),
     realEstate: {
       source: "Al Manzil (Transind Real Estate)",
       byYear: ys.map((y) => { const r = report(y, alManzil); return { year: y, revenue: Math.round(sum(r.revenue)), totalCost: Math.round(sum(r.totalCost)), net: Math.round(sum(r.net)) }; }),

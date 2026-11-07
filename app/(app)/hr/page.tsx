@@ -67,7 +67,7 @@ async function Content({ searchParams }: { searchParams: Params }) {
           <Panel span={12} title={`Salesmen · ${MONTHS[o.month]} ${o.year}`}>
             <div className="tw"><table>
               <thead><tr><th>Name</th><th className="n">Sales (QAR)</th><th className="n">Customers</th><th className="n">Documents</th></tr></thead>
-              <tbody>{team.map((m) => <tr key={m.name}><td><span className="who"><span className="avatar">{m.name.split(" ").map((x) => x[0]).join("").slice(0, 2)}</span>{m.name}</span></td><td className="n num">{fmt(m.v)}</td><td className="n num">{m.customers}</td><td className="n num">{fmt(m.docs)}</td></tr>)}</tbody>
+              <tbody>{team.map((m) => <tr key={m.name}><td><span className="who"><span className="avatar">{m.name.split(" ").map((x) => x[0]).join("").slice(0, 2)}</span>{m.name}</span></td><td className="n num">{fmt(m.value)}</td><td className="n num">{m.customers}</td><td className="n num">{fmt(m.docs)}</td></tr>)}</tbody>
             </table></div>
           </Panel>
         )}

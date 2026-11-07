@@ -32,7 +32,7 @@ async function Content({ searchParams }: { searchParams: Params }) {
   // Revenue by admin sector: departments are mapped to one under Admin → Sales sectors; the rest fall under "Unassigned".
   const known = new Set(adminSectors.map(([k]) => k));
   const bySector = new Map<string, number>();
-  for (const d of depts) { const k = d.sector && known.has(d.sector) ? d.sector : ""; bySector.set(k, (bySector.get(k) ?? 0) + d.v); }
+  for (const d of depts) { const k = d.sector && known.has(d.sector) ? d.sector : ""; bySector.set(k, (bySector.get(k) ?? 0) + d.value); }
   // Health & Beauty (Pavati) and Retail (Top Perfume) companies report monthly sales through Admin → Finance, not the sales table.
   const fileSales = FILE_SECTORS.map(([k, name], i) => {
     const cos = fileCos[i].filter((c) => c.active && !c.hidden), keys = cos.map(keyFor);
@@ -46,14 +46,14 @@ async function Content({ searchParams }: { searchParams: Params }) {
     return amSum(report(o.year, key, years(key).includes(o.year) ? undefined : plRows(o.year, key, "sales")).revenue.slice(0, o.month + 1));
   })));
   const sectors = [...adminSectors.map(([k, name]) => ({ label: name, v: bySector.get(k) ?? 0 })), ...(bySector.get("") ? [{ label: "Unassigned", v: bySector.get("")! }] : [])];
-  const cur = o.months[o.month], ytd = sum(o.months.map((m) => m.v));
-  const monthly = o.months.map((m) => m.v / 1e6);
+  const cur = o.months[o.month], ytd = sum(o.months.map((m) => m.value));
+  const monthly = o.months.map((m) => m.value / 1e6);
   const label = `${MONTHS[o.month]} ${o.year}`;
 
   return (
     <>
       <div className="kpis">
-        <Kpi label="Sales this month" value={money(cur.v)} delta={label} spark={monthly} />
+        <Kpi label="Sales this month" value={money(cur.value)} delta={label} spark={monthly} />
         <Kpi label="Revenue year to date" value={`${fmt(ytd / 1e6)} M`} spark={monthly} up />
         <Kpi label="Open pipeline value" value={<NotConnected />} />
         <Kpi label="Receivables outstanding" value={<NotConnected />} />

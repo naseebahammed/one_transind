@@ -25,11 +25,11 @@ type Props = {
 export function Drill({ title, src, mode, rows, labels, path, levels, rootLabel, href, all, q, yoyLabels, momLabel, span = 12 }: Props) {
   const shown = q ? rows.filter((r) => (r.label + " " + r.sub).toLowerCase().includes(q.toLowerCase())) : rows;
   const leaf = path.length === levels.length - 1;
-  const tot = shown.reduce((a, r) => a + r.v, 0), cost = shown.reduce((a, r) => a + r.c, 0);
-  const lm = shown.reduce((a, r) => a + r.lv, 0), ly = shown.reduce((a, r) => a + r.ly, 0), ly2 = shown.reduce((a, r) => a + r.ly2, 0);
-  const mx = Math.max(1, ...shown.map((r) => Math.abs(r.v)));
+  const tot = shown.reduce((a, r) => a + r.value, 0), cost = shown.reduce((a, r) => a + r.cost, 0);
+  const lm = shown.reduce((a, r) => a + r.lastMonth, 0), ly = shown.reduce((a, r) => a + r.lastYear, 0), ly2 = shown.reduce((a, r) => a + r.twoYearsAgo, 0);
+  const mx = Math.max(1, ...shown.map((r) => Math.abs(r.value)));
   const list = all ? shown : shown.slice(0, 25);
-  const base = mode === "mom" ? "lv" : "ly";
+  const base = mode === "mom" ? "lastMonth" : "lastYear";
   return (
     <section className={`panel c${span}`}>
       <header><h2>{title}</h2>{src != null && <span className="src">{src}</span>}</header>
@@ -59,17 +59,17 @@ export function Drill({ title, src, mode, rows, labels, path, levels, rootLabel,
           const inner = (
             <>
               <span className="lab">{r.label}{r.sub && <small>{r.sub}</small>}</span>
-              <span className="track"><span className={`fill ${mode === "margin" && r.v < 0 ? "bad" : ""}`} style={{ width: `${Math.max(1, Math.abs(r.v) / mx * 100)}%` }} /></span>
-              <span className="num" style={{ textAlign: "end" }}>{fmt(r.v)}<small style={{ display: "block", fontSize: 11 }}>
-                {mode === "margin" ? <MarginChip s={r.v} c={r.c} /> : <Delta a={r.v} b={r[base]} small />}
+              <span className="track"><span className={`fill ${mode === "margin" && r.value < 0 ? "bad" : ""}`} style={{ width: `${Math.max(1, Math.abs(r.value) / mx * 100)}%` }} /></span>
+              <span className="num" style={{ textAlign: "end" }}>{fmt(r.value)}<small style={{ display: "block", fontSize: 11 }}>
+                {mode === "margin" ? <MarginChip s={r.value} c={r.cost} /> : <Delta a={r.value} b={r[base]} small />}
               </small></span>
               <span className="chev" aria-hidden="true">{leaf ? "" : "›"}</span>
             </>
           );
-          const tip = `${r.label}: ${fmt(r.v)} · share ${fmt(tot ? r.v / tot * 100 : 0, 1)}%`;
+          const tip = `${r.label}: ${fmt(r.value)} · share ${fmt(tot ? r.value / tot * 100 : 0, 1)}%`;
           return leaf
-            ? <div className="dr" key={r.k} title={tip} aria-disabled="true">{inner}</div>
-            : <Link className="dr" key={r.k} title={tip} href={href([...path, r.k])}>{inner}</Link>;
+            ? <div className="dr" key={r.key} title={tip} aria-disabled="true">{inner}</div>
+            : <Link className="dr" key={r.key} title={tip} href={href([...path, r.key])}>{inner}</Link>;
         })}
         {!list.length && <p className="empty">—</p>}
       </div>

@@ -47,15 +47,15 @@ async function Content() {
           <div className="tw"><table>
             <thead><tr><th>Route</th><th className="n">Drivers</th><th className="n">Documents</th><th className="n">Sales</th><th className="n">vs prev. month</th></tr></thead>
             <tbody>{d.routes.map((r) => (
-              <tr key={r.k}><td>{r.k}</td><td className="n num">{r.drivers}</td><td className="n num">{fmt(r.docs)}</td><td className="n num">{fmt(r.v)}</td>
-                <td className={`n num ${pct(r.v, r.lv) >= 0 ? "up" : "down"}`}>{r.lv ? `${fmt(pct(r.v, r.lv), 1)}%` : "—"}</td></tr>
+              <tr key={r.key}><td>{r.key}</td><td className="n num">{r.drivers}</td><td className="n num">{fmt(r.docs)}</td><td className="n num">{fmt(r.value)}</td>
+                <td className={`n num ${pct(r.value, r.lastMonth) >= 0 ? "up" : "down"}`}>{r.lastMonth ? `${fmt(pct(r.value, r.lastMonth), 1)}%` : "—"}</td></tr>
             ))}</tbody>
           </table></div>
         </Panel>
         <Panel span={6} title={`Top drivers · ${label}`}>
           <div className="tw"><table>
             <thead><tr><th>Driver</th><th className="n">Customers</th><th className="n">Documents</th><th className="n">Sales</th></tr></thead>
-            <tbody>{d.drivers.map((r) => <tr key={r.name}><td>{r.name}</td><td className="n num">{r.customers}</td><td className="n num">{fmt(r.docs)}</td><td className="n num">{fmt(r.v)}</td></tr>)}</tbody>
+            <tbody>{d.drivers.map((r) => <tr key={r.name}><td>{r.name}</td><td className="n num">{r.customers}</td><td className="n num">{fmt(r.docs)}</td><td className="n num">{fmt(r.value)}</td></tr>)}</tbody>
           </table></div>
         </Panel>
       </div>

@@ -26,21 +26,21 @@ async function Content({ searchParams }: { searchParams: Params }) {
     getDrill(month, "p", pp), getDrillLabels(month, "p", pp), getDrill(month, "c", cp), getDrillLabels(month, "c", cp),
     getStats(month, "group"), getStats(month, "brand"), getBreakdown(month, "dept"),
   ]);
-  const tot = sum(dept.rows.map((r) => r.v)), cost = sum(dept.rows.map((r) => r.c)), ret = sum(dept.rows.map((r) => r.cr));
+  const tot = sum(dept.rows.map((r) => r.value)), cost = sum(dept.rows.map((r) => r.cost)), ret = sum(dept.rows.map((r) => r.creditNotes));
   const active = dept.customers;
   const mn = `${MONTHS[month]} ${o.year}`;
   const href = (kind: "p" | "c") => (path: string[], a?: boolean) =>
     link("/trading", { m: String(month + 1), p: kind === "p" ? path.join("|") : pp.join("|"), c: kind === "c" ? path.join("|") : cp.join("|"), q, all: a ? kind : undefined });
 
-  const topGroups = groups.slice(0, 10), top10 = sum(topGroups.map((g) => g.v));
-  const delivery = sum(groups.filter((g) => /talabat|snoonu/i.test(g.k)).map((g) => g.v));
-  const lowBrands = brands.filter((b) => b.v > 50000 && mPct(b.v, b.c) < 15).map((b) => b.k);
-  const worstDept = [...dept.rows].sort((a, b) => a.cr - b.cr)[0];
+  const topGroups = groups.slice(0, 10), top10 = sum(topGroups.map((g) => g.value));
+  const delivery = sum(groups.filter((g) => /talabat|snoonu/i.test(g.key)).map((g) => g.value));
+  const lowBrands = brands.filter((b) => b.value > 50000 && mPct(b.value, b.cost) < 15).map((b) => b.key);
+  const worstDept = [...dept.rows].sort((a, b) => a.creditNotes - b.creditNotes)[0];
   const insights: [string, string][] = tot ? [
-    ["warn", `${brands[0].k} is ${fmt(brands[0].v / tot * 100, 1)}% of sales; the top 3 brands (${brands.slice(0, 3).map((b) => b.k).join(", ")}) make ${fmt(sum(brands.slice(0, 3).map((b) => b.v)) / tot * 100, 1)}%.`],
-    ["warn", `The top 10 customer groups make ${fmt(top10 / tot * 100, 1)}% of sales; the largest, ${groups[0].k}, is ${fmt(groups[0].v / tot * 100, 1)}% across ${groups[0].customers} branches.`],
+    ["warn", `${brands[0].key} is ${fmt(brands[0].value / tot * 100, 1)}% of sales; the top 3 brands (${brands.slice(0, 3).map((b) => b.key).join(", ")}) make ${fmt(sum(brands.slice(0, 3).map((b) => b.value)) / tot * 100, 1)}%.`],
+    ["warn", `The top 10 customer groups make ${fmt(top10 / tot * 100, 1)}% of sales; the largest, ${groups[0].key}, is ${fmt(groups[0].value / tot * 100, 1)}% across ${groups[0].customers} branches.`],
     ["good", `Delivery apps (Talabat, Snoonu) sold ${fmt(delivery / 1e6, 2)} M, ${fmt(delivery / tot * 100, 1)}% of sales.`],
-    ["bad", `Credit notes total ${fmt(-ret / 1e6, 2)} M (${fmt(-ret / tot * 100, 1)}% of sales)${worstDept ? `, most in ${worstDept.k}` : ""}.`],
+    ["bad", `Credit notes total ${fmt(-ret / 1e6, 2)} M (${fmt(-ret / tot * 100, 1)}% of sales)${worstDept ? `, most in ${worstDept.key}` : ""}.`],
     ["plain", `Gross margin is ${fmt(mPct(tot, cost), 1)}%. Brands above 50k QAR under 15% margin: ${lowBrands.slice(0, 5).join(", ") || "none"}.`],
     ["plain", `${fmt(active)} customers bought ${fmt(dept.items)} different items this month.`],
   ] : [];
@@ -68,13 +68,13 @@ async function Content({ searchParams }: { searchParams: Params }) {
         <Panel span={6} title="Top customer groups">
           <div className="tw"><table>
             <thead><tr><th>Group</th><th className="n">Value</th><th className="n">Share</th><th className="n">Margin</th><th className="n">Branches</th></tr></thead>
-            <tbody>{topGroups.map((x) => <tr key={x.k}><td>{x.k}</td><td className="n num">{fmt(x.v)}</td><td className="n num">{fmt(tot ? x.v / tot * 100 : 0, 1)}%</td><td className="n"><MarginChip s={x.v} c={x.c} /></td><td className="n num">{x.customers}</td></tr>)}</tbody>
+            <tbody>{topGroups.map((x) => <tr key={x.key}><td>{x.key}</td><td className="n num">{fmt(x.value)}</td><td className="n num">{fmt(tot ? x.value / tot * 100 : 0, 1)}%</td><td className="n"><MarginChip s={x.value} c={x.cost} /></td><td className="n num">{x.customers}</td></tr>)}</tbody>
           </table></div>
         </Panel>
         <Panel span={6} title="Brand margin" src="Brands above QAR 100k">
           <div className="tw scroll"><table>
             <thead><tr><th>Brand</th><th className="n">Value</th><th className="n">Margin</th><th className="n">Items</th><th className="n">Customers</th></tr></thead>
-            <tbody>{brands.filter((b) => b.v > 100000).sort((a, b) => mPct(b.v, b.c) - mPct(a.v, a.c)).map((x) => <tr key={x.k}><td>{x.k}</td><td className="n num">{fmt(x.v)}</td><td className="n"><MarginChip s={x.v} c={x.c} /></td><td className="n num">{x.items}</td><td className="n num">{x.customers}</td></tr>)}</tbody>
+            <tbody>{brands.filter((b) => b.value > 100000).sort((a, b) => mPct(b.value, b.cost) - mPct(a.value, a.cost)).map((x) => <tr key={x.key}><td>{x.key}</td><td className="n num">{fmt(x.value)}</td><td className="n"><MarginChip s={x.value} c={x.cost} /></td><td className="n num">{x.items}</td><td className="n num">{x.customers}</td></tr>)}</tbody>
           </table></div>
         </Panel>
       </div>

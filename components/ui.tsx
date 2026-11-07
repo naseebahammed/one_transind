@@ -104,24 +104,24 @@ export function MonthBars({ series, labels, colors = ["var(--series)"] }: { seri
 }
 
 /** Brand rows; each brand expands to its products. */
-export function BrandList({ brands }: { brands: { n: string; v: number; lm: number; items?: { n: string; v: number; lm: number; u?: number }[] }[] }) {
-  const max = Math.max(1, ...brands.map((b) => b.v));
-  const ch = (v: number, lm: number) => (lm ? (v / lm - 1) * 100 : 0);
-  const row = (n: string, v: number, lm: number, u?: number) => (
+export function BrandList({ brands }: { brands: { name: string; value: number; lastMonth: number; items?: { name: string; value: number; lastMonth: number; units?: number }[] }[] }) {
+  const max = Math.max(1, ...brands.map((b) => b.value));
+  const change = (value: number, lastMonth: number) => (lastMonth ? (value / lastMonth - 1) * 100 : 0);
+  const row = (name: string, value: number, lastMonth: number, units?: number) => (
     <>
-      <span className="lab">{n}{u ? <small>Units: <span className="num">{fmt(u)}</span></small> : null}</span>
-      <span className="track"><span className="fill" style={{ width: `${Math.max(1, Math.max(0, v) / max * 100)}%` }} /></span>
-      <span className="num" style={{ textAlign: "end" }}>{fmt(v)}<small style={{ display: "block", fontSize: 11 }} className={ch(v, lm) >= 0 ? "up" : "down"}>{ch(v, lm) >= 0 ? "▲" : "▼"} {fmt(Math.abs(ch(v, lm)), 1)}%</small></span>
+      <span className="lab">{name}{units ? <small>Units: <span className="num">{fmt(units)}</span></small> : null}</span>
+      <span className="track"><span className="fill" style={{ width: `${Math.max(1, Math.max(0, value) / max * 100)}%` }} /></span>
+      <span className="num" style={{ textAlign: "end" }}>{fmt(value)}<small style={{ display: "block", fontSize: 11 }} className={change(value, lastMonth) >= 0 ? "up" : "down"}>{change(value, lastMonth) >= 0 ? "▲" : "▼"} {fmt(Math.abs(change(value, lastMonth)), 1)}%</small></span>
     </>
   );
   return (
     <div className="drill">
       {brands.map((b) => b.items?.length ? (
-        <details key={b.n}>
-          <summary className="dr">{row(b.n, b.v, b.lm)}<span className="chev" aria-hidden="true">›</span></summary>
-          <div className="items">{b.items.map((i) => <div className="dr" key={i.n}>{row(i.n, i.v, i.lm, i.u)}<span className="chev" /></div>)}</div>
+        <details key={b.name}>
+          <summary className="dr">{row(b.name, b.value, b.lastMonth)}<span className="chev" aria-hidden="true">›</span></summary>
+          <div className="items">{b.items.map((i) => <div className="dr" key={i.name}>{row(i.name, i.value, i.lastMonth, i.units)}<span className="chev" /></div>)}</div>
         </details>
-      ) : <div className="dr" key={b.n}>{row(b.n, b.v, b.lm)}<span className="chev" /></div>)}
+      ) : <div className="dr" key={b.name}>{row(b.name, b.value, b.lastMonth)}<span className="chev" /></div>)}
     </div>
   );
 }

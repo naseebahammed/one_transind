@@ -18,7 +18,7 @@ async function Content() {
   await loadReports();
   const [o, sectors] = await Promise.all([getOverview(), getSalesSectors(true)]);
   const alManzil = alManzilKey(), am = years(alManzil).map((y) => [y, report(y, alManzil)] as const), COLORS = ["#5b7cff", "#3ee08f", "#ffbe55", "#c084fc"];
-  const rev = sum(sectors.map((s) => s.v)), cost = sum(sectors.map((s) => s.c));
+  const rev = sum(sectors.map((s) => s.value)), cost = sum(sectors.map((s) => s.cost));
   return (
     <>
       <div className="kpis">
@@ -32,7 +32,7 @@ async function Content() {
           <div className="tw"><table>
             <thead><tr><th>Sector</th><th className="n">Actual</th><th className="n">Target</th></tr></thead>
             <tbody>{sectors.map((s) => (
-              <tr key={s.k}><td>{s.label}</td><td className="n num">{fmt(s.v / 1e6, 1)}</td><td className="n"><NotConnected /></td></tr>
+              <tr key={s.key}><td>{s.label}</td><td className="n num">{fmt(s.value / 1e6, 1)}</td><td className="n"><NotConnected /></td></tr>
             ))}</tbody>
           </table></div>
           <p className="note" style={{ marginTop: 8 }}>Figures in QAR M, January to {MONTHS[o.month]} {o.year}. No target source is connected.</p>

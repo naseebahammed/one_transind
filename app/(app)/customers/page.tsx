@@ -16,7 +16,7 @@ async function Content({ searchParams }: { searchParams: Promise<{ c?: string }>
   const [{ c: id }, d] = await Promise.all([searchParams, getCustomers()]);
   const c = d.customers.find((x) => x.id === id) ?? d.customers[0];
   if (!c) return <p className="empty">No customers.</p>;
-  const label = `${MONTHS[d.month]} ${d.year}`, ch = pct(c.mtd, c.lm);
+  const label = `${MONTHS[d.month]} ${d.year}`, ch = pct(c.mtd, c.lastMonth);
   const series = [Array.from({ length: 12 }, (_, i) => (i <= d.month ? c.months[i] ?? 0 : null))];
 
   return (
@@ -25,7 +25,7 @@ async function Content({ searchParams }: { searchParams: Promise<{ c?: string }>
         <div className="list">
           {d.customers.map((x) => (
             <Link key={x.id} className="row" href={`/customers?c=${encodeURIComponent(x.id)}`} aria-current={x.id === c.id}>
-              <span><b style={{ color: "var(--ink)" }}>{x.name}</b><br /><span className="mono" style={{ fontSize: 11.5, color: "var(--muted)" }}>{x.id} · {x.cat}</span></span>
+              <span><b style={{ color: "var(--ink)" }}>{x.name}</b><br /><span className="mono" style={{ fontSize: 11.5, color: "var(--muted)" }}>{x.id} · {x.category}</span></span>
               <span className="num">{fmt(x.mtd)}</span>
             </Link>
           ))}
@@ -36,7 +36,7 @@ async function Content({ searchParams }: { searchParams: Promise<{ c?: string }>
           <div className="kpis">
             <Kpi label={`Sales ${label}`} value={fmt(c.mtd)} delta={`${ch >= 0 ? "▲" : "▼"} ${fmt(Math.abs(ch), 1)}% vs previous month`} up={ch >= 0} />
             <Kpi label="Year to date" value={fmt(c.ytd)} />
-            <Kpi label="Channel" value={c.cat || "—"} delta={c.group || undefined} up />
+            <Kpi label="Channel" value={c.category || "—"} delta={c.group || undefined} up />
           </div>
         </Panel>
         <Panel title={`Brand sales · ${label}`}><BrandList brands={c.brands} /></Panel>
