@@ -117,7 +117,21 @@ ALTER TABLE app.company_figures ADD CONSTRAINT company_figures_section_check CHE
 INSERT INTO app.accounts(section, main, sub) VALUES ('expenses','EXPENSES','Expenses');
 `;
 
-export const MIGRATIONS: readonly (readonly [string, string])[] = [["001_baseline", BASELINE], ["002_standard_data", STANDARD_DATA], ["003_drop_report_files", DROP_REPORT_FILES], ["005_company_expenses", COMPANY_EXPENSES]];
+// A company can have branches (e.g. the 4 Mr. Shawarma restaurants). branch_id NULL = the whole company, so every existing row stays valid.
+// The key uses COALESCE(branch_id, 0) because a NULL cannot be part of a primary key.
+const COMPANY_BRANCHES = `
+CREATE TABLE app.branches(id SERIAL PRIMARY KEY, company_id INTEGER NOT NULL REFERENCES app.companies(id) ON DELETE CASCADE,
+  name TEXT NOT NULL, active INTEGER NOT NULL DEFAULT 1);
+CREATE UNIQUE INDEX branches_company_name ON app.branches(company_id, lower(name));
+ALTER TABLE app.company_figures ADD COLUMN branch_id INTEGER REFERENCES app.branches(id);
+ALTER TABLE app.company_figures DROP CONSTRAINT company_figures_pkey;
+CREATE UNIQUE INDEX company_figures_key ON app.company_figures(company_id, COALESCE(branch_id, 0), section, period, main, line, unit_type);
+ALTER TABLE app.daily_sales ADD COLUMN branch_id INTEGER REFERENCES app.branches(id);
+ALTER TABLE app.daily_sales DROP CONSTRAINT daily_sales_pkey;
+CREATE UNIQUE INDEX daily_sales_key ON app.daily_sales(company_id, COALESCE(branch_id, 0), date);
+`;
+
+export const MIGRATIONS: readonly (readonly [string, string])[] = [["001_baseline", BASELINE], ["002_standard_data", STANDARD_DATA], ["003_drop_report_files", DROP_REPORT_FILES], ["005_company_expenses", COMPANY_EXPENSES], ["006_company_branches", COMPANY_BRANCHES]];
 
 /** Applies the migrations not yet recorded, optionally only up to and including one. Run it inside a transaction holding the init lock. */
 export async function migrate(c: { query: (text: string, params?: unknown[]) => Promise<{ rows: { id: string }[] }> }, upTo?: string) {

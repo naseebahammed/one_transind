@@ -62,7 +62,7 @@ export const importDaily = (u: Upload, rows: DailyRow[]) =>
     const id = await addImport(c, u, rows.length, rows.map((r) => `${r.date.slice(0, 7)}-01`));
     for (const r of rows)
       await c.query(`INSERT INTO app.daily_sales(company_id,date,${DAILY.join(",")},import_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
-        ON CONFLICT (company_id,date) DO UPDATE SET ${DAILY.map((k) => `${k}=EXCLUDED.${k}`).join(",")},import_id=EXCLUDED.import_id,updated=now()`, [u.companyId, r.date, ...DAILY.map((k) => r[k]), id]);
+        ON CONFLICT (company_id,(COALESCE(branch_id,0)),date) DO UPDATE SET ${DAILY.map((k) => `${k}=EXCLUDED.${k}`).join(",")},import_id=EXCLUDED.import_id,updated=now()`, [u.companyId, r.date, ...DAILY.map((k) => r[k]), id]);
   });
 
 /** One figure typed by hand: no import, so import_id is cleared. */
@@ -70,7 +70,7 @@ export function setFigure(companyId: number, section: string, year: number, mont
   if (!Number.isFinite(value)) throw new Error("Value must be a number.");
   if (!Number.isInteger(month) || month < 0 || month > 11) throw new Error("Month must be 0-11.");
   return q(`INSERT INTO app.company_figures(company_id,section,period,main,line,unit_type,value) VALUES($1,$2,$3,$4,$5,$6,$7)
-    ON CONFLICT (company_id,section,period,main,line,unit_type) DO UPDATE SET value=EXCLUDED.value, import_id=NULL, updated=now()`, [companyId, section, period(year, month), main, line, unitType, Math.round(value * 100) / 100]);
+    ON CONFLICT (company_id,(COALESCE(branch_id,0)),section,period,main,line,unit_type) DO UPDATE SET value=EXCLUDED.value, import_id=NULL, updated=now()`, [companyId, section, period(year, month), main, line, unitType, Math.round(value * 100) / 100]);
 }
 
 export const deleteFigureMonth = (companyId: number, section: FigureSection, year: number, month: number) =>

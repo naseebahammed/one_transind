@@ -9,6 +9,6 @@ export const pg = (g._pg ??= new Pool({
   user: process.env.PGUSER,
   password: process.env.PGPASSWORD,
   ssl: process.env.PGSSL === "true" ? { rejectUnauthorized: false } : false,
-  max: 4,
-  connectionTimeoutMillis: 8000,
+  max: 10, // sales pages run ~8 heavy ERP queries in parallel; 4 made the rest queue and time out
+  connectionTimeoutMillis: 30000, // also covers waiting for a free pool slot, not just the TCP connect
 }));
