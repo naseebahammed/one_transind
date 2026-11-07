@@ -3,6 +3,8 @@ export const SECTORS = [
   ["fmcg", "FMCG & Distribution"], ["fnb", "Food & Beverage"], ["re", "Real Estate"], ["retail", "Hypermarkets & Retail"],
   ["log", "Logistics"], ["con", "Construction & Interiors"], ["hb", "Health & Beauty"], ["fm", "Facility Management"],
 ] as const;
+// Sector keys the code relies on by name (pages, upload rules). Use these instead of the bare strings.
+export const SECTOR = { fmcg: "fmcg", realEstate: "re", retail: "retail", healthBeauty: "hb" } as const;
 export const DEPTS = ["Sales", "Operations", "Maintenance", "Admin & support"];
 export const JOBS: Record<string, string[][]> = {
   fmcg: [["Van salesman", "Merchandiser", "Sales supervisor", "Key account manager"], ["Delivery driver", "Storekeeper", "Delivery helper", "Forklift operator"], ["Fleet mechanic", "Refrigeration technician", "Electrician"], ["Accountant", "Customer service", "Data entry clerk", "HR officer", "Manager"]],

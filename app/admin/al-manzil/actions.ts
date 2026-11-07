@@ -1,4 +1,5 @@
 "use server";
+import { SECTOR } from "@/lib/org";
 import { revalidatePath } from "next/cache";
 import { listAccounts } from "@/lib/accounts";
 import { getCompany } from "@/lib/companies";
@@ -45,7 +46,7 @@ async function loadFile(type: string, company: Company, u: Upload, formYear: num
     return { rows: rows.length, ok: `Loaded ${rows.length} unit-type figures for ${monthNames(rows)}.` };
   }
   // Monthly sales template for companies with no stay report (Pavati, Top Perfume). A hotel's grid already has revenue lines, so a Sales line would double count.
-  if (company.sector === "re") throw new Error("Real estate sales come from the daily report.");
+  if (company.sector === SECTOR.realEstate) throw new Error("Real estate sales come from the daily report.");
   const grid = gridFromWorkbook(wb);
   const year = Number(String(grid[0]?.[0] ?? "").match(/(\d{4})\s*$/)?.[1]);
   if (!year) throw new Error(`This file is not a ${sectionName("sales")} template. Download one and try again.`);

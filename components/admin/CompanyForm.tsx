@@ -1,4 +1,5 @@
 "use client";
+import { SECTOR } from "@/lib/org";
 import { useActionState, useState } from "react";
 import Link from "next/link";
 import { Building2, Hash, Home, Layers, type LucideIcon } from "lucide-react";
@@ -109,7 +110,7 @@ export function CompanyForm({ company, sectors, propertyTypes }: { company?: Com
               </div>
             </Field>
             <Field id="erpCode" label="ERP code"><Input id="erpCode" name="erpCode" maxLength={20} defaultValue={company?.erp_code} /></Field>          </div>
-          {sector === "re" /* Real Estate, per lib/org.ts SECTORS */ && (
+          {sector === SECTOR.realEstate && (
             <div className="space-y-2 border-t pt-2">
               <h3 className="pb-2 text-sm font-medium mb-0!">Real estate details</h3>
               <div className="flex flex-wrap items-end gap-3">

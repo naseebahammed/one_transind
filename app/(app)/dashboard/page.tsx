@@ -1,3 +1,4 @@
+import { SECTOR, SECTORS } from "@/lib/org";
 import { getSalesSectors } from "@/lib/sales-sectors";
 import { listSectors } from "@/lib/sectors";
 import { keyFor, plRows, report, sum as amSum, years, loadReports } from "@/lib/al-manzil";
@@ -13,7 +14,8 @@ import { HBars, Kpi, NotConnected, Panel } from "@/components/ui";
 
 export const metadata = { title: "Group dashboard · One Transind" };
 type Params = Promise<{ p?: string; all?: string }>;
-const FILE_SECTORS = [["hb", "Health & Beauty"], ["retail", "Hypermarkets & Retail"]] as const;
+const sectorName = new Map<string, string>(SECTORS);
+const FILE_SECTORS = [SECTOR.healthBeauty, SECTOR.retail].map((k) => [k, sectorName.get(k)!] as const);
 
 export default function Page({ searchParams }: { searchParams: Params }) {
   return <Suspense fallback={<p className="empty">Loading…</p>}><Content searchParams={searchParams} /></Suspense>;
@@ -26,7 +28,7 @@ async function Content({ searchParams }: { searchParams: Params }) {
   const path = parsePath(p);
   const o = await getOverview();
   const [rows, labels, depts, adminSectors, fileCos, reCos] = await Promise.all([getDrill(o.month, "p", path), getDrillLabels(o.month, "p", path), getSalesSectors(true), listSectors(),
-    Promise.all(FILE_SECTORS.map(([k]) => listCompanies("", k))), listCompanies("", "re")]);
+    Promise.all(FILE_SECTORS.map(([k]) => listCompanies("", k))), listCompanies("", SECTOR.realEstate)]);
   // Revenue by admin sector: departments are mapped to one under Admin → Sales sectors; the rest fall under "Unassigned".
   const known = new Set(adminSectors.map(([k]) => k));
   const bySector = new Map<string, number>();
@@ -39,7 +41,7 @@ async function Content({ searchParams }: { searchParams: Params }) {
     return { k, name, cos, rev, ys: years(keys, "sales").slice(-3) };
   });
   // Real Estate, same months as the other sectors: each property's P&L, or its monthly sales grid when that year's P&L is not uploaded yet (Al Manzil 2026).
-  bySector.set("re", (bySector.get("re") ?? 0) + amSum(reCos.filter((c) => c.active && !c.hidden).map((c) => {
+  bySector.set(SECTOR.realEstate, (bySector.get(SECTOR.realEstate) ?? 0) + amSum(reCos.filter((c) => c.active && !c.hidden).map((c) => {
     const key = keyFor(c);
     return amSum(report(o.year, key, years(key).includes(o.year) ? undefined : plRows(o.year, key, "sales")).revenue.slice(0, o.month + 1));
   })));

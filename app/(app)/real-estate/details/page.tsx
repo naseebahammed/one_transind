@@ -1,9 +1,10 @@
+import { SECTOR } from "@/lib/org";
 import { Suspense } from "react";
 import Link from "next/link";
 import { connection } from "next/server";
 import { fmt } from "@/lib/format";
 import { link } from "@/lib/url";
-import { dailyYears, keyFor, MONTHS, occupancy, report, revenueLines, sum, years, loadReports } from "@/lib/al-manzil";
+import { AL_MANZIL_NAME, dailyYears, keyFor, MONTHS, occupancy, report, revenueLines, sum, years, loadReports } from "@/lib/al-manzil";
 import { listCompanies } from "@/lib/companies";
 import { CompareChart } from "@/components/charts";
 import { CompanySelect } from "@/components/CompanySelect";
@@ -22,9 +23,9 @@ async function Content({ searchParams }: { searchParams: Params }) {
   await loadReports();
   const { view, company, year } = await searchParams;
   const stay = view === "stay";
-  const companies = (await listCompanies("", "re")).filter((c) => c.active && !c.hidden);
+  const companies = (await listCompanies("", SECTOR.realEstate)).filter((c) => c.active && !c.hidden);
   const all = company === "all";
-  const selected = all ? undefined : companies.find((c) => String(c.id) === company) ?? companies.find((c) => c.name.trim().toLowerCase() === "al manzil") ?? companies[0];
+  const selected = all ? undefined : companies.find((c) => String(c.id) === company) ?? companies.find((c) => c.name.trim().toLowerCase() === AL_MANZIL_NAME) ?? companies[0];
   const companyParam = all ? "all" : selected && String(selected.id);
   const key = all ? companies.map(keyFor) : selected && keyFor(selected);
   const ys = key ? (stay ? dailyYears(key) : years(key)) : [];

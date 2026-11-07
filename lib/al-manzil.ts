@@ -199,6 +199,9 @@ export function unitsFromWorkbook(wb: ExcelJS.Workbook) {
   return [...acc.values()];
 }
 
+// Lowercase company name the Al Manzil panels look for (see the shortcut note in loadReports).
+export const AL_MANZIL_NAME = "al manzil";
+
 const db = () => import("@/lib/db"); // lazy so the pure helpers above stay loadable by `node --test` without the Next alias
 
 type Row = { year: number; main: string; sub: string; m: number[] };
@@ -222,7 +225,7 @@ export async function loadReports(query?: <T>(text: string) => Promise<T[]>) {
        FROM app.daily_sales_monthly ORDER BY array_position(ARRAY['Long stay','Short stay','Room revenue','Other revenue','Occupied','Available'], line)`),
     q<Day & { id: number }>(`SELECT company_id AS id, to_char(date,'YYYY-MM-DD') AS date, ${NUMS.split(",").map((c) => `${c}::float8 AS ${c}`).join(",")} FROM app.daily_sales ORDER BY date`),
     // shortcut: the Al Manzil panels on /finance, /admin/finance and Ask find it by name; give them a company picker to drop this.
-    q<{ id: number }>("SELECT id FROM app.companies WHERE lower(name) LIKE 'al manzil%' ORDER BY id LIMIT 1"),
+    q<{ id: number }>(`SELECT id FROM app.companies WHERE lower(name) LIKE '${AL_MANZIL_NAME}%' ORDER BY id LIMIT 1`),
   ]);
   const rows = new Map<string, Row[]>(), index = new Map<string, Row>();
   const put = (id: number, kind: Kind, y: number, main: string, sub: string, mo: number, v: number) => {

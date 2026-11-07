@@ -1,3 +1,4 @@
+import { SECTOR } from "@/lib/org";
 import { Suspense, type ReactNode } from "react";
 import Link from "next/link";
 import { connection } from "next/server";
@@ -40,7 +41,7 @@ async function Content({ searchParams }: { searchParams: Params }) {
   await connection(); // the P&L files can change when a statement is uploaded
   await loadReports();
   const { year } = await searchParams;
-  const [companies, types] = await Promise.all([listCompanies("", "re"), listPropertyTypes()]);
+  const [companies, types] = await Promise.all([listCompanies("", SECTOR.realEstate), listPropertyTypes()]);
   const withData = companies.filter((c) => c.active && !c.hidden && years(keyFor(c)).length);
   const ys = [...new Set(withData.flatMap((c) => years(keyFor(c))))].sort();
   const tabs = (

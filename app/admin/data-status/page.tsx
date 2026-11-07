@@ -1,3 +1,4 @@
+import { SECTOR } from "@/lib/org";
 import Link from "next/link";
 import { Check, Minus, X } from "lucide-react";
 import { Page } from "@/components/admin/Page";
@@ -17,7 +18,7 @@ type Cell = { state: "ok" | "part" | "none" | "na"; text?: string };
 
 const na: Cell = { state: "na" };
 const yes = (v: boolean): Cell => ({ state: v ? "ok" : "none" });
-const realEstate = (c: Company) => c.sector === "re"; // Real Estate, per lib/org.ts SECTORS
+const realEstate = (c: Company) => c.sector === SECTOR.realEstate;
 
 // Mandatory profile items. Rooms and types only apply to real estate, mirroring the profile form.
 const PROFILE: { key: string; label: string; check: (c: Company) => Cell }[] = [

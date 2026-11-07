@@ -1,3 +1,4 @@
+import { SECTOR } from "@/lib/org";
 import Link from "next/link";
 import { Page } from "@/components/admin/Page";
 import { Badge } from "@/components/admin/ui/badge";
@@ -174,7 +175,7 @@ async function Summary({ searchParams }: { searchParams: Search }) {
         </TableBody>
       </Table>
       </CardContent></Card>
-      {one && !one.hidden && salesYear && <GridSection title={`Monthly sales - ${salesYear}`}><AccountGrid year={salesYear} rows={plRows(salesYear, key!, "sales")} onSave={one.sector === "re" ? undefined : saveSalesCell.bind(null, salesYear, key!)} /></GridSection>}
+      {one && !one.hidden && salesYear && <GridSection title={`Monthly sales - ${salesYear}`}><AccountGrid year={salesYear} rows={plRows(salesYear, key!, "sales")} onSave={one.sector === SECTOR.realEstate ? undefined : saveSalesCell.bind(null, salesYear, key!)} /></GridSection>}
       <Card className="gap-2 py-3"><CardHeader><CardTitle className="text-sm">Expenses (QAR)</CardTitle></CardHeader><CardContent>
       <Table>
         <TableHeader>

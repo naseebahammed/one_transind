@@ -3,7 +3,7 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { getOverview, getSalesmen } from "@/lib/data";
 import { fmt, MONTHS } from "@/lib/format";
-import { DEPTS, JOBS, SECTORS } from "@/lib/org";
+import { DEPTS, JOBS, SECTORS, SECTOR } from "@/lib/org";
 import { link, parsePath } from "@/lib/url";
 import { Empty, Kpi, NotConnected, Panel } from "@/components/ui";
 
@@ -63,7 +63,7 @@ async function Content({ searchParams }: { searchParams: Params }) {
             </table></div>
           )}
         </section>
-        {p[0] === "fmcg" && (
+        {p[0] === SECTOR.fmcg && (
           <Panel span={12} title={`Salesmen · ${MONTHS[o.month]} ${o.year}`}>
             <div className="tw"><table>
               <thead><tr><th>Name</th><th className="n">Sales (QAR)</th><th className="n">Customers</th><th className="n">Documents</th></tr></thead>

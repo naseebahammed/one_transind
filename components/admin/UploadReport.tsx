@@ -1,4 +1,5 @@
 "use client";
+import { SECTOR } from "@/lib/org";
 import { startTransition, useActionState, useState } from "react";
 import { uploadReport, type UploadState } from "@/app/admin/al-manzil/actions";
 import { Button } from "@/components/admin/ui/button";
@@ -26,7 +27,7 @@ export function UploadReport({ companyId, sector }: { companyId: number; sector:
       <div className="flex flex-wrap items-center gap-2">
         <input type="hidden" name="companyId" value={companyId} />
         <NativeSelect name="type" value={type} onChange={(e) => setType(e.target.value as keyof typeof TYPES)}>
-          {Object.entries(TYPES).filter(([k]) => (sector === "re" ? FOR_REAL_ESTATE : FOR_OTHERS).includes(k)).map(([k, t]) => <option key={k} value={k}>{t.label}</option>)}
+          {Object.entries(TYPES).filter(([k]) => (sector === SECTOR.realEstate ? FOR_REAL_ESTATE : FOR_OTHERS).includes(k)).map(([k, t]) => <option key={k} value={k}>{t.label}</option>)}
         </NativeSelect>
         {type !== "sales" && <NativeSelect aria-label="Template month" value={month} onChange={(e) => setMonth(e.target.value)}>
           <option value="">Last month</option>
