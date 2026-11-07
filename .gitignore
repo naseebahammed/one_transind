@@ -39,11 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-/data/app.db*
 /backups/
 ~$*
 
-.env.local
 # claude code
 /.claude/worktrees/
 /.claude/*.lock

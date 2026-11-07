@@ -2,12 +2,12 @@
 import type { ReceiptRow } from "./report-parsers.ts";
 
 /** Column order of the sheet. Names are the workbook headings as receiptsFromWorkbook stores them. */
-export const RECEIPT_COLUMNS = ["Bank deposits", "Cash sales", "Credit card sales", "Talabat cash", "Talabat credit card", "Talabat discount", "Snoonu cash", "Rafeeq", "Snoonu", "Deliveroo", "Keeta"];
+const RECEIPT_COLUMNS = ["Bank deposits", "Cash sales", "Credit card sales", "Talabat cash", "Talabat credit card", "Talabat discount", "Snoonu cash", "Rafeeq", "Snoonu", "Deliveroo", "Keeta"];
 /** Cash banked is the same money as cash sales, so it stays out of gross sales. Every other column counts, discount columns included (checked against all 10 months of the Bin Omran sheet). */
 const NOT_SALES = new Set(["Bank deposits"]);
 
-export type ReceiptDay = { day: number; values: Record<string, number>; gross: number | null }; // a channel with no entry = not submitted, kept apart from a real 0
-export type ReceiptTable = { columns: string[]; days: ReceiptDay[]; totals: Record<string, number>; gross: number };
+type ReceiptDay = { day: number; values: Record<string, number>; gross: number | null }; // a channel with no entry = not submitted, kept apart from a real 0
+type ReceiptTable = { columns: string[]; days: ReceiptDay[]; totals: Record<string, number>; gross: number };
 
 /** Cash and card are the shop's own tills; everything else in gross sales (delivery apps and their discounts) is deliveryApps. days = days with figures. */
 export function branchSummary(table: ReceiptTable) {

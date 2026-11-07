@@ -18,7 +18,7 @@ Next.js 16.4 (App Router, Server Components + Server Actions + a few Route Handl
 ## 3. Layout
 - `app/(app)/` business pages: dashboard, sales, finance, real-estate (overview/details), retail, restaurants, health-beauty, trading, logistics, customers, hr.
 - `app/admin/` accounts (chart of accounts), activity log, al-manzil, companies (+ new, [id]), company-types, data-status, finance, sales-sectors, sectors.
-- `app/api/` ask, companies/[id]/logo + template, customers, imports/[id], invoices, sales.
+- `app/api/` ask, companies/[id]/logo + template, imports/[id].
 - `lib/` all logic: `schema.ts` (migrations), `db.ts`/`pg.ts`, `data.ts` (ERP sales SQL), `company-figures.ts`, `company-data.ts`, `report-parsers.ts` (workbook readers), `reports.ts` (loading + calcs), `receipts.ts`, `branches.ts`, `org.ts` (SECTOR constants), `period*.ts`, tests.
 - `docs/`, `scripts/migrate-report-files.ts`, `refactoring_plan.md`, `architecture_review.md`, `DESIGN.md`.
 
@@ -39,7 +39,7 @@ Done (commits on branch): split of `al-manzil.ts` into `report-parsers.ts` + `re
 | 4 | Move SQL out of server actions and API routes into `lib/` (sectors, property-types, accounts, sales-sectors, companies, `getImportFile`; skip the deals routes, they are gone) | medium | not started |
 | 5 | Thin big pages: `lib/finance-summary.ts`; dashboard and real-estate overview totals | medium | not started |
 | 6 | Replace module-level `snap` in `loadReports()` with a per-request cached value passed to `report()` | medium-high | not started |
-| 7 | Retire `/legacy`, `public/app.js`, `td.js`, `/api/bootstrap`, `/api/deals*` | - | already done; `/api/sales`, `/api/customers`, `/api/invoices` and tables `app.deals`, `app.invoices` remain, usage unchecked |
+| 7 | Retire `/legacy`, `public/app.js`, `td.js`, `/api/bootstrap`, `/api/deals*` | - | already done, including `/api/sales`, `/api/customers`, `/api/invoices`; tables `app.deals`, `app.invoices` are dropped by migrations 009, 010 |
 | Not planned yet | Login/access control, company picker instead of Al Manzil name match, one UI system, `q`/`q1` renames, performance | | |
 
 ## 6. Upgrades worth asking the other AI about
@@ -47,7 +47,7 @@ Done (commits on branch): split of `al-manzil.ts` into `report-parsers.ts` + `re
 2. Tests for DB code (migrations, `company-figures.ts`, `data.ts`); today only pure helpers are tested.
 3. Report loading loads every company's figures on every request: cache / load only what a page needs.
 4. Approval workflow and reminders for monthly submissions (status today is only Submitted / Not submitted / Not due).
-5. Check whether `/api/sales`, `/api/customers`, `/api/invoices` and the `app.deals` / `app.invoices` tables are still used (the legacy dashboard is already gone).
+5. (Done) The legacy dashboard, its API routes and the `app.deals` / `app.invoices` tables are removed.
 6. Dev/staging DB separate from production; backup/restore routine.
 7. Al Manzil is found by `lower(name) LIKE 'al manzil%'`: replace with `erp_code` or an id.
 8. Migration numbering skips `004` (001, 002, 003, 005...): harmless but confusing.

@@ -15,8 +15,8 @@ const inYtd = (col: string, y: string, m: string) => `(${col} >= make_date((${y}
 
 export type Item = { name: string; value: number; lastMonth: number; units: number };
 export type Brand = { name: string; value: number; lastMonth: number; items: Item[] };
-export type Hist = { year: number; month: number; value: number; cost: number; creditNotes: number };
-export type Cust = { id: string; name: string; category: string; group: string; months: number[]; ytd: number; mtd: number; lastMonth: number; brands: { name: string; value: number; lastMonth: number }[] };
+type Hist = { year: number; month: number; value: number; cost: number; creditNotes: number };
+type Cust = { id: string; name: string; category: string; group: string; months: number[]; ytd: number; mtd: number; lastMonth: number; brands: { name: string; value: number; lastMonth: number }[] };
 
 /** Sales and cost per year and month, all history. */
 export async function getHistory(): Promise<Hist[]> {
@@ -92,7 +92,7 @@ export async function getCustomers() {
   return { year, month, customers: top, customerCount: byId.size };
 }
 
-export const DIMENSIONS = {
+const DIMENSIONS = {
   dept: { label: "Department", sql: `COALESCE(d.department_name, s."DEPT_CODE", '-')`, join: `LEFT JOIN public.invs_departments d ON d.department_code = s."DEPT_CODE"` },
   brand: { label: "Brand", sql: `COALESCE(s."BRAND", '-')`, join: "" },
   supplier: { label: "Supplier", sql: `COALESCE(s."SUPPLIER_NAME", '-')`, join: "" },
@@ -100,7 +100,7 @@ export const DIMENSIONS = {
   group: { label: "Customer group", sql: `COALESCE(s."GROUP_NAME", '-')`, join: "" },
   salesman: { label: "Salesman", sql: `COALESCE(s."SMAN_NAME", '-')`, join: "" },
 } as const;
-export type Dim = keyof typeof DIMENSIONS;
+type Dim = keyof typeof DIMENSIONS;
 export type Row = { key: string; value: number; cost: number; creditNotes: number; lastMonth: number };
 
 const ymOf = (y: number, m: number) => `${y + Math.floor(m / 12)}-${String((((m % 12) + 12) % 12) + 1).padStart(2, "0")}`;

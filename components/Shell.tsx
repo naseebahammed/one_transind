@@ -3,7 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 
-export const PAGES = [
+const PAGES = [
   { href: "/sales", title: "Sales", icon: "M3 17l6-6 4 4 8-8M15 7h6v6" },
   { href: "/trading", title: "Trading sales (actual)", icon: "M4 20V10M10 20V4M16 20v-7M22 20H2" },
   { href: "/dashboard", title: "Group dashboard", icon: "M3 13h8V3H3zM13 21h8V11h-8zM3 21h8v-6H3zM13 3v6h8V3z" },

@@ -6,7 +6,7 @@ import type { Figure, FigureSection } from "@/lib/company-data";
 
 /** One uploaded file, kept with its import so it can be re-read or downloaded later. */
 export type Upload = { companyId: number; section: string; name: string; type: string; buf: Buffer; branchId?: number | null };
-export type FigureRow = { year: number; month: number; main: string; line: string; unit_type?: string; value: number };
+type FigureRow = { year: number; month: number; main: string; line: string; unit_type?: string; value: number };
 
 const period = (year: number, month: number) => `${year}-${String(month + 1).padStart(2, "0")}-01`;
 const inYear = (col: string, p: string) => `${col} >= make_date(${p}::int,1,1) AND ${col} < make_date(${p}::int + 1,1,1)`;
@@ -83,7 +83,7 @@ export const deleteFigureYear = (companyId: number, section: string, year: numbe
 export const deleteDailyYearRows = (companyId: number, year: number, branchId: number | null = null) =>
   q(`DELETE FROM app.daily_sales WHERE company_id=$1 AND ${inYear("date", "$2")} AND branch_id IS NOT DISTINCT FROM $3`, [companyId, year, branchId]);
 
-export type ImportRow = { id: number; company: string; section: string; source: string; file_name: string; has_file: boolean; status: string; error: string | null; rows_loaded: number; period_from: string | null; period_to: string | null; created: string };
+type ImportRow = { id: number; company: string; section: string; source: string; file_name: string; has_file: boolean; status: string; error: string | null; rows_loaded: number; period_from: string | null; period_to: string | null; created: string };
 export const listImports = () =>
   q<ImportRow>(`SELECT i.id, c.name AS company, i.section, i.source, i.file_name, i.file IS NOT NULL AS has_file, i.status, i.error, i.rows_loaded,
       to_char(i.period_from,'Mon YYYY') AS period_from, to_char(i.period_to,'Mon YYYY') AS period_to, to_char(i.created AT TIME ZONE 'Asia/Qatar','YYYY-MM-DD HH24:MI') AS created

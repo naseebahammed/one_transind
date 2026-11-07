@@ -44,7 +44,7 @@ function sheetYm(ws: ExcelJS.Worksheet) {
   return ym;
 }
 
-export type PnlLine = { year: number; month: number; main: string; line: string; value: number };
+type PnlLine = { year: number; month: number; main: string; line: string; value: number };
 
 /** P&L figures from the first visible sheet with month columns (the workbook can carry hidden prior-year sheets first). Only months holding a non-zero figure are returned, so an empty or all-zero column leaves that month on file untouched. */
 export function pnlFromWorkbook(wb: ExcelJS.Workbook, formYear: number): { error: string } | { rows: PnlLine[] } {
@@ -155,7 +155,7 @@ export function checkDaily(rows: DailyRow[], totalRooms: number) {
 }
 
 const UNIT_METRICS = [["availability", "Available"], ["long stay", "Long stay"], ["short stay", "Short stay"], ["revenue", "Room revenue"]] as const;
-export type UnitLine = { year: number; month: number; unit_type: string; line: string; value: number };
+type UnitLine = { year: number; month: number; unit_type: string; line: string; value: number };
 
 /** Monthly totals per unit type (e.g. "1 BHK") from a unit-type sales workbook.
  *  Layout: a group header row (Availability / Long Stay / Short Stay / ... Revenue) over a row naming the unit type in each column. */
