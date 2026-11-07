@@ -48,6 +48,13 @@ Main users and roles: Executive Leadership, Finance & Accounting Managers, Opera
 - Follow the existing code style. Do not add new libraries without asking.
 - Run the tests (`npm test`) or start the app after making changes to check that nothing broke.
 
+## Naming
+- Exported functions, types and data fields use full words: `value`, `cost`, `lastMonth`, `lastYear`, `twoYearsAgo`, `units`, `creditNotes` — not `v`, `c`, `lm`, `ly`, `ly2`, `u`, `cr`. Standard finance terms (`ytd`, `mtd`) are fine.
+- One- or two-letter names only inside a short lambda (`(r) => r.value`). A name that means different things in one file gets a different name each time.
+- Files are `kebab-case.ts`, named after what they contain, not after one company.
+- SQL tables and columns stay `snake_case`; TypeScript uses `camelCase`. The query's `AS` aliases are where they meet: they must match the row type's fields exactly, and camelCase aliases must be double-quoted (`AS "lastMonth"`), or Postgres lowercases them.
+- Sector keys come from `SECTOR` in `lib/org.ts`, never as bare strings (`"re"`, `"hb"`).
+
 ## Notes for Claude
 - The owner of this project is not a full-time developer, so explain technical choices in plain language.
 - Another developer is also working in this codebase. Do not rewrite or reformat files you were not asked to change.
