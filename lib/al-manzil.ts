@@ -208,9 +208,9 @@ type Key = string | string[];
 // The readers below are synchronous over a snapshot; every page/route that uses them calls `await loadReports()` first, so an upload shows up on the next request.
 let snap: { rows: Map<string, Row[]>; daily: Map<string, Day[]>; alManzil: string } | null = null;
 
-/** Load every company's figures from the database. */
-export async function loadReports() {
-  const { q } = await db();
+/** Load every company's figures from the database. `query` is only passed by tests, to run without a database. */
+export async function loadReports(query?: <T>(text: string) => Promise<T[]>) {
+  const q = query ?? (await db()).q;
   const NUMS = "long_guests,long_rate,long_total,short_guests,short_rate,short_total,rooms_occupied,room_revenue,other_revenue,rooms_available";
   const [figures, derived, days, co] = await Promise.all([
     q<{ id: number; section: Kind; y: number; mo: number; main: string; line: string; unit_type: string; v: number }>(
