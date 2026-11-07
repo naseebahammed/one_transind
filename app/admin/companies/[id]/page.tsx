@@ -7,17 +7,15 @@ import { CompanySectionNav, progress, YearLinks } from "@/components/admin/Compa
 import { FigureSectionView } from "@/components/admin/FigureSectionView";
 import { PnlSectionView } from "@/components/admin/PnlSectionView";
 import { Page } from "@/components/admin/Page";
-import { ConfirmButton } from "@/components/admin/ConfirmButton";
 import { Badge } from "@/components/admin/ui/badge";
 import { Button } from "@/components/admin/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/admin/ui/card";
+import { Card } from "@/components/admin/ui/card";
 import { getCompany, listCompanyIds } from "@/lib/companies";
 import { isFigureSection, monthStatuses, profileGaps, SECTIONS, type Section } from "@/lib/company-data";
 import { listFilledMonths } from "@/lib/company-figures";
 import { listSectors } from "@/lib/sectors";
 import { listPropertyTypes } from "@/lib/property-types";
 import { link } from "@/lib/url";
-import { deleteCompany } from "../actions";
 
 type Params = Promise<{ id: string }>;
 type Search = Promise<{ section?: string; year?: string }>;
@@ -78,18 +76,6 @@ async function Edit({ params, searchParams }: { params: Params; searchParams: Se
       {section === "profile" && <>
       {/* Activity keeps this page's DOM across navigation, so remount when saved data changes or the inputs show stale values (and re-save them). */}
       <CompanyForm key={JSON.stringify(company)} company={company} sectors={sectors} propertyTypes={propertyTypes} />
-      <Card className="border-destructive/40">
-        <CardHeader>
-          <CardTitle className="text-destructive">Delete company</CardTitle>
-          <CardDescription>Permanently removes this company from the list. This cannot be undone.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form action={deleteCompany} className="flex items-center justify-between gap-4">
-            <input type="hidden" name="id" value={company.id} />
-            <ConfirmButton variant="destructive" message={`Delete ${company.name}? This cannot be undone.`}>Delete company</ConfirmButton>
-          </form>
-        </CardContent>
-      </Card>
       </>}
     </div>
   );

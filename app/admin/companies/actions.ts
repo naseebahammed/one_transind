@@ -35,12 +35,6 @@ export async function saveCompany(_: FormState, f: FormData): Promise<FormState>
   redirect("/admin/companies");
 }
 
-export async function deleteCompany(f: FormData) {
-  await q("DELETE FROM app.companies WHERE id=$1", [Number(f.get("id"))]);
-  revalidatePath("/admin/companies");
-  redirect("/admin/companies");
-}
-
 /** Sets whether a company's data is hidden on the finance page ("hidden" = 1 or 0); the company record itself is untouched. Absolute, not a flip, so a double submit is harmless. */
 export async function toggleCompanyHidden(f: FormData) {
   const id = Number(f.get("id"));
