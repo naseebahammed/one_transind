@@ -2,24 +2,28 @@
 import { SECTOR } from "@/lib/org";
 import { revalidatePath } from "next/cache";
 import { listAccounts } from "@/lib/accounts";
+import { branchName, branchOf } from "@/lib/branches";
 import { getCompany } from "@/lib/companies";
 import { parseGrid, sectionName } from "@/lib/company-data";
-import { deleteDailyYearRows, deleteFigureYear, importDaily, importFigures, linesOf, recordRejected, setFigure, type Upload } from "@/lib/company-figures";
+import { deleteDailyYearRows, deleteFigureYear, importDaily, importFigures, importReceipts, linesOf, recordRejected, setFigure, type Upload } from "@/lib/company-figures";
 import { gridFromWorkbook, MAX_UPLOAD_BYTES, readWorkbook } from "@/lib/company-template";
 import { addLog } from "@/lib/db";
-import { checkDaily, dailyFromWorkbook, matchAccounts, pnlFromWorkbook, unitsFromWorkbook } from "@/lib/report-parsers";
+import { checkDaily, dailyFromWorkbook, matchAccounts, pnlFromWorkbook, receiptsFromWorkbook, unitsFromWorkbook } from "@/lib/report-parsers";
 import { MONTHS } from "@/lib/format";
 
 export type UploadState = { error?: string; ok?: string };
 type Company = NonNullable<Awaited<ReturnType<typeof getCompany>>>;
 
-const LABEL: Record<string, string> = { pnl: "P&L", daily: "Daily sales", units: "Unit types", sales: "Monthly sales" };
+const LABEL: Record<string, string> = { pnl: "P&L", daily: "Daily sales", units: "Unit types", sales: "Monthly sales", receipts: "Daily sales deposit" };
 
 function refresh() {
   for (const p of ["/admin/finance", "/admin/data-status", "/admin/activity", "/real-estate", "/finance", "/dashboard", "/health-beauty", "/retail"]) revalidatePath(p);
   revalidatePath("/admin", "layout");
 }
 const monthNames = (rows: { year: number; month: number }[]) => [...new Set(rows.map((r) => `${MONTHS[r.month]} ${r.year}`))].join(", ");
+
+/** A branch whose workbook is headed with a different name than the branch (lower-case branch name -> names its sheet may carry). shortcut: hard-coded, move to a branch column if more appear. */
+const OTHER_SHEET_NAMES: Record<string, string[]> = { "qatar sports club": ["Westbay"] };
 
 /** Parses and saves one file; returns the success message. Throwing rejects the file: nothing is saved except the record of the attempt. */
 async function loadFile(type: string, company: Company, u: Upload, formYear: number) {
@@ -31,6 +35,17 @@ async function loadFile(type: string, company: Company, u: Upload, formYear: num
     if ("error" in matched) throw new Error(matched.error);
     await importFigures(u, matched.rows);
     return { rows: matched.rows.length, ok: `Loaded ${matched.rows.length} figure${matched.rows.length > 1 ? "s" : ""} for ${monthNames(matched.rows)}.` };
+  }
+  if (type === "receipts") {
+    if (!u.branchId) throw new Error("Pick the branch in the \"Data for\" row first.");
+    const { title, rows } = receiptsFromWorkbook(wb);
+    if (!rows.length) throw new Error("No dated rows found - is this the Daily Sales Deposit layout?");
+    const name = await branchName(u.branchId);
+    const known = [name, ...(OTHER_SHEET_NAMES[name.toLowerCase()] ?? [])].map((n) => n.toLowerCase());
+    if (!known.some((n) => title.toLowerCase().includes(n))) throw new Error(`This file is headed "${title}", not ${name}. Pick the right branch or file.`);
+    await importReceipts({ ...u, branchId: u.branchId }, rows);
+    const days = [...new Set(rows.map((r) => r.date))].sort();
+    return { rows: rows.length, ok: `Loaded ${days.length} days for ${name}, ${days[0]} to ${days.at(-1)}.` };
   }
   if (type === "daily") {
     const rows = dailyFromWorkbook(wb);
@@ -63,9 +78,11 @@ export async function uploadReport(_: UploadState, f: FormData): Promise<UploadS
   if (!(type in LABEL)) return { error: "Unknown report type." };
   const company = await getCompany(Number(f.get("companyId")));
   if (!company) return { error: "Company not found." };
+  const branchId = await branchOf(company.id, f.get("branchId"));
+  if (branchId === undefined) return { error: "Branch not found." };
   if (!(file instanceof File) || !file.size) return { error: "Choose an .xlsx or .csv file." };
   if (file.size > MAX_UPLOAD_BYTES) return { error: "The file must be under 5 MB." };
-  const u: Upload = { companyId: company.id, section: type, name: file.name, type: file.type, buf: Buffer.from(await file.arrayBuffer()) };
+  const u: Upload = { companyId: company.id, section: type, name: file.name, type: file.type, buf: Buffer.from(await file.arrayBuffer()), branchId };
   try {
     const { rows, ok } = await loadFile(type, company, u, Number(f.get("year")));
     await addLog(`${company.name}: ${LABEL[type]} uploaded (${file.name})`, true, rows);

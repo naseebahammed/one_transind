@@ -1,5 +1,6 @@
 "use server";
 import { revalidatePath } from "next/cache";
+import { branchOf } from "@/lib/branches";
 import { getCompany } from "@/lib/companies";
 import { isFigureSection, MONTHS, parseGrid, SECTIONS, type FigureSection } from "@/lib/company-data";
 import { deleteFigureMonth, importFigures, linesOf, recordRejected, setFigure, type Upload } from "@/lib/company-figures";
@@ -16,9 +17,11 @@ export async function uploadFigures(_: FigureUploadState, f: FormData): Promise<
   if (!isFigureSection(section) || !Number.isInteger(year)) return { error: "Unknown section or year." };
   const company = await getCompany(Number(f.get("companyId")));
   if (!company) return { error: "Company not found." };
+  const branchId = await branchOf(company.id, f.get("branchId"));
+  if (branchId === undefined) return { error: "Branch not found." };
   if (!(file instanceof File) || !file.size) return { error: "Choose the filled .xlsx or .csv template." };
   if (file.size > MAX_UPLOAD_BYTES) return { error: "The file must be under 5 MB." };
-  const u: Upload = { companyId: company.id, section, name: file.name, type: file.type, buf: Buffer.from(await file.arrayBuffer()) };
+  const u: Upload = { companyId: company.id, section, name: file.name, type: file.type, buf: Buffer.from(await file.arrayBuffer()), branchId };
   try {
     const parsed = parseGrid(section, gridFromWorkbook(await readWorkbook(u.buf)), { company: company.name, year }, new Date());
     if ("error" in parsed) throw new Error(parsed.error);
@@ -38,10 +41,10 @@ export async function uploadFigures(_: FigureUploadState, f: FormData): Promise<
 }
 
 /** One figure typed by hand instead of uploaded: year + companyId bind first so the client editor gets a plain (main, sub, month, value) action. */
-export async function saveFigureCell(section: FigureSection, year: number, companyId: number, main: string, sub: string, month: number, value: number) {
+export async function saveFigureCell(section: FigureSection, year: number, companyId: number, branchId: number | null, main: string, sub: string, month: number, value: number) {
   const company = await getCompany(companyId);
-  if (!company) return;
-  await setFigure(company.id, section, year, month, main, sub, "", value);
+  if (!company || (await branchOf(company.id, branchId)) === undefined) return;
+  await setFigure(company.id, section, year, month, main, sub, "", value, branchId);
   await addLog(`${company.name}: ${sectionName(section)} ${sub} ${MONTHS[month]} ${year} set to ${value}`);
   revalidatePath(`/admin/companies/${company.id}`); revalidatePath("/admin/data-status"); revalidatePath("/admin/activity");
 }
@@ -51,7 +54,9 @@ export async function removeFigureMonth(f: FormData) {
   if (!isFigureSection(section) || !Number.isInteger(year) || !Number.isInteger(month) || month < 0 || month > 11) return;
   const company = await getCompany(Number(f.get("companyId")));
   if (!company) return;
-  await deleteFigureMonth(company.id, section, year, month);
+  const branchId = await branchOf(company.id, f.get("branchId"));
+  if (branchId === undefined) return;
+  await deleteFigureMonth(company.id, section, year, month, branchId);
   await addLog(`${company.name}: ${sectionName(section)} ${MONTHS[month]} ${year} removed`);
   revalidatePath(`/admin/companies/${company.id}`);
 }

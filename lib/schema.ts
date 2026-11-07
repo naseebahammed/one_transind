@@ -131,7 +131,34 @@ ALTER TABLE app.daily_sales DROP CONSTRAINT daily_sales_pkey;
 CREATE UNIQUE INDEX daily_sales_key ON app.daily_sales(company_id, COALESCE(branch_id, 0), date);
 `;
 
-export const MIGRATIONS: readonly (readonly [string, string])[] = [["001_baseline", BASELINE], ["002_standard_data", STANDARD_DATA], ["003_drop_report_files", DROP_REPORT_FILES], ["005_company_expenses", COMPANY_EXPENSES], ["006_company_branches", COMPANY_BRANCHES]];
+// Branches show on the company page only for companies that are marked as having them. Companies that already have branches stay marked.
+const COMPANY_HAS_BRANCHES = `
+ALTER TABLE app.companies ADD COLUMN has_branches INTEGER NOT NULL DEFAULT 0;
+UPDATE app.companies SET has_branches = 1 WHERE id IN (SELECT company_id FROM app.branches);
+`;
+
+// Daily takings of a branch by payment channel (cash, card, delivery apps, bank deposit). One row per branch, day and line; gross sales are added up when read.
+const DAILY_RECEIPTS = `
+CREATE TABLE app.daily_receipts(company_id INTEGER NOT NULL REFERENCES app.companies(id) ON DELETE CASCADE, branch_id INTEGER NOT NULL REFERENCES app.branches(id),
+  date DATE NOT NULL, line TEXT NOT NULL, value NUMERIC(18,2) NOT NULL, import_id INTEGER REFERENCES app.imports(id) ON DELETE SET NULL,
+  updated TIMESTAMPTZ NOT NULL DEFAULT now(), PRIMARY KEY(branch_id, date, line));
+ALTER TABLE app.imports DROP CONSTRAINT imports_section_check;
+ALTER TABLE app.imports ADD CONSTRAINT imports_section_check CHECK (section IN ('pnl','sales','units','daily','balance','budget','people','expenses','receipts'));
+`;
+
+// The deals pipeline page is gone. Dividing by zero stops this migration on any database where app.deals still has rows, so nothing is lost silently.
+const DROP_DEALS = `
+SELECT 1 / (CASE WHEN EXISTS (SELECT 1 FROM app.deals) THEN 0 ELSE 1 END);
+DROP TABLE app.deals;
+`;
+
+// Nothing reads app.invoices any more. Same guard as DROP_DEALS: stops if the table still has rows.
+const DROP_INVOICES = `
+SELECT 1 / (CASE WHEN EXISTS (SELECT 1 FROM app.invoices) THEN 0 ELSE 1 END);
+DROP TABLE app.invoices;
+`;
+
+export const MIGRATIONS: readonly (readonly [string, string])[] = [["001_baseline", BASELINE], ["002_standard_data", STANDARD_DATA], ["003_drop_report_files", DROP_REPORT_FILES], ["005_company_expenses", COMPANY_EXPENSES], ["006_company_branches", COMPANY_BRANCHES], ["007_company_has_branches", COMPANY_HAS_BRANCHES], ["008_daily_receipts", DAILY_RECEIPTS], ["009_drop_deals", DROP_DEALS], ["010_drop_invoices", DROP_INVOICES]];
 
 /** Applies the migrations not yet recorded, optionally only up to and including one. Run it inside a transaction holding the init lock. */
 export async function migrate(c: { query: (text: string, params?: unknown[]) => Promise<{ rows: { id: string }[] }> }, upTo?: string) {

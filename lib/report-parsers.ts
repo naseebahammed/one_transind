@@ -11,7 +11,7 @@ export function num(v: ExcelJS.CellValue, where: string): number | null {
   const x: unknown = typeof v === "object" && v && "result" in v ? v.result : v;
   if (x === null || x === undefined) return null;
   if (typeof x === "number") return round(x);
-  if (typeof x === "object" && "formula" in x) return null; // a formula Excel never calculated has no value yet
+  if (typeof x === "object" && ("formula" in x || "sharedFormula" in x)) return null; // a formula Excel never calculated has no value yet
   const raw = typeof x === "object" && "richText" in x ? (x as ExcelJS.CellRichTextValue).richText.map((r) => r.text).join("") : typeof x === "string" ? x : String((x as { error?: string }).error ?? x);
   const t = raw.trim();
   if (!t || t === "-") return null;
@@ -194,4 +194,60 @@ export function unitsFromWorkbook(wb: ExcelJS.Workbook) {
     });
   }
   return [...acc.values()];
+}
+
+export type ReceiptRow = { date: string; line: string; value: number };
+
+/** Daily takings from a branch's "Daily Sales Deposit" workbook: one sheet per month, one row per day, one column per payment channel.
+ *  Columns are found by header text because the headings change between months. Gross sales and the totals rows are formulas, so they are recalculated, not read.
+ *  In the newest sheet, days after the last day with a figure are the unfilled rest of the month (all zeros), so they are skipped; every other zero is a real zero.
+ *  shortcut: a figure under a column with no heading is ignored, add a check if the layout grows an unlabelled channel. */
+export function receiptsFromWorkbook(wb: ExcelJS.Workbook) {
+  const rows: ReceiptRow[] = [], seen = new Map<string, string>(), sheets: { name: string; days: { date: string; values: [string, number][] }[]; last: number }[] = [];
+  let title = "";
+  for (const ws of wb.worksheets) {
+    let head = 0, bank = 0;
+    for (let i = 1; i <= 6 && !head; i++) ws.getRow(i).eachCell((c, n) => { if (String(c.value ?? "").trim().toLowerCase() === "bank deposits") { head = i; bank = n; } });
+    if (!head) continue; // not a daily deposit sheet
+    ws.getRow(1).eachCell((c) => { title ||= String(c.value ?? "").trim(); });
+    const lines = new Map<number, string>(); // column -> line name
+    ws.getRow(head).eachCell((c, n) => {
+      const t = String(c.value ?? "").trim().replace(/\s+/g, " ").toLowerCase(); // not c.text: ExcelJS throws on a merged cell whose first cell is empty
+      if (n >= bank && t && t !== "date of deposit" && t !== "gross sales") lines.set(n, t[0].toUpperCase() + t.slice(1));
+    });
+    const days: { date: string; values: [string, number][] }[] = [];
+    let ended = false; // ended: the totals and notes below the last day have started
+    ws.eachRow({ includeEmpty: false }, (row, i) => {
+      if (i <= head || ended) return;
+      const where = `${ws.name.trim()}, row ${i}`;
+      const dateCell: unknown = row.getCell(bank - 1).value; // the date column sits left of "Bank Deposits" and has no heading; dates are =previous+1 formulas
+      const date = cellDate(dateCell as ExcelJS.CellValue, where);
+      if (!date) {
+        if (dateCell && typeof dateCell === "object" && !(dateCell instanceof Date)) throw new Error(`${where}: the date was never calculated. Open the file in Excel, let it calculate, save it and upload again.`);
+        ended = days.length > 0;
+        return;
+      }
+      const values: [string, number][] = [];
+      for (const [n, line] of lines) { const v = num(row.getCell(n).value, `${where}, ${line}`); if (v !== null) values.push([line, v]); }
+      days.push({ date, values });
+    });
+    // A 30-day month still has 31 rows; the extra one carries a date from the next (or wrong) month and only zeros. Keep the days of the month most rows belong to.
+    const perMonth = new Map<string, number>();
+    for (const d of days) perMonth.set(d.date.slice(0, 7), (perMonth.get(d.date.slice(0, 7)) ?? 0) + 1);
+    const month = [...perMonth].sort((a, b) => b[1] - a[1])[0]?.[0];
+    const stray = days.find((d) => d.date.slice(0, 7) !== month && d.values.some(([, v]) => v !== 0));
+    if (stray) throw new Error(`${ws.name.trim()} has figures dated ${stray.date}, which is outside the sheet's month. Correct the date.`);
+    const own = days.filter((d) => d.date.slice(0, 7) === month), last = own.findLastIndex((d) => d.values.some(([, v]) => v !== 0));
+    if (last >= 0) sheets.push({ name: ws.name.trim(), days: own, last });
+  }
+  const latest = sheets.map((x) => x.days[0].date).sort().at(-1);
+  for (const x of sheets) {
+    for (const d of x.days.slice(0, x.days[0].date === latest ? x.last + 1 : undefined)) { // only the newest sheet has unfilled days at its end
+      const other = seen.get(d.date);
+      if (other) throw new Error(`${x.name} and ${other} both have the date ${d.date}. Correct the dates in one of the two sheets.`);
+      seen.set(d.date, x.name);
+      for (const [line, value] of d.values) rows.push({ date: d.date, line, value });
+    }
+  }
+  return { title, rows };
 }

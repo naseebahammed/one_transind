@@ -1,12 +1,12 @@
 // Pure (only the import-free ./format.ts) so `node --test` can load it. Rules for the company page's sections and their uploaded templates.
-export type Section = "profile" | "pnl" | "balance" | "budget" | "people" | "expenses";
+export type Section = "profile" | "pnl" | "balance" | "budget" | "people" | "expenses" | "daily";
 export type FigureSection = "balance" | "budget" | "people" | "expenses";
 export type GridSection = FigureSection | "sales"; // same one-year grid; sales is stored in the company's sales file, not the figures table
 export type Cell = string | number | null;
 export type Figure = { year: number; month: number; line: string; value: number };
 export type MonthStatus = "Submitted" | "Not submitted" | "Not due";
 
-export const SECTIONS: readonly (readonly [Section, string])[] = [["profile", "Profile"], ["pnl", "P&L"], ["balance", "Balance sheet and cash"], ["budget", "Budget"], ["people", "People"], ["expenses", "Expenses"]];
+export const SECTIONS: readonly (readonly [Section, string])[] = [["profile", "Profile"], ["pnl", "P&L"], ["balance", "Balance sheet and cash"], ["budget", "Budget"], ["people", "People"], ["expenses", "Expenses"], ["daily", "Daily sales"]]; // daily: restaurants with branches only, the page hides it elsewhere
 
 import { MONTHS } from "./format.ts";
 

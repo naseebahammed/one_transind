@@ -170,17 +170,12 @@ export function report(snapshot: Reports, year: number, key: Key) { ... }
 
 ---
 
-## Step 7 — Retire the legacy dashboard (risk: highest · impact: high, removes ~1,100 lines)
+## Step 7 — Retire the legacy dashboard: already done (checked 2026-11-07)
 
-**Smell:** oversized legacy script (#4) and the 5 API routes kept only for it.
-
-**Needs an owner decision first.** This removes features, it doesn't rearrange them. Before starting, confirm which views on `/legacy` people still use, especially the **deals pipeline** (create a deal, drag through stages, "sales order → ERP").
-
-**What, once decided**
-1. List every view in `public/app.js` and mark each one: *rebuilt* (already a real page), *rebuild* (needed, build as a normal page first), or *drop*.
-2. Rebuild the needed views as normal pages using the `lib/` functions from Steps 3–6. The deals pipeline would use `lib/deals.ts` from Step 4.
-3. Only then delete `app/legacy/`, `app/Dashboard.tsx`, `public/app.js` and `public/td.js`, and the routes nothing else calls: `/api/bootstrap`, `/api/sales`, `/api/customers`, `/api/invoices`, and `/api/deals*` if the pipeline was rebuilt without them. Search for each route path before deleting.
-4. Keep the database tables (`app.deals`, `app.invoices`). Dropping them is a schema change and needs its own approval.
+`app/legacy/`, `public/app.js`, `public/td.js`, `/api/bootstrap` and `/api/deals*` no longer exist in the code, so the deals pipeline page is gone too. Left over:
+- `/api/sales`, `/api/customers`, `/api/invoices`: not checked whether anything still calls them. Search for each path before deleting.
+- Tables `app.deals`, `app.invoices`: kept. Dropping them is a schema change and needs its own approval.
+- Step 4 below still lists the deals routes and `lib/deals.ts`; skip those rows.
 
 ---
 
@@ -207,4 +202,4 @@ export function report(snapshot: Reports, year: number, key: Key) { ... }
 | 4 | SQL out of actions and routes into `lib/` | Medium | High | 1–2 days |
 | 5 | Calculations out of big pages | Medium | Medium | 1 day |
 | 6 | Snapshot passed as a value, per-request cache | Medium–high | Medium → high | 1 day |
-| 7 | Retire legacy dashboard | Highest | High | Depends on what is rebuilt |
+| 7 | Retire legacy dashboard | Done | - | Only leftover API routes and tables to review |

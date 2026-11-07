@@ -63,5 +63,3 @@ export const addLog = async (job: string, ok = true, n = 1) => {
   const [{ t }] = await q<{ t: string }>("INSERT INTO app.log(job,ok,n) VALUES($1,$2,$3) RETURNING to_char(at AT TIME ZONE 'Asia/Qatar','YYYY-MM-DD HH24:MI') AS t", [job, ok ? 1 : 0, n]);
   return { t, job, ok, n };
 };
-export const listInvoices = (customerId?: string | null) =>
-  customerId ? q('SELECT * FROM app.invoices WHERE "customerId"=$1', [customerId]) : q("SELECT * FROM app.invoices");

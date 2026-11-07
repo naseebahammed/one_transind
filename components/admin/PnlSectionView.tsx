@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { MONTHS, type MonthStatus } from "@/lib/company-data";
 import { link } from "@/lib/url";
 
-export function PnlSectionView({ company, year, statuses }: { company: { id: number; name: string; sector: string }; year: number; statuses: MonthStatus[] }) {
+export function PnlSectionView({ company, year, statuses, branchId }: { company: { id: number; name: string; sector: string }; year: number; statuses: MonthStatus[]; branchId: number | null }) {
   return (
     <>
       <Card className="gap-2 py-3">
@@ -15,7 +15,7 @@ export function PnlSectionView({ company, year, statuses }: { company: { id: num
           <CardTitle className="text-sm">Request and upload</CardTitle>
           <CardDescription>Download a template, fill it in, then upload it here. Only the months in the file change. <Link className="underline" href={link("/admin/finance", { company: String(company.id), year: String(year) })}>View the full P&amp;L</Link></CardDescription>
         </CardHeader>
-        <CardContent><UploadReport companyId={company.id} sector={company.sector} /></CardContent>
+        <CardContent><UploadReport companyId={company.id} sector={company.sector} branchId={branchId} /></CardContent>
       </Card>
       <Card className="gap-2 py-3">
         <CardContent>

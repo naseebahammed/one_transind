@@ -33,7 +33,7 @@ Main users and roles: Executive Leadership, Finance & Accounting Managers, Opera
 
 ## Database
 - Tables so far:
-  - App schema tables: `app.companies`, `app.sectors`, `app.property_types`, `app.accounts`, `app.company_figures`, `app.daily_sales`, `app.imports`, `app.deals`, `app.invoices`, `app.sales_departments`, `app.schema_migrations`, `app.log`
+  - App schema tables: `app.companies`, `app.sectors`, `app.property_types`, `app.accounts`, `app.company_figures`, `app.daily_sales`, `app.imports`, `app.sales_departments`, `app.schema_migrations`, `app.log`
   - Views: `app.daily_sales_monthly`
   - External ERP views: `public.invs_daily_sales_v` (configured via `SALES_TABLE` in `.env.local`)
 - Naming conventions: snake_case table and column names, plural nouns for entity tables, `id` as primary key or explicit composite keys, timestamp fields (`created`, `updated`, `applied`).

@@ -43,7 +43,7 @@ export async function loadReports(query?: <T>(text: string) => Promise<T[]>) {
       const list = `${id}|${kind}`;
       rows.set(list, [...(rows.get(list) ?? []), r]);
     }
-    r.m[mo] = v;
+    r.m[mo] += v; // a company with branches has one row per branch: the company figure is their sum
   };
   for (const f of figures) put(f.id, f.section, f.y, f.section === "units" ? f.unit_type : f.main, f.line, f.mo, f.v);
   for (const d of derived) put(d.id, "sales", d.y, d.main, d.line, d.mo, d.v);

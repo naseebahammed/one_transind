@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import ExcelJS from "exceljs";
-import { cellDate, checkDaily, dailyFromWorkbook, matchAccounts, num, pnlFromWorkbook, unitsFromWorkbook } from "./report-parsers.ts";
+import { cellDate, checkDaily, dailyFromWorkbook, matchAccounts, num, pnlFromWorkbook, receiptsFromWorkbook, unitsFromWorkbook } from "./report-parsers.ts";
 import { readWorkbook } from "./company-template.ts";
 
 test("num reads numbers, formulas and CSV text, keeps blank as null, and refuses text", () => {
@@ -134,4 +134,50 @@ test("unitsFromWorkbook totals per unit type and re-dates a mislabelled sheet", 
   assert.equal(out.find((r) => r.unit_type === "1 BHK" && r.line === "Room revenue")?.value, 1000);
   assert.equal(out.find((r) => r.unit_type === "2 BHK" && r.line === "Long stay")?.value, 8);
   assert.ok(!out.some((r) => r.line === "Spa" || r.unit_type === "Spa"));
+});
+
+// A Daily Sales Deposit sheet: title in B1, headings in row 3, a date per row, 31 rows even in a 30-day month, totals below.
+const depositSheet = (wb: ExcelJS.Workbook, name: string, ym: string, days: number[][], lastRowDate?: string) => {
+  const ws = wb.addWorksheet(name);
+  ws.getCell("B1").value = "Mr Shawarma Bin Omran";
+  ["Bank Deposits", "Date Of Deposit", "Gross Sales", "Cash Sales", "Credit Card Sales"].forEach((h, i) => { ws.getCell(3, 3 + i).value = h; });
+  for (let d = 0; d < 31; d++) {
+    const row = 4 + d, [cash = 0, card = 0, deposit = 0] = days[d] ?? [];
+    ws.getCell(row, 2).value = { formula: "B4+1", result: d === 30 && lastRowDate ? new Date(`${lastRowDate}T00:00:00Z`) : new Date(`${ym}-${String(d + 1).padStart(2, "0")}T00:00:00Z`) };
+    ws.getCell(row, 3).value = deposit; ws.getCell(row, 6).value = cash; ws.getCell(row, 7).value = card;
+  }
+  ws.getCell(35, 3).value = { formula: "SUM(C4:C34)", result: 1 }; ws.getCell(36, 5).value = "Total Cash Sales";
+  return ws;
+};
+
+test("receiptsFromWorkbook keeps real zero days, drops the unfilled end of the newest sheet and the 31st row of a short month", async () => {
+  const wb = new ExcelJS.Workbook();
+  depositSheet(wb, "April2026", "2026-04", [[10, 5, 10], [0, 0, 0], [7, 3, 7]], "2026-05-01");
+  depositSheet(wb, "MAY 2026 ", "2026-05", [[1, 2, 1], [4, 6, 4]]);
+  const { title, rows } = receiptsFromWorkbook(wb);
+  assert.equal(title, "Mr Shawarma Bin Omran");
+  const dates = [...new Set(rows.map((r) => r.date))];
+  assert.equal(dates.length, 30 + 2); // April: its 30 days; May: only through 2 May. April's 31st row (dated 1 May, zeros) is dropped.
+  assert.ok(rows.some((r) => r.date === "2026-04-02" && r.line === "Cash sales" && r.value === 0), "a zero day inside a sheet is a real zero");
+  assert.equal(rows.find((r) => r.date === "2026-05-01" && r.line === "Cash sales")?.value, 1);
+  assert.equal(rows.find((r) => r.date === "2026-05-03"), undefined);
+  assert.ok(!rows.some((r) => r.line === "Gross sales" || r.line === "Date of deposit"), "gross sales are calculated, not read");
+});
+
+test("receiptsFromWorkbook refuses two sheets with the same date and figures dated outside the sheet's month", () => {
+  const dup = new ExcelJS.Workbook();
+  depositSheet(dup, "JANUARY", "2026-02", [[1, 1, 1]]);
+  depositSheet(dup, "FEBRUARY", "2026-02", [[2, 2, 2]]);
+  assert.throws(() => receiptsFromWorkbook(dup), /FEBRUARY and JANUARY both have the date 2026-02-01/);
+  const stray = new ExcelJS.Workbook();
+  const ws = depositSheet(stray, "June 2026", "2026-06", [[1, 1, 1]]);
+  ws.getCell(34, 6).value = 99; // the extra 31st row holds a figure
+  assert.throws(() => receiptsFromWorkbook(stray), /outside the sheet's month/);
+});
+
+test("receiptsFromWorkbook asks for a recalculated file when a date was never calculated", () => {
+  const wb = new ExcelJS.Workbook();
+  const ws = depositSheet(wb, "April2026", "2026-04", [[1, 1, 1], [2, 2, 2]]);
+  ws.getCell(5, 2).value = { formula: "B4+1" } as ExcelJS.CellValue;
+  assert.throws(() => receiptsFromWorkbook(wb), /date was never calculated/);
 });

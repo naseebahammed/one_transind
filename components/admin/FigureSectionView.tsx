@@ -17,8 +17,8 @@ const NOTES: Record<FigureSection, string> = {
   expenses: "Total monthly expenses in QAR.",
 };
 
-export async function FigureSectionView({ company, section, year, statuses }: { company: { id: number; name: string }; section: FigureSection; year: number; statuses: MonthStatus[] }) {
-  const [figures, groups] = await Promise.all([listFigures(company.id, section, year), linesOf(section)]);
+export async function FigureSectionView({ company, section, year, statuses, branchId }: { company: { id: number; name: string }; section: FigureSection; year: number; statuses: MonthStatus[]; branchId: number | null }) {
+  const [figures, groups] = await Promise.all([listFigures(company.id, section, year, branchId), linesOf(section)]);
   const value = (line: string, m: number) => figures.find((f) => f.line === line && f.month === m)?.value;
   const net = (m: number) => (statuses[m] === "Submitted" ? (value("Revenue", m) ?? 0) - (value("Direct cost", m) ?? 0) - (value("Overheads", m) ?? 0) : undefined);
   const accounts = LINES[section].map((line) => ({ main: groups.get(line) ?? "", sub: line, m: MONTHS.map((_, m) => value(line, m)) }));
@@ -28,8 +28,8 @@ export async function FigureSectionView({ company, section, year, statuses }: { 
         <CardHeader><CardTitle className="text-sm">Request and upload</CardTitle><CardDescription>{NOTES[section]}</CardDescription></CardHeader>
         <CardContent className="flex flex-wrap items-center gap-4">
           <Button asChild variant="outline"><a href={`/api/companies/${company.id}/template?section=${section}&year=${year}`}>Download {year} template</a></Button>
-          <UploadFigures companyId={company.id} section={section} year={year} />
-          <EditPnlFigure year={year} months={MONTHS} accounts={accounts} onSave={saveFigureCell.bind(null, section, year, company.id)} />
+          <UploadFigures companyId={company.id} section={section} year={year} branchId={branchId} />
+          <EditPnlFigure year={year} months={MONTHS} accounts={accounts} onSave={saveFigureCell.bind(null, section, year, company.id, branchId)} />
         </CardContent>
       </Card>
       <div className="overflow-x-auto rounded-xl border bg-card">
@@ -61,6 +61,7 @@ export async function FigureSectionView({ company, section, year, statuses }: { 
                   {s === "Submitted" && (
                     <form action={removeFigureMonth}>
                       <input type="hidden" name="companyId" value={company.id} />
+                      <input type="hidden" name="branchId" value={branchId ?? ""} />
                       <input type="hidden" name="section" value={section} />
                       <input type="hidden" name="year" value={year} />
                       <input type="hidden" name="month" value={m} />

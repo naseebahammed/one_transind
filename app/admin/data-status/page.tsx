@@ -20,11 +20,11 @@ const na: Cell = { state: "na" };
 const yes = (v: boolean): Cell => ({ state: v ? "ok" : "none" });
 const realEstate = (c: Company) => c.sector === SECTOR.realEstate;
 
-// Mandatory profile items. Rooms and types only apply to real estate, mirroring the profile form.
+// Mandatory profile items. Rooms only apply to real estate, mirroring the profile form.
 const PROFILE: { key: string; label: string; check: (c: Company) => Cell }[] = [
   { key: "logo", label: "Logo", check: (c) => yes(c.has_logo) },
   { key: "erp", label: "ERP code", check: (c) => yes(!!c.erp_code) },
-  { key: "type", label: "Company type", check: (c) => (realEstate(c) ? yes(!!c.property_type) : na) },
+  { key: "type", label: "Company type", check: (c) => yes(!!c.property_type) },
   { key: "rooms", label: "Total rooms", check: (c) => (realEstate(c) ? yes(c.total_rooms > 0) : na) },
   { key: "inventory", label: "Room types", check: (c) => (realEstate(c) ? yes(c.room_types.length > 0) : na) },
 ];

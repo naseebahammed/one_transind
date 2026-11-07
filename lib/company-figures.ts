@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import type { PoolClient } from "pg";
-import { numbering, q } from "@/lib/db";
-import type { DailyRow } from "@/lib/report-parsers";
+import { numbering, q, q1 } from "@/lib/db";
+import type { DailyRow, ReceiptRow } from "@/lib/report-parsers";
 import type { Figure, FigureSection } from "@/lib/company-data";
 
 /** One uploaded file, kept with its import so it can be re-read or downloaded later. */
@@ -25,9 +25,9 @@ export const listExpenses = () =>
   q<{ company_id: number; year: number; month: number; value: number }>("SELECT company_id, EXTRACT(year FROM period)::int AS year, EXTRACT(month FROM period)::int - 1 AS month, value::float8 AS value FROM app.company_figures WHERE section='expenses'");
 
 /** Which months of a year each section has on file. A month is on file when it has rows, so a real zero counts. */
-export async function listFilledMonths(companyId: number, year: number) {
+export async function listFilledMonths(companyId: number, year: number, branchId: number | null = null) {
   const out: Record<FigureSection | "pnl", Set<number>> = { pnl: new Set(), balance: new Set(), budget: new Set(), people: new Set(), expenses: new Set() };
-  for (const r of await q<{ section: FigureSection | "pnl"; month: number }>(`SELECT DISTINCT section, EXTRACT(month FROM period)::int - 1 AS month FROM app.company_figures WHERE company_id=$1 AND ${inYear("period", "$2")}`, [companyId, year])) out[r.section]?.add(r.month);
+  for (const r of await q<{ section: FigureSection | "pnl"; month: number }>(`SELECT DISTINCT section, EXTRACT(month FROM period)::int - 1 AS month FROM app.company_figures WHERE company_id=$1 AND ${inYear("period", "$2")} AND branch_id IS NOT DISTINCT FROM $3`, [companyId, year, branchId])) out[r.section]?.add(r.month);
   return out;
 }
 
@@ -88,3 +88,23 @@ export const listImports = () =>
   q<ImportRow>(`SELECT i.id, c.name AS company, i.section, i.source, i.file_name, i.file IS NOT NULL AS has_file, i.status, i.error, i.rows_loaded,
       to_char(i.period_from,'Mon YYYY') AS period_from, to_char(i.period_to,'Mon YYYY') AS period_to, to_char(i.created AT TIME ZONE 'Asia/Qatar','YYYY-MM-DD HH24:MI') AS created
     FROM app.imports i JOIN app.companies c ON c.id=i.company_id ORDER BY i.id DESC LIMIT 100`);
+
+/** Latest month with takings for any branch of the company, as { year, month 0-11 }; null when nothing is uploaded. */
+export const latestReceiptMonth = async (companyId: number) => {
+  const row = await q1<{ year: number; month: number }>(`SELECT EXTRACT(year FROM max(date))::int AS year, EXTRACT(month FROM max(date))::int - 1 AS month FROM app.daily_receipts WHERE company_id=$1`, [companyId]);
+  return row && row.year != null ? row : null;
+};
+
+/** One branch's takings for one month (month 0-11), a row per day and channel. */
+export const listReceipts = (branchId: number, year: number, month: number) =>
+  q<ReceiptRow>(`SELECT to_char(date,'YYYY-MM-DD') AS date, line, value::float8 AS value FROM app.daily_receipts WHERE branch_id=$1 AND date >= make_date($2::int,$3::int + 1,1) AND date < make_date($2::int,$3::int + 1,1) + interval '1 month'`, [branchId, year, month]);
+
+/** All or nothing: days in the file replace the same days of that branch, every other day stays as it is. */
+export const importReceipts = (u: Upload & { branchId: number }, rows: ReceiptRow[]) =>
+  numbering(async (c) => {
+    const id = await addImport(c, u, rows.length, [...new Set(rows.map((r) => `${r.date.slice(0, 7)}-01`))]);
+    await c.query("DELETE FROM app.daily_receipts WHERE branch_id=$1 AND date = ANY($2::date[])", [u.branchId, [...new Set(rows.map((r) => r.date))]]); // so a cleared cell removes its old value
+    await c.query(`INSERT INTO app.daily_receipts(company_id,branch_id,date,line,value,import_id) SELECT $1,$2,d,l,v,$6 FROM unnest($3::date[],$4::text[],$5::numeric[]) AS t(d,l,v)
+      ON CONFLICT (branch_id,date,line) DO UPDATE SET value=EXCLUDED.value,import_id=EXCLUDED.import_id,updated=now()`,
+      [u.companyId, u.branchId, rows.map((r) => r.date), rows.map((r) => r.line), rows.map((r) => r.value), id]);
+  });

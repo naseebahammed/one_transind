@@ -109,20 +109,21 @@ export function CompanyForm({ company, sectors, propertyTypes }: { company?: Com
                 </Select>
               </div>
             </Field>
-            <Field id="erpCode" label="ERP code"><Input id="erpCode" name="erpCode" maxLength={20} defaultValue={company?.erp_code} /></Field>          </div>
+            <Field id="erpCode" label="ERP code"><Input id="erpCode" name="erpCode" maxLength={20} defaultValue={company?.erp_code} /></Field>
+            <Field id="propertyType" label="Company type">
+              <div className="relative">
+                <Home className="pointer-events-none absolute left-3 top-1/2 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Select name="propertyType" value={propertyType} onValueChange={setPropertyType}>
+                  <SelectTrigger id="propertyType" className="w-full pl-9"><SelectValue placeholder="Select type" /></SelectTrigger>
+                  <SelectContent>{propertyTypes.map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+                </Select>
+              </div>
+            </Field>
+          </div>
           {sector === SECTOR.realEstate && (
             <div className="space-y-2 border-t pt-2">
               <h3 className="pb-2 text-sm font-medium mb-0!">Real estate details</h3>
               <div className="flex flex-wrap items-end gap-3">
-                <Field id="propertyType" label="Property type">
-                  <div className="relative">
-                    <Home className="pointer-events-none absolute left-3 top-1/2 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
-                    <Select name="propertyType" value={propertyType} onValueChange={setPropertyType}>
-                      <SelectTrigger id="propertyType" className="w-40 pl-9"><SelectValue placeholder="Select type" /></SelectTrigger>
-                      <SelectContent>{propertyTypes.map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
-                    </Select>
-                  </div>
-                </Field>
                 <Field id="totalRooms" label={propertyType === "villa" ? "Number of villas" : "Total number of rooms"}>
                   <div className="flex gap-2">
                     <IconInput id="totalRooms" name="totalRooms" icon={Hash} type="number" min={0} defaultValue={company?.total_rooms ?? 0} className="w-40" />
