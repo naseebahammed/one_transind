@@ -13,12 +13,12 @@ import { Trash2 } from "lucide-react";
 import { Switch } from "@/components/admin/ui/switch";
 import { deleteDailyYear, deletePnlYear, savePnlCell, saveSalesCell, saveUnitsCell } from "../al-manzil/actions";
 import { toggleCompanyHidden } from "../companies/actions";
-import { alManzilKey, keyFor, MONTHS, plRows, report, sum, years, loadReports } from "@/lib/al-manzil";
+import { alManzilKey, keyFor, plRows, report, years, loadReports } from "@/lib/reports";
 import { listCompanies, type Company } from "@/lib/companies";
 import { listExpenses } from "@/lib/company-figures";
 import { listSectors } from "@/lib/sectors";
 import { link } from "@/lib/url";
-import { fmt } from "@/lib/format";
+import { fmt, MONTHS, sum } from "@/lib/format";
 
 const neg = (v: number) => (v < 0 ? "text-destructive" : "");
 

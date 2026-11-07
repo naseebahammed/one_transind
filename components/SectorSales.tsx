@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { connection } from "next/server";
-import { keyFor, plRows, report, years, loadReports } from "@/lib/al-manzil";
+import { keyFor, plRows, report, years, loadReports } from "@/lib/reports";
 import { listCompanies } from "@/lib/companies";
 import { fmt, money, MONTHS, pct, sum } from "@/lib/format";
 import { link } from "@/lib/url";

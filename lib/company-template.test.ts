@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import ExcelJS from "exceljs";
 import { parseGrid } from "./company-data.ts";
-import { dailyFromWorkbook, unitsFromWorkbook } from "./al-manzil.ts";
+import { dailyFromWorkbook, unitsFromWorkbook } from "./report-parsers.ts";
 import { buildDailyTemplate, buildFigureTemplate, buildPnlTemplate, buildUnitsTemplate, gridFromWorkbook } from "./company-template.ts";
 
 const reload = async (wb: ExcelJS.Workbook) => {

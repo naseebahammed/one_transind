@@ -1,16 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import ExcelJS from "exceljs";
-import { cellDate, checkDaily, dailyFromWorkbook, matchAccounts, num, pnlFromWorkbook, report, unitsFromWorkbook } from "./al-manzil.ts";
+import { cellDate, checkDaily, dailyFromWorkbook, matchAccounts, num, pnlFromWorkbook, unitsFromWorkbook } from "./report-parsers.ts";
 import { readWorkbook } from "./company-template.ts";
-
-const rows = [{ year: 2025, main: "REVENUE", sub: "Extra Bed", m: Array(12).fill(10) }];
-
-test("a year without a Room Rent row still reports", () => {
-  const r = report(2025, "4", rows);
-  assert.equal(r.revenue[0], 10);
-  assert.deepEqual(r.roomRent, Array(12).fill(0));
-});
 
 test("num reads numbers, formulas and CSV text, keeps blank as null, and refuses text", () => {
   assert.equal(num(5.126, "x"), 5.13);

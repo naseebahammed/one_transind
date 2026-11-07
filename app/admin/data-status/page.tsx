@@ -6,7 +6,7 @@ import { PrintButton } from "@/components/admin/PrintButton";
 import { Button } from "@/components/admin/ui/button";
 import { Card } from "@/components/admin/ui/card";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/admin/ui/table";
-import { loadReports } from "@/lib/al-manzil";
+import { loadReports } from "@/lib/reports";
 import { listCompanies, type Company } from "@/lib/companies";
 import { monthStatuses, type FigureSection } from "@/lib/company-data";
 import { listFilledMonths } from "@/lib/company-figures";

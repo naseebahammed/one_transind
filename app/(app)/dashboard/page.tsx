@@ -1,7 +1,7 @@
 import { SECTOR, SECTORS } from "@/lib/org";
 import { getSalesSectors } from "@/lib/sales-sectors";
 import { listSectors } from "@/lib/sectors";
-import { keyFor, plRows, report, years, loadReports } from "@/lib/al-manzil";
+import { keyFor, plRows, report, years, loadReports } from "@/lib/reports";
 import { listCompanies } from "@/lib/companies";
 import { Suspense } from "react";
 import { connection } from "next/server";

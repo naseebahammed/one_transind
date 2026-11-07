@@ -7,7 +7,8 @@ import { parseGrid, sectionName } from "@/lib/company-data";
 import { deleteDailyYearRows, deleteFigureYear, importDaily, importFigures, linesOf, recordRejected, setFigure, type Upload } from "@/lib/company-figures";
 import { gridFromWorkbook, MAX_UPLOAD_BYTES, readWorkbook } from "@/lib/company-template";
 import { addLog } from "@/lib/db";
-import { checkDaily, dailyFromWorkbook, matchAccounts, MONTHS, pnlFromWorkbook, unitsFromWorkbook } from "@/lib/al-manzil";
+import { checkDaily, dailyFromWorkbook, matchAccounts, pnlFromWorkbook, unitsFromWorkbook } from "@/lib/report-parsers";
+import { MONTHS } from "@/lib/format";
 
 export type UploadState = { error?: string; ok?: string };
 type Company = NonNullable<Awaited<ReturnType<typeof getCompany>>>;

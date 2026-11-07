@@ -1,6 +1,7 @@
 import { connection } from "next/server";
 import { getOverview, getCustomers } from "@/lib/data";
-import { alManzilKey, occupancy, report, revenueLines, sum, years, loadReports } from "@/lib/al-manzil";
+import { alManzilKey, occupancy, report, revenueLines, years, loadReports } from "@/lib/reports";
+import { sum } from "@/lib/format";
 
 const MAX_Q = 1000;
 

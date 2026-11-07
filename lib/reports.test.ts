@@ -1,7 +1,7 @@
-// Baseline for the report readers in al-manzil.ts: pins today's results before the refactoring moves them (refactoring_plan.md, Step 0).
+// The report readers: loading figures, P&L totals, occupancy and average daily rate. The first three tests were written before the refactoring moved this code (refactoring_plan.md, Step 0).
 import test from "node:test";
 import assert from "node:assert/strict";
-import { alManzilKey, dailyYears, loadReports, occupancy, plRows, report, revenueLines, years } from "./al-manzil.ts";
+import { alManzilKey, dailyYears, loadReports, occupancy, plRows, report, revenueLines, years } from "./reports.ts";
 
 const m = (...v: number[]) => [...v, ...Array(12 - v.length).fill(0)];
 
@@ -53,4 +53,12 @@ test("occupancy and average daily rate are calculated per month from the daily r
   assert.deepEqual(jan, { days: 2, sold: 5, avail: 20, occ: 0.25, adr: 200, longShare: 0.6, room: 1000, other: 50 });
   assert.deepEqual(feb, { days: 1, sold: 4, avail: 10, occ: 0.4, adr: 200, longShare: 0, room: 800, other: 0 });
   assert.deepEqual(mar, { days: 0, sold: 0, avail: 0, occ: 0, adr: 0, longShare: 0, room: 0, other: 0 });
+});
+
+const rows = [{ year: 2025, main: "REVENUE", sub: "Extra Bed", m: Array(12).fill(10) }];
+
+test("a year without a Room Rent row still reports", () => {
+  const r = report(2025, "4", rows);
+  assert.equal(r.revenue[0], 10);
+  assert.deepEqual(r.roomRent, Array(12).fill(0));
 });

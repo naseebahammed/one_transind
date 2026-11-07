@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { loadReports } from "@/lib/al-manzil";
+import { loadReports } from "@/lib/reports";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { CompanyForm } from "@/components/admin/CompanyForm";

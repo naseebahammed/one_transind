@@ -4,7 +4,7 @@ import { connection } from "next/server";
 import { getOverview } from "@/lib/data";
 import { fmt, MONTHS, sum } from "@/lib/format";
 import { MonthBars } from "@/components/admin/FinanceCharts";
-import { alManzilKey, MONTHS as AM_MONTHS, report, years, loadReports } from "@/lib/al-manzil";
+import { alManzilKey, report, years, loadReports } from "@/lib/reports";
 import { Empty, Kpi, NotConnected, Panel } from "@/components/ui";
 
 export const metadata = { title: "Finance · One Transind" };
@@ -38,10 +38,10 @@ async function Content() {
           <p className="note" style={{ marginTop: 8 }}>Figures in QAR M, January to {MONTHS[o.month]} {o.year}. No target source is connected.</p>
         </Panel>
         <Panel span={6} title="Al Manzil - revenue by year">
-          <MonthBars label="Al Manzil revenue by year" months={AM_MONTHS} series={am.map(([y, r], i) => ({ name: String(y), color: COLORS[i % 4], data: r.revenue }))} />
+          <MonthBars label="Al Manzil revenue by year" months={MONTHS} series={am.map(([y, r], i) => ({ name: String(y), color: COLORS[i % 4], data: r.revenue }))} />
         </Panel>
         <Panel span={6} title="Al Manzil - net profit / loss by year">
-          <MonthBars label="Al Manzil net profit or loss" months={AM_MONTHS} series={am.map(([y, r], i) => ({ name: String(y), color: COLORS[i % 4], data: r.net }))} />
+          <MonthBars label="Al Manzil net profit or loss" months={MONTHS} series={am.map(([y, r], i) => ({ name: String(y), color: COLORS[i % 4], data: r.net }))} />
         </Panel>
         <Panel span={5} title="Receivables aging">
           <p className="empty">Not connected</p>

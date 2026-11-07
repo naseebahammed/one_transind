@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import type { PoolClient } from "pg";
 import { numbering, q } from "@/lib/db";
-import type { DailyRow } from "@/lib/al-manzil";
+import type { DailyRow } from "@/lib/report-parsers";
 import type { Figure, FigureSection } from "@/lib/company-data";
 
 /** One uploaded file, kept with its import so it can be re-read or downloaded later. */
