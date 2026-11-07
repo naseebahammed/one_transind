@@ -10,7 +10,7 @@ export function UploadFigures({ companyId, section, year }: { companyId: number;
       <input type="hidden" name="companyId" value={companyId} />
       <input type="hidden" name="section" value={section} />
       <input type="hidden" name="year" value={year} />
-      <input type="file" name="file" accept=".xlsx" required aria-label="Filled template" className="text-sm" />
+      <input type="file" name="file" accept=".xlsx,.csv" required aria-label="Filled template" className="text-sm" />
       <Button type="submit" disabled={pending}>{pending ? "Uploading..." : "Upload"}</Button>
       {s.error && <span role="alert" className="text-sm text-destructive">{s.error}</span>}
       {s.ok && <span className="text-sm text-success">{s.ok}</span>}

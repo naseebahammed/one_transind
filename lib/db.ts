@@ -3,18 +3,18 @@ import { SECTORS } from "@/lib/org";
 import { PROPERTY_TYPES } from "@/lib/company-input";
 import { ACCOUNT_SEED } from "@/lib/accounts-seed";
 import { pg } from "@/lib/pg";
-import { SCHEMA } from "@/lib/schema";
+import { migrate } from "@/lib/schema";
 
 async function init() {
   const c = await pg.connect();
   try {
     await c.query("BEGIN");
     await c.query("SELECT pg_advisory_xact_lock(7451)"); // concurrent first requests/instances must not double-seed
-    await c.query(SCHEMA);
-    const empty = async (t: string) => !(await c.query(`SELECT 1 FROM app.${t} LIMIT 1`)).rowCount;
+    await migrate(c);
+    const empty = async (t: string, where = "") => !(await c.query(`SELECT 1 FROM app.${t} ${where} LIMIT 1`)).rowCount;
     if (await empty("sectors")) for (const [k, v] of SECTORS) await c.query("INSERT INTO app.sectors VALUES($1,$2)", [k, v]);
     if (await empty("property_types")) for (const [k, v] of PROPERTY_TYPES) await c.query("INSERT INTO app.property_types VALUES($1,$2)", [k, v]);
-    if (await empty("accounts")) {
+    if (await empty("accounts", "WHERE section='pnl'")) {
       let i = 0;
       for (const [m, subs] of Object.entries(ACCOUNT_SEED)) { i++; for (const s of subs) await c.query("INSERT INTO app.accounts(main,sub,main_order) VALUES($1,$2,$3)", [m, s, i]); }
     }
@@ -66,10 +66,9 @@ export const getDeal = async (id: string) => {
 };
 export const listDeals = async () => (await q<DealRow>("SELECT * FROM app.deals ORDER BY seq")).map(toDeal);
 export const listLog = async () =>
-  (await q<{ t: string; job: string; ok: number; n: number }>("SELECT t,job,ok,n FROM app.log ORDER BY id DESC LIMIT 50")).map((x) => ({ ...x, ok: !!x.ok }));
+  (await q<{ t: string; job: string; ok: number; n: number }>("SELECT to_char(at AT TIME ZONE 'Asia/Qatar','YYYY-MM-DD HH24:MI') AS t,job,ok,n FROM app.log ORDER BY id DESC LIMIT 50")).map((x) => ({ ...x, ok: !!x.ok }));
 export const addLog = async (job: string, ok = true, n = 1) => {
-  const t = new Date().toTimeString().slice(0, 5);
-  await q("INSERT INTO app.log(t,job,ok,n) VALUES($1,$2,$3,$4)", [t, job, ok ? 1 : 0, n]);
+  const [{ t }] = await q<{ t: string }>("INSERT INTO app.log(job,ok,n) VALUES($1,$2,$3) RETURNING to_char(at AT TIME ZONE 'Asia/Qatar','YYYY-MM-DD HH24:MI') AS t", [job, ok ? 1 : 0, n]);
   return { t, job, ok, n };
 };
 export const listInvoices = (customerId?: string | null) =>

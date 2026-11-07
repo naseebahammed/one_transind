@@ -7,14 +7,14 @@ import { NativeSelect } from "@/components/admin/ui/native-select";
 import { MONTHS } from "@/lib/company-data";
 
 const TYPES = {
-  pnl: { label: "P&L", accept: ".xlsx", hint: "Excel workbook, first visible sheet with month columns. Months (and years, when the headers carry them) in the file replace existing figures." },
-  daily: { label: "Monthly sales report", accept: ".csv,.xlsx", hint: "CSV or Excel with the daily report columns (date, long/short stay guests and rates, rooms, revenue, occupancy). Days in the file replace the same days." },
-  units: { label: "1 BHK / 2 BHK report", accept: ".xlsx", hint: "Excel sales report split by unit type (availability, long/short stay, revenue per unit type). Months in the file replace the same months on file." },
-  sales: { label: "Monthly sales", accept: ".xlsx", hint: "The downloaded template, one sales figure per month. Months you fill in replace the same months on file." },
+  pnl: { label: "P&L", accept: ".xlsx,.csv", hint: "Excel or CSV with month columns; in Excel, the first visible sheet. Months with figures in the file replace that month on file; empty months are left alone. Every account must be in the Chart of accounts." },
+  daily: { label: "Monthly sales report", accept: ".csv,.xlsx", hint: "Excel or CSV with the columns of the downloaded template. Days in the file replace the same days." },
+  units: { label: "1 BHK / 2 BHK report", accept: ".xlsx,.csv", hint: "Excel or CSV sales report split by unit type (availability, long/short stay, revenue per unit type). Months in the file replace the same months on file." },
+  sales: { label: "Monthly sales", accept: ".xlsx,.csv", hint: "The downloaded template, as Excel or CSV, one sales figure per month. Months you fill in replace the same months on file." },
 } as const;
 const FOR_REAL_ESTATE = ["pnl", "daily", "units"], FOR_OTHERS = ["pnl", "sales"];
 
-export function UploadReport({ companyId, companyKey, sector }: { companyId: number; companyKey: string; sector: string }) {
+export function UploadReport({ companyId, sector }: { companyId: number; sector: string }) {
   const [s, act, pending] = useActionState<UploadState, FormData>(uploadReport, {});
   const [type, setType] = useState<keyof typeof TYPES>("pnl");
   const [month, setMonth] = useState("");
@@ -24,7 +24,6 @@ export function UploadReport({ companyId, companyKey, sector }: { companyId: num
   return (
     <form action={act} className="space-y-1" onSubmit={(e) => { e.preventDefault(); const data = new FormData(e.currentTarget); startTransition(() => act(data)); }}>
       <div className="flex flex-wrap items-center gap-2">
-        <input type="hidden" name="key" value={companyKey} />
         <input type="hidden" name="companyId" value={companyId} />
         <NativeSelect name="type" value={type} onChange={(e) => setType(e.target.value as keyof typeof TYPES)}>
           {Object.entries(TYPES).filter(([k]) => (sector === "re" ? FOR_REAL_ESTATE : FOR_OTHERS).includes(k)).map(([k, t]) => <option key={k} value={k}>{t.label}</option>)}

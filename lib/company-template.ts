@@ -1,4 +1,5 @@
 // Excel side of the company page's sections: builds the templates to send out and reads uploaded ones into a grid for parseGrid.
+import { Readable } from "node:stream";
 import ExcelJS from "exceljs";
 import { LINES, MONTHS, templateTitle, type Cell, type GridSection } from "./company-data.ts";
 
@@ -20,6 +21,20 @@ export function buildPnlTemplate(year: number, month: number, accounts: { main: 
   ws.getRow(1).font = { bold: true };
   accounts.forEach((a, i) => { ws.getCell(i + 3, 1).value = a.main; ws.getCell(i + 3, 4).value = a.sub; });
   ws.getColumn(1).width = 30; ws.getColumn(4).width = 34;
+  return wb;
+}
+
+export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+
+/** A workbook from .xlsx or .csv bytes, told apart by content rather than the file name. Throws a readable message. */
+export async function readWorkbook(buf: Buffer) {
+  const wb = new ExcelJS.Workbook();
+  if (buf.subarray(0, 2).toString("latin1") === "PK") { // every .xlsx is a zip
+    try { await wb.xlsx.load(buf as unknown as ExcelJS.Buffer); return wb; } catch { throw new Error("Could not read that file as an Excel workbook."); }
+  }
+  if (buf.includes(0)) throw new Error("Could not read that file. Save it as .xlsx or .csv and try again."); // old .xls and other binary formats
+  // Cells stay as text: the default parser turns dates into local-time values, which land a day early in Qatar. num() and cellDate() read the text.
+  await wb.csv.read(Readable.from(buf.toString("utf8").replace(/^﻿/, "")), { map: (v: string) => (v === "" ? null : v) });
   return wb;
 }
 

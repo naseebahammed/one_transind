@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { CompanyForm } from "@/components/admin/CompanyForm";
 import { CompanySectionNav, progress, YearLinks } from "@/components/admin/CompanySectionNav";
 import { FigureSectionView } from "@/components/admin/FigureSectionView";
-import { PnlSectionView, pnlFilledMonths } from "@/components/admin/PnlSectionView";
+import { PnlSectionView } from "@/components/admin/PnlSectionView";
 import { Page } from "@/components/admin/Page";
 import { ConfirmButton } from "@/components/admin/ConfirmButton";
 import { Badge } from "@/components/admin/ui/badge";
@@ -42,10 +42,10 @@ async function Edit({ params, searchParams }: { params: Params; searchParams: Se
   const yearOptions = section === "budget" ? [...pastYears, thisYear + 1] : pastYears; // budgets are set ahead
   const year = yearOptions.includes(Number(rawYear)) ? Number(rawYear) : thisYear;
   const filled = await listFilledMonths(id, year);
-  const pnlStatuses = monthStatuses("pnl", year, pnlFilledMonths(company, year), today);
-  const figureStatuses = { balance: monthStatuses("balance", year, filled.balance, today), budget: monthStatuses("budget", year, filled.budget, today), people: monthStatuses("people", year, filled.people, today) };
+  const pnlStatuses = monthStatuses("pnl", year, filled.pnl, today);
+  const figureStatuses = { balance: monthStatuses("balance", year, filled.balance, today), budget: monthStatuses("budget", year, filled.budget, today), people: monthStatuses("people", year, filled.people, today), expenses: monthStatuses("expenses", year, filled.expenses, today) };
   const gaps = profileGaps(company).length;
-  const labels: Record<Section, string> = { profile: gaps ? `${gaps} blank` : "Complete", pnl: progress(pnlStatuses), balance: progress(figureStatuses.balance), budget: progress(figureStatuses.budget), people: progress(figureStatuses.people) };
+  const labels: Record<Section, string> = { profile: gaps ? `${gaps} blank` : "Complete", pnl: progress(pnlStatuses), balance: progress(figureStatuses.balance), budget: progress(figureStatuses.budget), people: progress(figureStatuses.people), expenses: progress(figureStatuses.expenses) };
   const sibling = (other: number) => link(`/admin/companies/${other}`, { section, year: rawYear });
   const index = ids.findIndex((c) => c.id === id);
   const prevId = index > 0 ? ids[index - 1].id : null;

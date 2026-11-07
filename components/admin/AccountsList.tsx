@@ -105,10 +105,10 @@ export function AccountsList({ rows }: { rows: Account[] }) {
                       <TableCell>
                         <div className="flex justify-end gap-1">
                           <Button type="button" size="icon-sm" variant="ghost" aria-label={`Edit ${a.sub}`} onClick={() => { setEditing(a.id); setEditError(""); }}><Pencil /></Button>
-                          <form action={deleteAccount}>
+                          {!a.used && <form action={deleteAccount}>
                             <input type="hidden" name="id" value={a.id} />
                             <ConfirmButton size="icon-sm" variant="ghost" aria-label={`Delete ${a.sub}`} className="text-destructive hover:text-destructive" message={`Delete ${a.sub}?`}><Trash2 /></ConfirmButton>
-                          </form>
+                          </form>}
                         </div>
                       </TableCell>
                     </TableRow>

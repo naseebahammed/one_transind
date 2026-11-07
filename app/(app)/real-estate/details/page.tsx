@@ -46,8 +46,8 @@ async function Content({ searchParams }: { searchParams: Params }) {
   );
   if (!ys.length) return <>{toolbar}<p className="empty">No P&amp;L or stay-report data uploaded for {all ? "any company" : selected?.name ?? "this company"} yet.</p></>;
   const cur = ys[idx], prev = idx > 0 ? ys[idx - 1] : undefined;
-  const R = ys.map((y) => report(y, key)), c = R[idx], p = idx > 0 ? R[idx - 1] : undefined;
-  const O = ys.map((y) => occupancy(y, key)), oc = O[idx];
+  const R = ys.map((y) => report(y, key!)), c = R[idx], p = idx > 0 ? R[idx - 1] : undefined;
+  const O = ys.map((y) => occupancy(y, key!)), oc = O[idx];
   const avg = (o: typeof oc) => ({ occ: sum(o.map((m) => m.occ * m.days)) / (sum(o.map((m) => m.days)) || 1), adr: sum(o.map((m) => m.room)) / (sum(o.map((m) => m.sold)) || 1) });
   const revpar = (o: typeof oc) => sum(o.map((m) => m.room)) / (sum(o.map((m) => m.avail)) || 1);
   const rev = sum(c.revenue), cost = sum(c.totalCost), net = sum(c.net);
@@ -99,7 +99,7 @@ async function Content({ searchParams }: { searchParams: Params }) {
               <CompareChart years={ys} series={R.map((r) => r.net.map((v) => v / 1e6))} sel={idx} />
             </Panel>}
             <Panel span={6} title={`Revenue by source - ${cur}`}>
-              <HBars rows={revenueLines(cur, key).map(([l, v]) => ({ l, v: v / 1e6 }))} unit=" M" />
+              <HBars rows={revenueLines(cur, key!).map(([l, v]) => ({ l, v: v / 1e6 }))} unit=" M" />
             </Panel>
             {costed && <Panel span={6} title={`Cost breakdown - ${cur}`}>
               <HBars rows={c.costGroups.map(([l, d]) => ({ l, v: sum(d) / 1e6 })).sort((a, b) => b.v - a.v)} unit=" M" />

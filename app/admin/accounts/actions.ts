@@ -7,11 +7,11 @@ export type AccountState = { error?: string };
 const text = (f: FormData, k: string) => String(f.get(k) ?? "").trim().replace(/\s+/g, " ").slice(0, 80);
 const done = () => revalidatePath("/admin", "layout");
 const taken = async (main: string, sub: string, id = 0) =>
-  !!(await q1("SELECT 1 FROM app.accounts WHERE lower(main)=lower($1) AND lower(sub)=lower($2) AND id<>$3", [main, sub, id]));
+  !!(await q1("SELECT 1 FROM app.accounts WHERE section='pnl' AND lower(main)=lower($1) AND lower(sub)=lower($2) AND id<>$3", [main, sub, id]));
 
 // A main account keeps the position of its existing rows; a new one goes last.
 const orderOf = async (main: string) =>
-  (await q1<{ o: number }>("SELECT COALESCE((SELECT main_order FROM app.accounts WHERE lower(main)=lower($1) LIMIT 1), (SELECT COALESCE(MAX(main_order),0)+1 FROM app.accounts)) AS o", [main]))!.o;
+  (await q1<{ o: number }>("SELECT COALESCE((SELECT main_order FROM app.accounts WHERE section='pnl' AND lower(main)=lower($1) LIMIT 1), (SELECT COALESCE(MAX(main_order),0)+1 FROM app.accounts)) AS o", [main]))!.o;
 
 export async function addAccount(_: AccountState, f: FormData): Promise<AccountState> {
   const main = text(f, "main"), sub = text(f, "sub");

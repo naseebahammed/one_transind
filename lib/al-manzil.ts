@@ -1,27 +1,39 @@
-// Al Manzil P&L (QAR), Jan-Dec (monthly statements 2024-2025). Costs are positive here.
-// Each "file" below is a CSV text stored as a row of app.report_files; the data/*.csv files only seed it.
-import { existsSync, readdirSync, readFileSync } from "fs";
-import { join } from "path";
+// Company reports in QAR: parsers for uploaded workbooks and readers over app.company_figures and app.daily_sales. Revenue is positive, costs negative.
 import type ExcelJS from "exceljs";
 
 export const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 export const sum = (a: number[]) => a.reduce((s, v) => s + v, 0);
+const round = (v: number) => Math.round(v * 100) / 100;
 
-export const AL_MANZIL_KEY = "al-manzil";
-/** File key for a company's P&L/daily data: Al Manzil keeps its original filenames, every other company is keyed by id. */
-export const keyFor = (c: { id: number; name: string }) => (c.name.trim().toLowerCase() === "al manzil" ? AL_MANZIL_KEY : String(c.id));
-export const pnlPath = (key: string) => (key === AL_MANZIL_KEY ? "al-manzil.csv" : `pl-${key}.csv`);
-export const dailyPath = (key: string) => (key === AL_MANZIL_KEY ? "al-manzil-daily.csv" : `daily-${key}.csv`);
-/** Monthly sales totals, P&L-shaped (year,main,sub,Jan..Dec) - edited directly, same as the P&L grid. The daily file stays the source for occupancy/ADR elsewhere. */
-export const salesPath = (key: string) => (key === AL_MANZIL_KEY ? "al-manzil-sales.csv" : `sales-${key}.csv`);
-export const PNL_HEADER = "year,main,sub," + MONTHS.join(",");
-export const DAILY_HEADER = "date,long_guests,long_rate,long_total,short_guests,short_rate,short_total,rooms_occupied,room_revenue,other_revenue,avg_rate,rooms_available,occ";
+/** A company's key in the readers below. */
+export const keyFor = (c: { id: number }) => String(c.id);
 
-/** Numeric value of a cell; formula cells carry their cached result. Blank or non-numeric reads as 0. */
-export const num = (v: ExcelJS.CellValue) => {
-  const x = typeof v === "object" && v && "result" in v ? v.result : v;
-  return typeof x === "number" ? Math.round(x * 100) / 100 : 0;
-};
+/** Numeric value of a cell, or null when blank. Formula cells give their result; CSV text like "1,234" or "(50)" is read as a number. Anything else throws, so a bad cell is never loaded as 0. */
+export function num(v: ExcelJS.CellValue, where: string): number | null {
+  const x: unknown = typeof v === "object" && v && "result" in v ? v.result : v;
+  if (x === null || x === undefined) return null;
+  if (typeof x === "number") return round(x);
+  if (typeof x === "object" && "formula" in x) return null; // a formula Excel never calculated has no value yet
+  const raw = typeof x === "object" && "richText" in x ? (x as ExcelJS.CellRichTextValue).richText.map((r) => r.text).join("") : typeof x === "string" ? x : String((x as { error?: string }).error ?? x);
+  const t = raw.trim();
+  if (!t || t === "-") return null;
+  const neg = /^\(.*\)$/.test(t), n = Number((neg ? t.slice(1, -1) : t).replaceAll(",", ""));
+  if (t === "" || !Number.isFinite(n)) throw new Error(`${where}: "${t}" is not a number.`);
+  return round(neg ? -n : n);
+}
+
+/** "YYYY-MM-DD" from a date cell, ISO text or dd/mm/yyyy text (what Excel writes to CSV here), or null for a cell that is not a date. */
+export function cellDate(v: ExcelJS.CellValue, where: string) {
+  const x: unknown = typeof v === "object" && v && "result" in v ? v.result : v;
+  if (x instanceof Date) return x.toISOString().slice(0, 10);
+  const t = String(x ?? "").trim();
+  const iso = t.match(/^(\d{4})-(\d{2})-(\d{2})/), dmy = t.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/);
+  if (!iso && !dmy) return null;
+  const date = iso ? `${iso[1]}-${iso[2]}-${iso[3]}` : `${dmy![3]}-${dmy![2].padStart(2, "0")}-${dmy![1].padStart(2, "0")}`;
+  const d = new Date(`${date}T00:00:00Z`);
+  if (isNaN(+d) || d.toISOString().slice(0, 10) !== date) throw new Error(`${where}: "${t}" is not a real date.`);
+  return date;
+}
 
 /** "YYYY-MM" named by a sheet's title row ("... Report January-2026", "120 Al Sadd Residence Dec-2025"), or "" if none.
  *  A sheet whose date cells disagree with its title (copied sheet, dates never updated) is re-dated by row order. */
@@ -34,10 +46,72 @@ function sheetYm(ws: ExcelJS.Worksheet) {
   return ym;
 }
 
-/** Daily CSV rows (no header) from every sheet of a sales workbook. Columns are found by header text, so the 2024/25 layout (blank spacer column, no "Other Revenue") and the 2026 one both load.
+export type PnlLine = { year: number; month: number; main: string; line: string; value: number };
+
+/** P&L figures from the first visible sheet with month columns (the workbook can carry hidden prior-year sheets first). Only months holding a non-zero figure are returned, so an empty or all-zero column leaves that month on file untouched. */
+export function pnlFromWorkbook(wb: ExcelJS.Workbook, formYear: number): { error: string } | { rows: PnlLine[] } {
+  const colMonth = new Map<number, number>(), colYear = new Map<number, number>();
+  const ws = wb.worksheets.find((w) => {
+    if (w.state !== "visible") return false;
+    colMonth.clear(); colYear.clear();
+    // Month columns are found by header text (e.g. "Jul-25", "Aug-2025"), not by a fixed position.
+    for (let i = 1; i <= 2; i++) {
+      w.getRow(i).eachCell({ includeEmpty: false }, (cell, col) => {
+        const m = String(cell.text ?? "").trim().match(/^([A-Za-z]{3})/);
+        const mi = m ? MONTHS.findIndex((x) => x.toLowerCase() === m[1].toLowerCase()) : -1;
+        if (mi < 0) return;
+        const t = String(cell.text).trim(), y4 = t.match(/(\d{4})\s*$/), y2 = t.match(/-(\d{2})\s*$/);
+        colMonth.set(col, mi);
+        colYear.set(col, y4 ? +y4[1] : y2 ? 2000 + +y2[1] : formYear); // "Jun-Jul-2025" (two months in one column) lands in Jun
+      });
+    }
+    return colMonth.size > 0 && [...colYear.values()].every((y) => y >= 2000 && y <= 2100);
+  });
+  if (!ws) return { error: "Could not find month columns with a year in the header (e.g. \"Jul-25\") - or enter the year." };
+  const rows: PnlLine[] = [];
+  let sawRevenue = false;
+  ws.eachRow({ includeEmpty: false }, (row, i) => {
+    if (i < 3) return;
+    const text = (c: number) => String(row.getCell(c).text ?? "").replace(/\s+/g, " ").trim();
+    let main = text(1);
+    const line = text(4);
+    if (!main || !line || main.endsWith("Total")) return;
+    if (main === "BANK CHARGES") main = "FINANCE COST";
+    if (main === "REVENUE") sawRevenue = true;
+    for (const [col, month] of colMonth) {
+      const value = num(row.getCell(col).value, `Row ${i}, ${MONTHS[month]}`);
+      if (value !== null) rows.push({ year: colYear.get(col)!, month, main, line, value });
+    }
+  });
+  if (!sawRevenue) return { error: "No account rows found - is this the monthly P&L layout?" };
+  const filled = new Set(rows.filter((r) => r.value).map((r) => `${r.year}-${r.month}`));
+  const kept = rows.filter((r) => filled.has(`${r.year}-${r.month}`));
+  return kept.length ? { rows: kept } : { error: "The file has no figures." };
+}
+
+const fold = (s: string) => s.replace(/\s+/g, " ").trim().toLowerCase();
+
+/** Puts each line on its chart-of-accounts spelling and adds up lines that differ only by spacing or case. A line outside the chart with any non-zero figure rejects the file; one with only zeros is dropped. */
+export function matchAccounts(rows: PnlLine[], chart: { main: string; sub: string }[]): { error: string } | { rows: PnlLine[] } {
+  const known = new Map(chart.map((a) => [`${fold(a.main)}|${fold(a.sub)}`, a]));
+  const out = new Map<string, PnlLine>(), unknown = new Set<string>();
+  for (const r of rows) {
+    const a = known.get(`${fold(r.main)}|${fold(r.line)}`);
+    if (!a) { if (r.value) unknown.add(`${r.main} | ${r.line}`); continue; }
+    const k = `${r.year}|${r.month}|${a.main}|${a.sub}`, cur = out.get(k);
+    if (cur) cur.value = round(cur.value + r.value);
+    else out.set(k, { ...r, main: a.main, line: a.sub });
+  }
+  if (unknown.size) return { error: `Not in the chart of accounts: ${[...unknown].slice(0, 5).join("; ")}${unknown.size > 5 ? ` and ${unknown.size - 5} more` : ""}. Fix the name, or add it under Chart of accounts first.` };
+  return { rows: [...out.values()] };
+}
+
+export type DailyRow = { date: string; long_guests: number; long_rate: number; long_total: number; short_guests: number; short_rate: number; short_total: number; rooms_occupied: number; room_revenue: number; other_revenue: number; rooms_available: number };
+
+/** Daily rows from every sheet of a sales workbook. Columns are found by header text, so the 2024/25 layout (blank spacer column, no "Other Revenue") and the 2026 one both load.
  *  shortcut: a day with no guests at all is skipped as "not yet happened", so a genuinely empty day is not recorded - fine for a hotel that is always open. */
 export function dailyFromWorkbook(wb: ExcelJS.Workbook) {
-  const lines: string[] = [];
+  const out: DailyRow[] = [];
   for (const ws of wb.worksheets) {
     const col = new Map<string, number>();
     let head = 0;
@@ -46,41 +120,49 @@ export function dailyFromWorkbook(wb: ExcelJS.Workbook) {
     }
     if (!head) continue; // not a daily sheet
     ws.getRow(head).eachCell((c, n) => { const t = String(c.value ?? "").trim().toLowerCase(); if (t && !col.has(t)) col.set(t, n); });
-    const at = (name: string, off = 0) => { const n = col.get(name); return n ? n + off : 0; };
+    const at = (name: string) => col.get(name) ?? 0;
     const revCol = [...col].find(([t]) => t.includes("daily revenue"))?.[1] ?? 0;
-    const c = { lg: at("long stay guests"), sg: at("short stay guests"), occ: at("total room occupancy"), rev: revCol, other: at("other revenue"), total: at("total revenue"), adr: at("daily avg rate"), avl: at("rms/avl.") };
+    const c = { lg: at("long stay guests"), sg: at("short stay guests"), occ: at("total room occupancy"), rev: revCol, other: at("other revenue"), total: at("total revenue"), avl: at("rms/avl.") };
     if (!c.lg || !c.sg || !revCol) continue;
     const titleYm = sheetYm(ws);
     let remap: boolean | undefined, day = 0, prevTotal = 0, running: boolean | undefined; // running: "Total Revenue" is a month-to-date total (Al Manzil 2023-25), not a per-day figure
     ws.eachRow({ includeEmpty: false }, (row, i) => {
       if (i <= head) return;
-      const raw = row.getCell(1).value;
-      const dv = raw && typeof raw === "object" && "result" in raw ? raw.result : raw; // date cells are often =previous+1 formulas
-      let date = dv instanceof Date ? dv.toISOString().slice(0, 10) : /^\d{4}-\d{2}-\d{2}/.test(String(dv ?? "").trim()) ? String(dv).trim().slice(0, 10) : null;
+      let date = cellDate(row.getCell(1).value, `${ws.name}, row ${i}`); // date cells are often =previous+1 formulas
       if (!date) return; // title, sub total and blank rows have no date
       remap ??= !!titleYm && date.slice(0, 7) !== titleYm;
       if (remap) date = `${titleYm}-${String(++day).padStart(2, "0")}`;
-      const n = (k: number) => (k ? num(row.getCell(k).value) : 0);
+      const n = (k: number) => (k ? num(row.getCell(k).value, `${ws.name}, row ${i}`) ?? 0 : 0);
       const longG = n(c.lg), shortG = n(c.sg);
       if (!longG && !shortG) return;
       const longT = n(c.lg + 2), shortT = n(c.sg + 2);
-      const occupied = n(c.occ) || longG + shortG, avail = n(c.avl);
+      const occupied = n(c.occ) || longG + shortG;
       const roomRev = n(c.rev) || longT + shortT;
       if (c.total && !c.other) { const t = n(c.total); if (prevTotal) running ??= Math.abs(t - prevTotal - roomRev) < 1; prevTotal = t; }
-      lines.push([date, longG, n(c.lg + 1), longT, shortG, n(c.sg + 1), shortT, occupied, roomRev, c.other ? n(c.other) : c.total && !running ? Math.round((n(c.total) - roomRev) * 100) / 100 : 0, // 120 Al Sadd has Supermarket/Spa inside Total Revenue, no "other revenue" column
-         n(c.adr) || (occupied ? Math.round((roomRev / occupied) * 100) / 100 : 0), avail, avail ? Math.round((occupied / avail) * 10000) / 10000 : 0].join(","));
+      out.push({ date, long_guests: longG, long_rate: n(c.lg + 1), long_total: longT, short_guests: shortG, short_rate: n(c.sg + 1), short_total: shortT, rooms_occupied: occupied, room_revenue: roomRev,
+        other_revenue: c.other ? n(c.other) : c.total && !running ? round(n(c.total) - roomRev) : 0, // 120 Al Sadd has Supermarket/Spa inside Total Revenue, no "other revenue" column
+        rooms_available: n(c.avl) });
     });
   }
-  return lines;
+  return out;
 }
 
-export const unitsPath = (key: string) => `units-${key}.csv`;
-const UNIT_METRICS = [["availability", "Available"], ["long stay", "Long stay"], ["short stay", "Short stay"], ["revenue", "Room revenue"]] as const;
+/** The first impossible day in an upload, or null. totalRooms 0 means the property's room count is not on file. */
+export function checkDaily(rows: DailyRow[], totalRooms: number) {
+  for (const r of rows) {
+    if (r.rooms_available && r.rooms_occupied > r.rooms_available) return `${r.date}: ${r.rooms_occupied} rooms occupied but only ${r.rooms_available} available. Check the source report.`;
+    if (totalRooms && r.rooms_available > totalRooms) return `${r.date}: ${r.rooms_available} rooms available, but the property has ${totalRooms}. Check the "Rms/Avl." column in the source report.`;
+  }
+  return null;
+}
 
-/** Monthly totals per unit type (e.g. "1 BHK") from a unit-type sales workbook, P&L-shaped, plus the "year-monthIndex" keys it covers.
+const UNIT_METRICS = [["availability", "Available"], ["long stay", "Long stay"], ["short stay", "Short stay"], ["revenue", "Room revenue"]] as const;
+export type UnitLine = { year: number; month: number; unit_type: string; line: string; value: number };
+
+/** Monthly totals per unit type (e.g. "1 BHK") from a unit-type sales workbook.
  *  Layout: a group header row (Availability / Long Stay / Short Stay / ... Revenue) over a row naming the unit type in each column. */
 export function unitsFromWorkbook(wb: ExcelJS.Workbook) {
-  const acc = new Map<string, number[]>(), months = new Set<string>();
+  const acc = new Map<string, UnitLine>();
   for (const ws of wb.worksheets) {
     let g = 0;
     for (let i = 1; i <= 5 && !g; i++) ws.getRow(i).eachCell((c) => { if (String(c.text).trim().toLowerCase() === "availability") g = i; });
@@ -98,138 +180,80 @@ export function unitsFromWorkbook(wb: ExcelJS.Workbook) {
     let remap: boolean | undefined, day = 0;
     ws.eachRow({ includeEmpty: false }, (row, i) => {
       if (i <= g + 1) return;
-      const raw = row.getCell(dateCol).value, dv = raw && typeof raw === "object" && "result" in raw ? raw.result : raw;
-      let date = dv instanceof Date ? dv.toISOString().slice(0, 10) : /^\d{4}-\d{2}-\d{2}/.test(String(dv ?? "").trim()) ? String(dv).trim().slice(0, 10) : null;
+      const where = `${ws.name}, row ${i}`;
+      let date = cellDate(row.getCell(dateCol).value, where);
       if (!date) return;
       remap ??= !!titleYm && date.slice(0, 7) !== titleYm;
       if (remap) date = `${titleYm}-${String(++day).padStart(2, "0")}`;
-      if (!cols.some((x) => (x.metric === "Long stay" || x.metric === "Short stay") && num(row.getCell(x.col).value))) return; // no guests = day not yet happened
-      const mi = +date.slice(5, 7) - 1;
-      months.add(`${date.slice(0, 4)}-${mi}`);
+      if (!cols.some((x) => (x.metric === "Long stay" || x.metric === "Short stay") && num(row.getCell(x.col).value, where))) return; // no guests = day not yet happened
+      const year = +date.slice(0, 4), month = +date.slice(5, 7) - 1;
       for (const x of cols) {
-        const k = `${date.slice(0, 4)},${x.type},${x.metric}`;
-        const a = acc.get(k) ?? acc.set(k, Array<number>(12).fill(0)).get(k)!;
-        a[mi] += num(row.getCell(x.col).value);
+        if (!x.type) throw new Error(`${ws.name}: the ${x.metric} column ${x.col} has no unit type above it.`);
+        const k = `${year},${month},${x.type},${x.metric}`;
+        const a = acc.get(k) ?? acc.set(k, { year, month, unit_type: x.type, line: x.metric, value: 0 }).get(k)!;
+        a.value = round(a.value + (num(row.getCell(x.col).value, where) ?? 0));
       }
     });
   }
-  return { lines: [...acc].map(([k, m]) => [k, ...m.map((v) => Math.round(v * 100) / 100)].join(",")), months };
-}
-
-/** Sales metrics kept in the monthly grid: [main, sub, column index in DAILY_HEADER]. Rates/occupancy stay derived, not stored - like a P&L total, never typed. */
-const SALES_METRICS: [string, string, number][] = [
-  ["GUESTS", "Long stay", 1], ["GUESTS", "Short stay", 4],
-  ["REVENUE", "Room revenue", 8], ["REVENUE", "Other revenue", 9],
-  ["ROOMS", "Occupied", 7], ["ROOMS", "Available", 11],
-];
-/** Aggregate a daily sales CSV's rows into one year's monthly totals per SALES_METRICS, P&L-shaped. */
-export function aggregateSales(dailyCsv: string, year: number) {
-  const days = dailyCsv.trim().split("\n").slice(1).map((l) => l.split(",")).filter((c) => c[0]?.startsWith(`${year}-`));
-  return SALES_METRICS.map(([main, sub, col]) => {
-    const m = Array<number>(12).fill(0);
-    for (const d of days) m[+d[0].slice(5, 7) - 1] += +d[col];
-    return [year, main, sub, ...m.map((v) => Math.round(v * 100) / 100)].join(",");
-  });
-}
-
-/** Existing daily CSV text with the uploaded days merged in (same date = replaced), sorted by date. Throws a readable message on a bad file. */
-export function mergeDaily(existing: string, upload: string) {
-  const rows = (t: string) => t.replace(/^﻿/, "").replace(/\r/g, "").trim().split("\n").filter(Boolean);
-  const [head, ...lines] = rows(upload);
-  if (head?.trim() !== DAILY_HEADER) throw new Error(`The first line must be exactly: ${DAILY_HEADER}`);
-  const byDate = new Map(rows(existing).slice(1).map((l) => [l.split(",")[0], l]));
-  const n = DAILY_HEADER.split(",").length;
-  lines.forEach((l, i) => {
-    const c = l.split(",").map((x) => x.trim());
-    const d = new Date(c[0] + "T00:00:00Z");
-    if (c.length !== n || !/^\d{4}-\d{2}-\d{2}$/.test(c[0]) || isNaN(+d) || d.toISOString().slice(0, 10) !== c[0] || c.slice(1).some((x) => x === "" || !Number.isFinite(Number(x))))
-      throw new Error(`Line ${i + 2} is not a valid daily row (date, then ${n - 1} numbers).`);
-    if (+c[n - 1] > 1 || +c[n - 1] < 0)
-      throw new Error(`Line ${i + 2} has occupancy ${(+c[n - 1] * 100).toFixed(1)}% - rooms occupied can't exceed rooms available; check the "Rms/Avl." and occupancy columns in the source report.`);
-    byDate.set(c[0], c.join(","));
-  });
-  if (!lines.length) throw new Error("The file has no daily rows.");
-  return [DAILY_HEADER, ...[...byDate].sort(([a], [b]) => (a < b ? -1 : 1)).map(([, l]) => l)].join("\n") + "\n";
-}
-
-/** Sales CSV text with the uploaded months set on the year's "Sales" line; every other month and line stays as it is. */
-export function mergeSales(existing: string, figures: { year: number; month: number; value: number }[]) {
-  const [head = PNL_HEADER, ...lines] = existing.trim() ? existing.trim().split(/\r?\n/) : [];
-  const rows = lines.map((l) => l.split(","));
-  for (const f of figures) {
-    let row = rows.find((c) => +c[0] === f.year && c[1] === "REVENUE" && c[2] === "Sales");
-    if (!row) rows.push(row = [String(f.year), "REVENUE", "Sales", ...Array<string>(12).fill("0")]);
-    row[3 + f.month] = String(f.value);
-  }
-  return [head, ...rows.map((c) => c.join(","))].join("\n") + "\n";
+  return [...acc.values()];
 }
 
 const db = () => import("@/lib/db"); // lazy so the pure helpers above stay loadable by `node --test` without the Next alias
 
-let imported: Promise<void> | undefined;
-/** One-time seed of app.report_files from data/*.csv (rows already in the table win). shortcut: runs once per process; drop it once every environment is migrated. */
-function importLegacy() {
-  return (imported ??= (async () => {
-    const dir = join(process.cwd(), "data");
-    if (!existsSync(dir)) return;
-    const { q } = await db();
-    for (const f of readdirSync(dir).filter((x) => x.endsWith(".csv")))
-      await q("INSERT INTO app.report_files(name, body) VALUES($1,$2) ON CONFLICT DO NOTHING", [f, readFileSync(join(dir, f), "utf8")]);
-  })().catch((e) => ((imported = undefined), Promise.reject(e))));
-}
-
-/** The stored CSV text, or null if that file was never uploaded. */
-export async function readFile(name: string) {
-  await importLegacy();
-  const { q1 } = await db();
-  return (await q1<{ body: string }>("SELECT body FROM app.report_files WHERE name=$1", [name]))?.body ?? null;
-}
-/** Like readFile, but a missing file is an error (editing a cell of a file that does not exist). */
-export const needFile = async (name: string) => (await readFile(name)) ?? Promise.reject(new Error("No data on file yet."));
-
-/** Replace a whole CSV in one statement, so a crash never leaves half a file. */
-export async function writeCsv(text: string, name: string) {
-  const { q } = await db();
-  await q("INSERT INTO app.report_files(name, body, updated) VALUES($1,$2,now()) ON CONFLICT(name) DO UPDATE SET body=EXCLUDED.body, updated=now()", [name, text]);
-}
-
-// The readers below are synchronous over a snapshot; every page/route that uses them calls `await loadReports()` first, so an upload shows up on the next request.
-let snap: Map<string, string> | null = null;
-/** Load every report CSV from the database; also back-fills a company's sales grid from a daily report already on file, so nothing uploaded before that grid existed goes missing. */
-export async function loadReports() {
-  await importLegacy();
-  const { q } = await db();
-  const m = new Map((await q<{ name: string; body: string }>("SELECT name, body FROM app.report_files")).map((r) => [r.name, r.body]));
-  for (const [name, daily] of [...m]) {
-    const key = name === "al-manzil-daily.csv" ? AL_MANZIL_KEY : name.match(/^daily-(.+)\.csv$/)?.[1];
-    if (!key || m.has(salesPath(key))) continue;
-    const yrs = [...new Set(daily.trim().split("\n").slice(1).map((l) => +l.slice(0, 4)))];
-    const text = [PNL_HEADER, ...yrs.flatMap((y) => aggregateSales(daily, y))].join("\n") + "\n";
-    await writeCsv(text, salesPath(key));
-    m.set(salesPath(key), text);
-  }
-  snap = m;
-}
-const readCsv = (name: string) => {
-  if (!snap) throw new Error("loadReports() must be awaited before reading reports.");
-  return snap.get(name)?.trim().split("\n") ?? [];
-};
-
+type Row = { year: number; main: string; sub: string; m: number[] };
+type Day = Omit<DailyRow, "date"> & { date: string };
 type Kind = "pnl" | "sales" | "units";
 type Key = string | string[];
-/** key can be one company's key, or several to combine (e.g. "All" real-estate companies). */
-const load = (key: Key = AL_MANZIL_KEY, kind: Kind = "pnl") => {
-  const keys = Array.isArray(key) ? key : [key];
-  return keys.flatMap((k) => readCsv(kind === "sales" ? salesPath(k) : kind === "units" ? unitsPath(k) : pnlPath(k)).slice(1)).map((l) => {
-    const [year, main, sub, ...m] = l.split(",");
-    return { year: +year, main, sub, m: m.map(Number) };
-  });
+// The readers below are synchronous over a snapshot; every page/route that uses them calls `await loadReports()` first, so an upload shows up on the next request.
+let snap: { rows: Map<string, Row[]>; daily: Map<string, Day[]>; alManzil: string } | null = null;
+
+/** Load every company's figures from the database. */
+export async function loadReports() {
+  const { q } = await db();
+  const NUMS = "long_guests,long_rate,long_total,short_guests,short_rate,short_total,rooms_occupied,room_revenue,other_revenue,rooms_available";
+  const [figures, derived, days, co] = await Promise.all([
+    q<{ id: number; section: Kind; y: number; mo: number; main: string; line: string; unit_type: string; v: number }>(
+      `SELECT f.company_id AS id, f.section, EXTRACT(year FROM f.period)::int AS y, EXTRACT(month FROM f.period)::int - 1 AS mo, f.main, f.line, f.unit_type, f.value::float8 AS v
+       FROM app.company_figures f JOIN app.accounts a ON a.section=f.section AND a.main=f.main AND a.sub=f.line
+       WHERE f.section IN ('pnl','sales','units') ORDER BY a.main_order, a.id`),
+    q<{ id: number; y: number; mo: number; main: string; line: string; v: number }>(
+      `SELECT company_id AS id, EXTRACT(year FROM period)::int AS y, EXTRACT(month FROM period)::int - 1 AS mo, main, line, value::float8 AS v
+       FROM app.daily_sales_monthly ORDER BY array_position(ARRAY['Long stay','Short stay','Room revenue','Other revenue','Occupied','Available'], line)`),
+    q<Day & { id: number }>(`SELECT company_id AS id, to_char(date,'YYYY-MM-DD') AS date, ${NUMS.split(",").map((c) => `${c}::float8 AS ${c}`).join(",")} FROM app.daily_sales ORDER BY date`),
+    // shortcut: the Al Manzil panels on /finance, /admin/finance and Ask find it by name; give them a company picker to drop this.
+    q<{ id: number }>("SELECT id FROM app.companies WHERE lower(name) LIKE 'al manzil%' ORDER BY id LIMIT 1"),
+  ]);
+  const rows = new Map<string, Row[]>(), index = new Map<string, Row>();
+  const put = (id: number, kind: Kind, y: number, main: string, sub: string, mo: number, v: number) => {
+    const k = `${id}|${kind}|${y}|${main}|${sub}`;
+    let r = index.get(k);
+    if (!r) {
+      index.set(k, r = { year: y, main, sub, m: Array<number>(12).fill(0) });
+      const list = `${id}|${kind}`;
+      rows.set(list, [...(rows.get(list) ?? []), r]);
+    }
+    r.m[mo] = v;
+  };
+  for (const f of figures) put(f.id, f.section, f.y, f.section === "units" ? f.unit_type : f.main, f.line, f.mo, f.v);
+  for (const d of derived) put(d.id, "sales", d.y, d.main, d.line, d.mo, d.v);
+  const daily = new Map<string, Day[]>();
+  for (const { id, ...d } of days) daily.set(String(id), [...(daily.get(String(id)) ?? []), d]);
+  snap = { rows, daily, alManzil: co[0] ? String(co[0].id) : "" };
+}
+const loaded = () => {
+  if (!snap) throw new Error("loadReports() must be awaited before reading reports.");
+  return snap;
 };
-export const years = (key: Key = AL_MANZIL_KEY, kind: Kind = "pnl") => [...new Set(load(key, kind).map((x) => x.year))].sort();
+/** Key of the company the Al Manzil panels show. */
+export const alManzilKey = () => loaded().alManzil;
+
+const load = (key: Key, kind: Kind = "pnl") => (Array.isArray(key) ? key : [key]).flatMap((k) => loaded().rows.get(`${k}|${kind}`) ?? []);
+const daysOf = (key: Key) => (Array.isArray(key) ? key : [key]).flatMap((k) => loaded().daily.get(k) ?? []);
+export const years = (key: Key, kind: Kind = "pnl") => [...new Set(load(key, kind).map((x) => x.year))].sort();
 const add = (a: number[], b: number[], s = 1) => a.map((v, i) => v + s * b[i]);
 const zero = () => Array<number>(12).fill(0);
 
-export function report(year: number, key: Key = AL_MANZIL_KEY, rows = load(key)) {
+export function report(year: number, key: Key, rows = load(key)) {
   const r = rows.filter((x) => x.year === year);
   const by = new Map<string, number[]>();
   for (const x of r) if (x.main !== "REVENUE") by.set(x.main, add(by.get(x.main) ?? zero(), x.m, -1));
@@ -246,46 +270,23 @@ const label: Record<string, string> = {
   "MISCELLANEOUS": "Miscellaneous", "MARKETING & ADVERTISING": "Marketing", "VEHICLE EXPENSES": "Vehicle", "LEGAL AND PROFESSIONAL EXP": "Legal & professional",
 };
 
-const locks = new Map<string, Promise<unknown>>();
-/** Serializes read-modify-write on one file within this process (shortcut: two server instances can still race - use a row lock if the app is ever scaled out): two requests racing on the same path must not read-before-the-other's-write and silently drop it. */
-export function withFileLock<T>(path: string, fn: () => T | Promise<T>): Promise<T> {
-  const run = (locks.get(path) ?? Promise.resolve()).then(fn, fn) as Promise<T>;
-  locks.set(path, run.catch(() => {}));
-  return run;
-}
-
-/** CSV text with one figure replaced; throws on a value or month that would corrupt the file. */
-export function setCell(csv: string, year: number, main: string, sub: string, month: number, value: number) {
-  if (!Number.isFinite(value)) throw new Error("Value must be a number.");
-  if (!Number.isInteger(month) || month < 0 || month > 11) throw new Error("Month must be 0-11.");
-  return csv.trim().split("\n").map((l, i) => {
-    if (!i) return l;
-    const cells = l.split(",");
-    if (cells[0] !== String(year) || cells[1] !== main || cells[2] !== sub) return l;
-    cells[3 + month] = String(Math.round(value * 100) / 100);
-    return cells.join(",");
-  }).join("\n") + "\n";
-}
-
 /** Revenue by account line (room rent, space rental, ...) for one year, non-zero lines only. */
-export const revenueLines = (year: number, key: Key = AL_MANZIL_KEY) =>
+export const revenueLines = (year: number, key: Key) =>
   load(key).filter((x) => x.year === year && x.main === "REVENUE").map((x) => [x.sub, sum(x.m)] as [string, number]).filter(([, v]) => v).sort((a, b) => b[1] - a[1]);
 
 /** Per month for one year from the daily long/short stay sales report: occupancy %, average daily rate, rooms sold, long/short guests, other revenue. */
-export function occupancy(year: number, key: Key = AL_MANZIL_KEY) {
-  const days = (Array.isArray(key) ? key : [key]).flatMap((k) => readCsv(dailyPath(k)).slice(1)).map((l) => l.split(",")).filter((c) => c[0].startsWith(`${year}-`));
+export function occupancy(year: number, key: Key) {
+  const days = daysOf(key).filter((d) => d.date.startsWith(`${year}-`));
   return MONTHS.map((_, m) => {
-    const d = days.filter((c) => +c[0].slice(5, 7) === m + 1).map((c) => c.slice(1).map(Number));
-    const [lg, sg, sold, avail, room, other] = [0, 3, 6, 10, 7, 8].map((i) => sum(d.map((c) => c[i])));
+    const d = days.filter((x) => +x.date.slice(5, 7) === m + 1);
+    const total = (k: keyof Omit<Day, "date">) => sum(d.map((x) => x[k]));
+    const lg = total("long_guests"), sg = total("short_guests"), sold = total("rooms_occupied"), avail = total("rooms_available"), room = total("room_revenue"), other = total("other_revenue");
     return { days: d.length, sold, avail, occ: avail ? sold / avail : 0, adr: sold ? room / sold : 0, longShare: sold ? lg / (lg + sg) : 0, room, other };
   });
 }
 
-/** Raw daily rows (as in the CSV) for checking: [date, long guests, long rate, long total, short guests, short rate, short total, rooms sold, room revenue, other revenue, ADR, rooms available, occ]. */
-export const dailyRows = (key = AL_MANZIL_KEY) => readCsv(dailyPath(key)).slice(1).map((l) => l.split(","));
-
 /** Years actually covered by the daily report - the P&L can have years the stay report doesn't (and vice versa), so the stay report's year picker needs its own list. */
-export const dailyYears = (key: Key = AL_MANZIL_KEY) => [...new Set((Array.isArray(key) ? key : [key]).flatMap((k) => readCsv(dailyPath(k)).slice(1)).map((l) => +l.slice(0, 4)))].sort();
+export const dailyYears = (key: Key) => [...new Set(daysOf(key).map((d) => +d.date.slice(0, 4)))].sort();
 
-/** Detail account rows of one year as they are in the CSV, for the editable table. */
-export const plRows = (year: number, key: Key = AL_MANZIL_KEY, kind: Kind = "pnl") => load(key, kind).filter((x) => x.year === year);
+/** Detail account rows of one year, for the monthly grids. */
+export const plRows = (year: number, key: Key, kind: Kind = "pnl") => load(key, kind).filter((x) => x.year === year);

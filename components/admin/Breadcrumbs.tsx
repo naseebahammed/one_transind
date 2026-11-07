@@ -3,11 +3,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 
-const NAMES: Record<string, string> = { admin: "Dashboard", companies: "Companies", accounts: "Chart of accounts", sectors: "Sectors", "sales-sectors": "Sales sectors", finance: "Finance", "al-manzil": "Al Manzil 2024 vs 2025", activity: "Activity log", new: "New" };
+const NAMES: Record<string, string> = { admin: "Admin", companies: "Companies", accounts: "Chart of accounts", "data-status": "Data status", sectors: "Sectors", "sales-sectors": "Sales sectors", finance: "Finance", "al-manzil": "Al Manzil 2024 vs 2025", activity: "Activity log", new: "New" };
 
 export function Breadcrumbs() {
   const parts = usePathname().split("/").filter(Boolean);
-  const crumbs = parts.map((p, i) => ({ href: "/" + parts.slice(0, i + 1).join("/"), name: NAMES[p] ?? "Edit" }));
+  const crumbs = parts.map((p, i) => ({ href: "/" + parts.slice(0, i + 1).join("/"), name: NAMES[p] ?? (parts[i - 1] === "sectors" ? "Details" : "Edit") }));
   return (
     <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-sm text-muted-foreground">
       {crumbs.map((c, i) => (

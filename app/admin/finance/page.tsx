@@ -12,8 +12,9 @@ import { Trash2 } from "lucide-react";
 import { Switch } from "@/components/admin/ui/switch";
 import { deleteDailyYear, deletePnlYear, savePnlCell, saveSalesCell, saveUnitsCell } from "../al-manzil/actions";
 import { toggleCompanyHidden } from "../companies/actions";
-import { keyFor, MONTHS, plRows, report, sum, years, loadReports } from "@/lib/al-manzil";
+import { alManzilKey, keyFor, MONTHS, plRows, report, sum, years, loadReports } from "@/lib/al-manzil";
 import { listCompanies, type Company } from "@/lib/companies";
+import { listExpenses } from "@/lib/company-figures";
 import { listSectors } from "@/lib/sectors";
 import { link } from "@/lib/url";
 
@@ -54,7 +55,7 @@ async function Summary({ searchParams }: { searchParams: Search }) {
   const rows = (await listCompanies()).filter((c) => !company || String(c.id) === company).flatMap((c) => { const rs = reportsFor(c); return (rs.length ? rs : [undefined]).map((r) => ({ c, r })); });
   const withData = rows.filter((x) => x.r);
   const companies = new Set(rows.map((x) => x.c.id)).size, withReport = new Set(withData.map((x) => x.c.id)).size;
-  const byYear = years().map((year) => {
+  const byYear = years(alManzilKey()).map((year) => {
     const rs = withData.filter((x) => !x.c.hidden && x.r!.year === year).map((x) => x.r!);
     const top = rs.flatMap((r) => r.costGroups).map(([name, d]) => [name, sum(d)] as [string, number]).sort((a, b) => b[1] - a[1]); // all lines, so the percentages are shares of total cost
     return { year, top };
@@ -79,6 +80,13 @@ async function Summary({ searchParams }: { searchParams: Search }) {
     const items: Row[] = salesRows.filter((x) => x.c.id === c.id).map((x) => ({ c, kind: "sales" as const, r: x.r }));
     return items.length ? items : [{ c, kind: "none" }];
   });
+  // Expenses: one row per company and year with data; a month without a row stays empty (not submitted).
+  const expenses = await listExpenses();
+  const expenseRows = uniqueCompanies.flatMap((c) => {
+    const mine = expenses.filter((e) => e.company_id === c.id);
+    return [...new Set(mine.map((e) => e.year))].sort().map((year) => ({ c, year, m: MONTHS.map((_, i) => mine.find((e) => e.year === year && e.month === i)?.value ?? null) }));
+  });
+  const qar = (v: number | null) => (v === null ? "—" : Math.abs(v).toLocaleString("en", { maximumFractionDigits: 2 }));
   return (
     <>
       {one && (
@@ -89,7 +97,7 @@ async function Summary({ searchParams }: { searchParams: Search }) {
               <span key={l}><span className="text-muted-foreground">{l}: </span><span className="font-medium">{v || "-"}</span></span>
             ))}
           </div>
-          <UploadReport companyId={one.id} companyKey={key!} sector={one.sector} />
+          <UploadReport companyId={one.id} sector={one.sector} />
         </Card>
       )}
       {!company && (
@@ -165,13 +173,31 @@ async function Summary({ searchParams }: { searchParams: Search }) {
         </TableBody>
       </Table>
       </CardContent></Card>
+      <Card className="gap-2 py-3"><CardHeader><CardTitle className="text-sm">Expenses (QAR)</CardTitle></CardHeader><CardContent>
+      <Table>
+        <TableHeader>
+          <TableRow>{!one && <TableHead>Company</TableHead>}<TableHead>Year</TableHead>{MONTHS.map((m) => <TableHead key={m} className="text-right">{m}</TableHead>)}<TableHead className="text-right">Total</TableHead></TableRow>
+        </TableHeader>
+        <TableBody>
+          {expenseRows.map(({ c, year, m }) => (
+            <TableRow key={`${c.id}-exp-${year}`}>
+              {!one && <TableCell className="font-medium">{c.name}</TableCell>}
+              <TableCell>{year}</TableCell>
+              {m.map((v, i) => <TableCell key={i} className="text-right tabular-nums">{qar(v)}</TableCell>)}
+              <TableCell className="text-right font-semibold tabular-nums">{qar(sum(m.map((v) => v ?? 0)))}</TableCell>
+            </TableRow>
+          ))}
+          {!expenseRows.length && <TableRow><TableCell colSpan={15} className="text-muted-foreground"><Badge variant="neutral">No expenses yet</Badge></TableCell></TableRow>}
+        </TableBody>
+      </Table>
+      </CardContent></Card>
       {one && !one.hidden && !!unitYears.length && (
         <Card><CardHeader><CardTitle>Sales by unit type</CardTitle></CardHeader><CardContent className="flex flex-wrap gap-2">
           {unitYears.map((y) => <Button key={y} asChild variant={y === unitsYear ? "secondary" : "outline"} size="sm"><Link href={toggle(one, "units", y)}>{y === unitsYear ? "Hide" : "View"} {y}</Link></Button>)}
         </CardContent></Card>
       )}
       {one && !one.hidden && unitsYear && <GridSection title={`Sales by unit type - ${unitsYear}`}><AccountGrid year={unitsYear} rows={plRows(unitsYear, key!, "units")} onSave={saveUnitsCell.bind(null, unitsYear, key!)} /></GridSection>}
-      {one && !one.hidden && salesYear && <GridSection title={`Monthly sales - ${salesYear}`}><AccountGrid year={salesYear} rows={plRows(salesYear, key!, "sales")} onSave={saveSalesCell.bind(null, salesYear, key!)} /></GridSection>}
+      {one && !one.hidden && salesYear && <GridSection title={`Monthly sales - ${salesYear}`}><AccountGrid year={salesYear} rows={plRows(salesYear, key!, "sales")} onSave={one.sector === "re" ? undefined : saveSalesCell.bind(null, salesYear, key!)} /></GridSection>}
       {!company && !!withData.length && (
         <div className="grid gap-4 lg:grid-cols-2">
           {byYear.map(({ year, top }) => <Card key={year}><CardHeader><CardTitle>Cost breakdown - {year}</CardTitle></CardHeader><CardContent><HBars rows={top} /></CardContent></Card>)}
@@ -187,12 +213,12 @@ const GridSection = ({ title, children }: { title: string; children: React.React
 );
 
 /** Read-only monthly grid for one year, grouped by main account. Figures are edited one at a time via EditPnlFigure. Shared by P&L and monthly sales. */
-function AccountGrid({ year, rows, onSave }: { year: number; rows: ReturnType<typeof plRows>; onSave: (main: string, sub: string, month: number, value: number) => Promise<void> }) {
+function AccountGrid({ year, rows, onSave }: { year: number; rows: ReturnType<typeof plRows>; onSave?: (main: string, sub: string, month: number, value: number) => Promise<void> }) {
   const groups = new Map<string, typeof rows>();
   for (const r of rows) groups.set(r.main, [...(groups.get(r.main) ?? []), r]);
   return (
     <div className="space-y-3">
-      <div className="flex justify-end"><EditPnlFigure year={year} months={MONTHS} accounts={rows} onSave={onSave} /></div>
+      {onSave ? <div className="flex justify-end"><EditPnlFigure year={year} months={MONTHS} accounts={rows} onSave={onSave} /></div> : <p className="text-xs text-muted-foreground">Calculated from the daily sales report. To correct a figure, upload the corrected days.</p>}
       <div className="overflow-x-auto rounded-xl border bg-card">
         <table className="w-full text-sm">
           <thead><tr className="border-b bg-muted/50 text-left"><th className="sticky left-0 z-10 min-w-56 bg-muted px-2 py-2">Account</th>{MONTHS.map((m) => <th key={m} className="px-1 py-2 text-right">{m}</th>)}<th className="px-2 py-2 text-right">Total</th></tr></thead>

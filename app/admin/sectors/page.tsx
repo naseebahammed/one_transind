@@ -1,11 +1,12 @@
+import Link from "next/link";
+import { Button } from "@/components/admin/ui/button";
 import { AddSectorForm } from "@/components/admin/AddSectorForm";
+import { RenameSectorForm } from "@/components/admin/RenameSectorForm";
 import { ConfirmButton } from "@/components/admin/ConfirmButton";
 import { Page } from "@/components/admin/Page";
-import { Button } from "@/components/admin/ui/button";
-import { Input } from "@/components/admin/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/admin/ui/table";
-import { countCompanies, listSectors } from "@/lib/sectors";
-import { deleteSector, renameSector } from "./actions";
+import { countCompanies, listSectors, PROTECTED_SECTOR_KEYS } from "@/lib/sectors";
+import { deleteSector } from "./actions";
 
 export default function Sectors() {
   return (
@@ -26,20 +27,19 @@ async function List() {
         <TableBody>
           {rows.map(([key, name], i) => {
             const used = counts[i];
+            const isProtected = PROTECTED_SECTOR_KEYS.has(key);
             return (
               <TableRow key={key}>
                 <TableCell>
-                  <form action={renameSector} className="flex max-w-sm gap-2">
-                    <input type="hidden" name="key" value={key} />
-                    <Input name="name" defaultValue={name} required maxLength={60} aria-label={`Name for ${name}`} />
-                    <Button type="submit" variant="outline" size="sm">Rename</Button>
-                  </form>
+                  <RenameSectorForm sectorKey={key} name={name} />
                 </TableCell>
                 <TableCell className="tabular-nums">{used}</TableCell>
                 <TableCell className="text-right">
-                  <form action={deleteSector}>
+                  <form action={deleteSector} className="flex items-center justify-end gap-2">
+                    <Button asChild variant="outline" size="sm"><Link href={`/admin/sectors/${encodeURIComponent(key)}`}>View</Link></Button>
                     <input type="hidden" name="key" value={key} />
-                    <ConfirmButton variant="destructive" size="sm" disabled={used > 0} title={used ? "Move or delete its companies first" : undefined} message={`Delete sector ${name}?`}>Delete</ConfirmButton>
+                    {used > 0 && <span className="text-xs text-muted-foreground">In use</span>}
+                    <ConfirmButton variant="destructive" size="sm" disabled={used > 0 || isProtected} message={`Delete sector ${name}?`}>Delete</ConfirmButton>
                   </form>
                 </TableCell>
               </TableRow>

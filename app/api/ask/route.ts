@@ -1,14 +1,14 @@
 import { connection } from "next/server";
 import { getOverview, getCustomers } from "@/lib/data";
-import { occupancy, report, revenueLines, sum, years, loadReports } from "@/lib/al-manzil";
+import { alManzilKey, occupancy, report, revenueLines, sum, years, loadReports } from "@/lib/al-manzil";
 
 const MAX_Q = 1000;
 
 async function context() {
   await loadReports();
   const [o, c] = await Promise.all([getOverview(), getCustomers()]);
-  const ys = years(), cur = ys.at(-1);
-  const occ = cur ? occupancy(cur) : [];
+  const alManzil = alManzilKey(), ys = years(alManzil), cur = ys.at(-1);
+  const occ = cur ? occupancy(cur, alManzil) : [];
   const days = sum(occ.map((m) => m.days)) || 1, sold = sum(occ.map((m) => m.sold)) || 1;
   return JSON.stringify({
     year: o.year,
@@ -18,11 +18,11 @@ async function context() {
     topCustomers: c.customers.slice(0, 20).map((x) => ({ name: x.name, group: x.group, ytd: Math.round(x.ytd), thisMonth: Math.round(x.mtd), lastMonth: Math.round(x.lm) })),
     realEstate: {
       source: "Al Manzil (Transind Real Estate)",
-      byYear: ys.map((y) => { const r = report(y); return { year: y, revenue: Math.round(sum(r.revenue)), totalCost: Math.round(sum(r.totalCost)), net: Math.round(sum(r.net)) }; }),
+      byYear: ys.map((y) => { const r = report(y, alManzil); return { year: y, revenue: Math.round(sum(r.revenue)), totalCost: Math.round(sum(r.totalCost)), net: Math.round(sum(r.net)) }; }),
       latestYear: cur,
       occupancyPct: Math.round(sum(occ.map((m) => m.occ * m.days)) / days * 1000) / 10,
       averageDailyRate: cur ? Math.round(sum(occ.map((m) => m.room)) / sold) : 0,
-      revenueBySource: cur ? revenueLines(cur).map(([line, value]) => ({ line, value: Math.round(value) })) : [],
+      revenueBySource: cur ? revenueLines(cur, alManzil).map(([line, value]) => ({ line, value: Math.round(value) })) : [],
     },
   });
 }

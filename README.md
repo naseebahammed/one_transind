@@ -1,6 +1,6 @@
 # One Transind
 
-Next.js 16 dashboard for sales (from a read-only Postgres view), deals, companies and the Al Manzil hotel P&L.
+Next.js 16 dashboard for sales (from a read-only Postgres view), deals, and company finance data.
 
 ## Run
 
@@ -26,6 +26,12 @@ Settings go in `.env.local`:
 The app keeps its own tables in the `app` schema. In development they are created and seeded on the first request.
 In production this is skipped. Start the server once with `DB_INIT=true` on first deploy and after any change to `lib/schema.ts`, open a page, then remove it.
 
-## Al Manzil P&L
+## Company data
 
-Figures live in `data/al-manzil.csv` and `data/al-manzil-daily.csv` on the server's disk. Edits and uploads from the admin pages write that file, so run a single instance with a writable disk.
+Every monthly figure is one row in `app.company_figures` (section `pnl`, `sales`, `units`, `balance`, `budget` or `people`), and its line must exist in `app.accounts`. The daily stay report is `app.daily_sales`; a hotel's monthly sales are the view `app.daily_sales_monthly`. Revenue is positive, costs negative, amounts in QAR. No row means not submitted; 0 is a real zero.
+
+Uploads (.xlsx or .csv, up to 5 MB) are validated as a whole, then saved in one transaction: the months or days in the file are replaced, everything else stays. Each attempt, including rejected ones, is kept with its original file in `app.imports` and listed under Admin > Activity log.
+
+## Changing the database
+
+Add a new entry to `MIGRATIONS` in `lib/schema.ts`; never edit one that has shipped. Each runs once and is recorded in `app.schema_migrations`.

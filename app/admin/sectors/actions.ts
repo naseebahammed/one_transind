@@ -1,9 +1,9 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { q, q1 } from "@/lib/db";
-import { countCompanies } from "@/lib/sectors";
+import { countCompanies, PROTECTED_SECTOR_KEYS } from "@/lib/sectors";
 
-export type SectorState = { error?: string };
+export type SectorState = { error?: string; success?: boolean };
 
 const name = (f: FormData) => String(f.get("name") ?? "").trim().slice(0, 60);
 const done = () => revalidatePath("/admin", "layout");
@@ -20,14 +20,17 @@ export async function addSector(_: SectorState, f: FormData): Promise<SectorStat
   return {};
 }
 
-export async function renameSector(f: FormData) {
+export async function renameSector(_: SectorState, f: FormData): Promise<SectorState> {
   const n = name(f);
-  if (n) await q("UPDATE app.sectors SET name=$1 WHERE key=$2", [n, String(f.get("key"))]);
+  if (!n) return { error: "Name is required." };
+  await q("UPDATE app.sectors SET name=$1 WHERE key=$2", [n, String(f.get("key"))]);
   done();
+  return { success: true };
 }
 
 export async function deleteSector(f: FormData) {
   const key = String(f.get("key"));
+  if (PROTECTED_SECTOR_KEYS.has(key)) return; // built into the app; UI disables the button, this guards a forged request
   if (await countCompanies(key)) return; // UI disables the button; this guards a forged request
   await q("DELETE FROM app.sectors WHERE key=$1", [key]);
   done();

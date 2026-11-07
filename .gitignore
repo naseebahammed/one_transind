@@ -40,6 +40,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 /data/app.db*
+/backups/
+~$*
 
 .env.local
 # claude code

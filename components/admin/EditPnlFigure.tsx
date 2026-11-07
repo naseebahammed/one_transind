@@ -5,7 +5,7 @@ import { Button } from "@/components/admin/ui/button";
 import { Input } from "@/components/admin/ui/input";
 import { NativeSelect } from "@/components/admin/ui/native-select";
 
-type Account = { main: string; sub: string; m: number[] };
+type Account = { main: string; sub: string; m: (number | undefined)[] };
 
 /** Step-wise editor for one figure (P&L or sales): pick year (fixed to the page), month, account, then edit and confirm. */
 export function EditPnlFigure({ year, months, accounts, onSave }: { year: number; months: string[]; accounts: Account[]; onSave: (main: string, sub: string, month: number, value: number) => Promise<void> }) {

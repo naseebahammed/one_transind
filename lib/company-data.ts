@@ -1,12 +1,12 @@
 // Pure (no imports) so `node --test` can load it. Rules for the company page's sections and their uploaded templates.
-export type Section = "profile" | "pnl" | "balance" | "budget" | "people";
-export type FigureSection = "balance" | "budget" | "people";
+export type Section = "profile" | "pnl" | "balance" | "budget" | "people" | "expenses";
+export type FigureSection = "balance" | "budget" | "people" | "expenses";
 export type GridSection = FigureSection | "sales"; // same one-year grid; sales is stored in the company's sales file, not the figures table
 export type Cell = string | number | null;
 export type Figure = { year: number; month: number; line: string; value: number };
 export type MonthStatus = "Submitted" | "Not submitted" | "Not due";
 
-export const SECTIONS: readonly (readonly [Section, string])[] = [["profile", "Profile"], ["pnl", "P&L"], ["balance", "Balance sheet and cash"], ["budget", "Budget"], ["people", "People"]];
+export const SECTIONS: readonly (readonly [Section, string])[] = [["profile", "Profile"], ["pnl", "P&L"], ["balance", "Balance sheet and cash"], ["budget", "Budget"], ["people", "People"], ["expenses", "Expenses"]];
 
 export const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const AGES = ["current", "1-30 days", "31-60 days", "61-90 days", "over 90 days"];
@@ -19,10 +19,11 @@ export const LINES: Record<GridSection, readonly string[]> = {
   balance: [...ASSETS, ...FUNDING, "Loan repayments due in 12 months"],
   budget: ["Revenue", "Direct cost", "Overheads"],
   people: ["Headcount", "Payroll cost", "Joiners", "Leavers"],
+  expenses: ["Expenses"],
   sales: ["Sales"],
 };
 
-export const isFigureSection = (s: string): s is FigureSection => s === "balance" || s === "budget" || s === "people";
+export const isFigureSection = (s: string): s is FigureSection => s === "balance" || s === "budget" || s === "people" || s === "expenses";
 
 export const sectionName = (s: Section | "sales") => (s === "sales" ? "Monthly sales" : SECTIONS.find(([k]) => k === s)![1]);
 export const templateTitle = (company: string, section: GridSection, year: number) => `${company} | ${sectionName(section)} | ${year}`;

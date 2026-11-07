@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import ExcelJS from "exceljs";
 import { parseGrid } from "./company-data.ts";
-import { DAILY_HEADER, dailyFromWorkbook, mergeDaily, mergeSales, PNL_HEADER, unitsFromWorkbook } from "./al-manzil.ts";
+import { dailyFromWorkbook, unitsFromWorkbook } from "./al-manzil.ts";
 import { buildDailyTemplate, buildFigureTemplate, buildPnlTemplate, buildUnitsTemplate, gridFromWorkbook } from "./company-template.ts";
 
 const reload = async (wb: ExcelJS.Workbook) => {
@@ -62,9 +62,8 @@ const fillDay = (ws: ExcelJS.Worksheet, row: number, cells: Record<string, numbe
 test("a filled daily template loads through the real daily uploader", async () => {
   const wb = buildDailyTemplate(2026, 9, 87);
   fillDay(wb.worksheets[0], 2, { "Long Stay Guests": 80, "Long Rate": 200, "Long Total": 16000, "Short Stay Guests": 2, "Short Rate": 400, "Short Total": 800, "Total Room Occupancy": 82, "Daily Revenue": 16800, "Other Revenue": 1000, "Daily Avg Rate": 204.88 });
-  const lines = dailyFromWorkbook(await reload(wb));
-  assert.deepEqual(lines, ["2026-10-01,80,200,16000,2,400,800,82,16800,1000,204.88,87,0.9425"]);
-  assert.ok(mergeDaily("", [DAILY_HEADER, ...lines].join("\n")).includes("2026-10-01"));
+  const out = dailyFromWorkbook(await reload(wb));
+  assert.deepEqual(out, [{ date: "2026-10-01", long_guests: 80, long_rate: 200, long_total: 16000, short_guests: 2, short_rate: 400, short_total: 800, rooms_occupied: 82, room_revenue: 16800, other_revenue: 1000, rooms_available: 87 }]);
 });
 
 test("the daily template lists every day of the month and skips days left blank", async () => {
@@ -87,10 +86,9 @@ test("a filled unit-type template loads through the real unit-type uploader", as
   ws.getCell(3, col("Long Stay", "1 BHK")).value = 8;
   ws.getCell(3, col("Short Stay", "1 BHK")).value = 1;
   ws.getCell(3, col("Room Revenue", "1 BHK")).value = 1800;
-  const { lines, months } = unitsFromWorkbook(await reload(wb));
-  assert.ok(months.has("2026-9"));
-  const of = (m: string) => lines.find((l) => l.startsWith(`2026,1 BHK,${m},`))?.split(",")[3 + 9];
-  assert.deepEqual([of("Available"), of("Long stay"), of("Short stay"), of("Room revenue")], ["10", "8", "1", "1800"]);
+  const out = unitsFromWorkbook(await reload(wb));
+  const of = (m: string) => out.find((r) => r.unit_type === "1 BHK" && r.line === m && r.year === 2026 && r.month === 9)?.value;
+  assert.deepEqual([of("Available"), of("Long stay"), of("Short stay"), of("Room revenue")], [10, 8, 1, 1800]);
 });
 
 test("the unit-type template falls back to 1 BHK and 2 BHK when no room types are set", () => {
@@ -120,12 +118,3 @@ test("monthly sales rejects another company's file, future months and negatives"
   assert.ok("error" in parseGrid("sales", grid(title, 1, -5), want, sellingToday));
 });
 
-test("mergeSales changes only the uploaded months and starts a new file or year", () => {
-  const csv = `${PNL_HEADER}\r\n2026,REVENUE,Sales,1,2,3,4,5,6,7,8,9,0,0,0\r\n2025,REVENUE,Sales,9,9,9,9,9,9,9,9,9,9,9,9\r\n`;
-  const out = mergeSales(csv, [{ year: 2026, month: 9, value: 500 }]).trim().split("\n");
-  assert.equal(out[0], PNL_HEADER);
-  assert.equal(out[1], "2026,REVENUE,Sales,1,2,3,4,5,6,7,8,9,500,0,0");
-  assert.equal(out[2], "2025,REVENUE,Sales,9,9,9,9,9,9,9,9,9,9,9,9");
-  assert.equal(mergeSales("", [{ year: 2026, month: 0, value: 7 }]), `${PNL_HEADER}\n2026,REVENUE,Sales,7,0,0,0,0,0,0,0,0,0,0,0\n`);
-  assert.equal(mergeSales(csv, [{ year: 2024, month: 1, value: 7 }]).trim().split("\n").length, 4);
-});

@@ -7,6 +7,7 @@ import { Input } from "@/components/admin/ui/input";
 import { NativeSelect } from "@/components/admin/ui/native-select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/admin/ui/table";
 import { listCompanies } from "@/lib/companies";
+import { listExpenseTotals } from "@/lib/company-figures";
 import { listSectors } from "@/lib/sectors";
 
 type Search = Promise<{ q?: string; sector?: string }>;
@@ -21,8 +22,10 @@ export default function Companies({ searchParams }: { searchParams: Search }) {
 
 async function List({ searchParams }: { searchParams: Search }) {
   const { q = "", sector = "" } = await searchParams;
-  const [rows, SECTORS] = await Promise.all([listCompanies(q, sector), listSectors()]);
+  const [rows, SECTORS, totals] = await Promise.all([listCompanies(q, sector), listSectors(), listExpenseTotals()]);
   const filtered = !!(q || sector);
+  const years = [...new Set(totals.map((t) => t.year))].sort();
+  const expensesOf = (id: number) => years.map((y) => totals.find((t) => t.company_id === id && t.year === y)?.value ?? null);
   return (
     <>
       <form className="flex flex-wrap items-center gap-2 rounded-xl border bg-card p-3">
@@ -40,15 +43,15 @@ async function List({ searchParams }: { searchParams: Search }) {
       </form>
       <Table>
         <TableHeader>
-          <TableRow><TableHead>Name</TableHead><TableHead>Sector</TableHead><TableHead>Type</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead></TableRow>
+          <TableRow><TableHead>Name</TableHead><TableHead>Sector</TableHead><TableHead>Type</TableHead><TableHead>Status</TableHead>{years.map((y) => <TableHead key={y} className="text-right">Expenses {y} (QAR)</TableHead>)}<TableHead className="text-right">Actions</TableHead></TableRow>
         </TableHeader>
         <TableBody>
           {rows.map((c) => (
-            <CompanyRow key={c.id} company={c} sectorLabel={SECTORS.find(([k]) => k === c.sector)?.[1] ?? c.sector} />
+            <CompanyRow key={c.id} company={c} sectorLabel={SECTORS.find(([k]) => k === c.sector)?.[1] ?? c.sector} expenses={expensesOf(c.id)} />
           ))}
           {!rows.length && (
             <TableRow>
-              <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+              <TableCell colSpan={5 + years.length} className="h-24 text-center text-muted-foreground">
                 {filtered ? "No companies match your search." : "No companies yet. Click Add company to create the first one."}
               </TableCell>
             </TableRow>
