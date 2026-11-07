@@ -8,6 +8,7 @@ import { Button } from "@/components/admin/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/admin/ui/card";
 import { LINES, MONTHS, type FigureSection, type MonthStatus } from "@/lib/company-data";
 import { linesOf, listFigures } from "@/lib/company-figures";
+import { fmt } from "@/lib/format";
 
 const NOTES: Record<FigureSection, string> = {
   balance: "Month-end balances in QAR. Assets must equal liabilities plus equity. Every line is needed for a month to count as submitted.",
@@ -15,7 +16,6 @@ const NOTES: Record<FigureSection, string> = {
   people: "Month-end headcount, joiners and leavers in numbers, and payroll cost in QAR.",
   expenses: "Total monthly expenses in QAR.",
 };
-const n = (v: number) => v.toLocaleString("en", { maximumFractionDigits: 2 });
 
 export async function FigureSectionView({ company, section, year, statuses }: { company: { id: number; name: string }; section: FigureSection; year: number; statuses: MonthStatus[] }) {
   const [figures, groups] = await Promise.all([listFigures(company.id, section, year), linesOf(section)]);
@@ -45,13 +45,13 @@ export async function FigureSectionView({ company, section, year, statuses }: { 
             {LINES[section].map((line) => (
               <tr key={line} className="border-t">
                 <td className="sticky left-0 bg-card px-2 py-1">{line}</td>
-                {MONTHS.map((_, m) => { const v = value(line, m); return <td key={m} className="px-2 py-1 text-right tabular-nums">{v === undefined ? "" : n(v)}</td>; })}
+                {MONTHS.map((_, m) => { const v = value(line, m); return <td key={m} className="px-2 py-1 text-right tabular-nums">{v === undefined ? "" : fmt(v, 2, 0)}</td>; })}
               </tr>
             ))}
             {section === "budget" && (
               <tr className="border-t bg-muted/40 font-semibold">
                 <td className="sticky left-0 bg-muted px-2 py-1.5">Net profit</td>
-                {MONTHS.map((_, m) => { const v = net(m); return <td key={m} className="px-2 py-1.5 text-right tabular-nums">{v === undefined ? "" : n(v)}</td>; })}
+                {MONTHS.map((_, m) => { const v = net(m); return <td key={m} className="px-2 py-1.5 text-right tabular-nums">{v === undefined ? "" : fmt(v, 2, 0)}</td>; })}
               </tr>
             )}
             <tr className="border-t">

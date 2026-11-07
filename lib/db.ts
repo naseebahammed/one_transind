@@ -57,14 +57,6 @@ export async function numbering<T>(fn: (c: PoolClient) => Promise<T>) {
 }
 export const q1 = async <T = Record<string, unknown>>(text: string, params: unknown[] = []) => (await q<T>(text, params))[0];
 
-type DealRow = { id: string; sector: string; acc_ar: string; acc_en: string; cust: string | null; value: number; stage: number; owner: number; close: string; so: string | null };
-// Shape the dashboard already uses (acc is an [ar, en] pair).
-export const toDeal = (r: DealRow) => ({ id: r.id, sector: r.sector, acc: [r.acc_ar, r.acc_en], cust: r.cust, value: r.value, stage: r.stage, owner: r.owner, close: r.close, so: r.so });
-export const getDeal = async (id: string) => {
-  const r = await q1<DealRow>("SELECT * FROM app.deals WHERE id=$1", [id]);
-  return r && toDeal(r);
-};
-export const listDeals = async () => (await q<DealRow>("SELECT * FROM app.deals ORDER BY seq")).map(toDeal);
 export const listLog = async () =>
   (await q<{ t: string; job: string; ok: number; n: number }>("SELECT to_char(at AT TIME ZONE 'Asia/Qatar','YYYY-MM-DD HH24:MI') AS t,job,ok,n FROM app.log ORDER BY id DESC LIMIT 50")).map((x) => ({ ...x, ok: !!x.ok }));
 export const addLog = async (job: string, ok = true, n = 1) => {

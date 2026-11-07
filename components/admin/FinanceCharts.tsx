@@ -1,5 +1,6 @@
 import { ChartTip } from "@/components/ChartTip";
 import { tip } from "@/lib/tip";
+import { fmt } from "@/lib/format";
 
 const W = 720, H = 260, PL = 52, PR = 10, PT = 12, PB = 26;
 const k = (v: number) => `${Math.round(v / 1000)}k`;
@@ -31,7 +32,7 @@ export function MonthBars({ months, series, label }: { months: string[]; series:
             })}
             <rect className="chit" tabIndex={0} x={PL + i * gw} y={PT} width={gw} height={H - PT - PB} data-tip={tip({
               t: m,
-              r: series.map((s) => [s.name, `${s.data[i] < 0 ? "−" : ""}${Math.abs(s.data[i]).toLocaleString("en")} QAR`, s.color]),
+              r: series.map((s) => [s.name, `${s.data[i] < 0 ? "−" : ""}${fmt(Math.abs(s.data[i]), 2, 0)} QAR`, s.color]),
             })} />
             <text x={PL + i * gw + gw / 2} y={H - 8} textAnchor="middle" fontSize="11" fill="currentColor" opacity={0.7}>{m}</text>
           </g>
@@ -53,7 +54,7 @@ export function HBars({ rows }: { rows: [string, number][] }) {
         <div key={name} className="grid grid-cols-[9rem_1fr_9rem] items-center gap-3 text-sm">
           <span className="truncate">{name}</span>
           <div className="h-3 rounded bg-muted"><div className="h-3 rounded bg-primary" style={{ width: `${(v / max) * 100}%` }} /></div>
-          <span className="text-right tabular-nums text-muted-foreground">{v.toLocaleString("en")} · {((v / total) * 100).toFixed(1)}%</span>
+          <span className="text-right tabular-nums text-muted-foreground">{fmt(v, 2, 0)} · {((v / total) * 100).toFixed(1)}%</span>
         </div>
       ))}
     </div>

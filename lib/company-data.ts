@@ -1,4 +1,4 @@
-// Pure (no imports) so `node --test` can load it. Rules for the company page's sections and their uploaded templates.
+// Pure (only the import-free ./format.ts) so `node --test` can load it. Rules for the company page's sections and their uploaded templates.
 export type Section = "profile" | "pnl" | "balance" | "budget" | "people" | "expenses";
 export type FigureSection = "balance" | "budget" | "people" | "expenses";
 export type GridSection = FigureSection | "sales"; // same one-year grid; sales is stored in the company's sales file, not the figures table
@@ -8,7 +8,9 @@ export type MonthStatus = "Submitted" | "Not submitted" | "Not due";
 
 export const SECTIONS: readonly (readonly [Section, string])[] = [["profile", "Profile"], ["pnl", "P&L"], ["balance", "Balance sheet and cash"], ["budget", "Budget"], ["people", "People"], ["expenses", "Expenses"]];
 
-export const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+import { MONTHS } from "./format.ts";
+
+export { MONTHS };
 const AGES = ["current", "1-30 days", "31-60 days", "61-90 days", "over 90 days"];
 const RECEIVABLES = AGES.map((a) => `Receivables: ${a}`), PAYABLES = AGES.map((a) => `Payables: ${a}`);
 const ASSETS = ["Cash at bank", ...RECEIVABLES, "Stock", "Fixed assets", "Other assets"];

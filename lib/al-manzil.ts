@@ -1,8 +1,9 @@
 // Company reports in QAR: parsers for uploaded workbooks and readers over app.company_figures and app.daily_sales. Revenue is positive, costs negative.
 import type ExcelJS from "exceljs";
 
-export const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-export const sum = (a: number[]) => a.reduce((s, v) => s + v, 0);
+import { MONTHS, sum } from "./format.ts";
+
+export { MONTHS, sum };
 const round = (v: number) => Math.round(v * 100) / 100;
 
 /** A company's key in the readers below. */

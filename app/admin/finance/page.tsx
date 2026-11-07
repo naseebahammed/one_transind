@@ -17,8 +17,8 @@ import { listCompanies, type Company } from "@/lib/companies";
 import { listExpenses } from "@/lib/company-figures";
 import { listSectors } from "@/lib/sectors";
 import { link } from "@/lib/url";
+import { fmt } from "@/lib/format";
 
-const n = (v: number) => Math.round(v).toLocaleString("en");
 const neg = (v: number) => (v < 0 ? "text-destructive" : "");
 
 /** Years on file for this company's P&L, each year's figures. Empty until a statement is uploaded for it. */
@@ -86,7 +86,7 @@ async function Summary({ searchParams }: { searchParams: Search }) {
     const mine = expenses.filter((e) => e.company_id === c.id);
     return [...new Set(mine.map((e) => e.year))].sort().map((year) => ({ c, year, m: MONTHS.map((_, i) => mine.find((e) => e.year === year && e.month === i)?.value ?? null) }));
   });
-  const qar = (v: number | null) => (v === null ? "—" : Math.abs(v).toLocaleString("en", { maximumFractionDigits: 2 }));
+  const qar = (v: number | null) => (v === null ? "—" : fmt(Math.abs(v), 2, 0));
   return (
     <>
       {one && (
@@ -119,9 +119,9 @@ async function Summary({ searchParams }: { searchParams: Search }) {
               <TableRow key={`${c.id}-pnl-${r.year}`}>
                 {head}
                 <TableCell>{MONTHS[0]}-{MONTHS[11]} {r.year}</TableCell>
-                <TableCell className="text-right tabular-nums">{n(rv)}</TableCell>
-                <TableCell className="text-right tabular-nums">{n(sum(r.cost))}</TableCell>
-                <TableCell className={`text-right tabular-nums ${neg(nt)}`}>{n(nt)}</TableCell>
+                <TableCell className="text-right tabular-nums">{fmt(rv)}</TableCell>
+                <TableCell className="text-right tabular-nums">{fmt(sum(r.cost))}</TableCell>
+                <TableCell className={`text-right tabular-nums ${neg(nt)}`}>{fmt(nt)}</TableCell>
                 <TableCell className={`text-right tabular-nums ${neg(nt)}`}>{rv ? `${((nt / rv) * 100).toFixed(1)}%` : "-"}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
@@ -156,7 +156,7 @@ async function Summary({ searchParams }: { searchParams: Search }) {
               <TableRow key={`${c.id}-sales-${r.year}`}>
                 {head}
                 <TableCell>{MONTHS[0]}-{MONTHS[11]} {r.year}</TableCell>
-                <TableCell className="text-right tabular-nums">{n(r.revenue)}</TableCell>
+                <TableCell className="text-right tabular-nums">{fmt(r.revenue)}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
                     <Button asChild variant="outline" size="sm"><Link href={toggle(c, "sales", r.year)}>{open(c).sales === String(r.year) ? "Hide" : "View"}</Link></Button>
@@ -224,12 +224,12 @@ function AccountGrid({ year, rows, onSave }: { year: number; rows: ReturnType<ty
           <thead><tr className="border-b bg-muted/50 text-left"><th className="sticky left-0 z-10 min-w-56 bg-muted px-2 py-2">Account</th>{MONTHS.map((m) => <th key={m} className="px-1 py-2 text-right">{m}</th>)}<th className="px-2 py-2 text-right">Total</th></tr></thead>
           {[...groups].map(([main, rs]) => (
             <tbody key={main}>
-              <tr className="bg-muted/40 font-semibold"><td className="sticky left-0 bg-muted px-2 py-1.5">{main}</td>{MONTHS.map((_, i) => <td key={i} className="px-2 py-1.5 text-right tabular-nums">{n(sum(rs.map((r) => r.m[i])))}</td>)}<td className="px-2 py-1.5 text-right tabular-nums">{n(sum(rs.flatMap((r) => r.m)))}</td></tr>
+              <tr className="bg-muted/40 font-semibold"><td className="sticky left-0 bg-muted px-2 py-1.5">{main}</td>{MONTHS.map((_, i) => <td key={i} className="px-2 py-1.5 text-right tabular-nums">{fmt(sum(rs.map((r) => r.m[i])))}</td>)}<td className="px-2 py-1.5 text-right tabular-nums">{fmt(sum(rs.flatMap((r) => r.m)))}</td></tr>
               {rs.map((r) => (
                 <tr key={r.sub} className="border-t">
                   <td className="sticky left-0 bg-card px-2 py-1 pl-5">{r.sub}</td>
-                  {r.m.map((v, i) => <td key={i} className={`px-2 py-1 text-right tabular-nums ${neg(v)}`}>{n(v)}</td>)}
-                  <td className={`px-2 py-1 text-right tabular-nums ${neg(sum(r.m))}`}>{n(sum(r.m))}</td>
+                  {r.m.map((v, i) => <td key={i} className={`px-2 py-1 text-right tabular-nums ${neg(v)}`}>{fmt(v)}</td>)}
+                  <td className={`px-2 py-1 text-right tabular-nums ${neg(sum(r.m))}`}>{fmt(sum(r.m))}</td>
                 </tr>
               ))}
             </tbody>
