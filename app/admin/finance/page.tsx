@@ -50,28 +50,28 @@ export default function Finance({ searchParams }: { searchParams: Search }) {
 
 async function Summary({ searchParams }: { searchParams: Search }) {
   await loadReports();
-  const { company, year: yr, sales: sy, units: uy } = await searchParams;
+  const { company, year: yearParam, sales: salesParam, units: unitsParam } = await searchParams;
   const sectors = await listSectors();
   // Hidden companies stay in the tables (so they can be switched back on) but are left out of the charts.
-  const rows = (await listCompanies()).filter((c) => !company || String(c.id) === company).flatMap((c) => { const rs = reportsFor(c); return (rs.length ? rs : [undefined]).map((r) => ({ c, r })); });
+  const rows = (await listCompanies()).filter((c) => !company || String(c.id) === company).flatMap((c) => { const reports = reportsFor(c); return (reports.length ? reports : [undefined]).map((r) => ({ c, r })); });
   const withData = rows.filter((x) => x.r);
   const companies = new Set(rows.map((x) => x.c.id)).size, withReport = new Set(withData.map((x) => x.c.id)).size;
   const byYear = years(alManzilKey()).map((year) => {
-    const rs = withData.filter((x) => !x.c.hidden && x.r!.year === year).map((x) => x.r!);
-    const top = rs.flatMap((r) => r.costGroups).map(([name, d]) => [name, sum(d)] as [string, number]).sort((a, b) => b[1] - a[1]); // all lines, so the percentages are shares of total cost
+    const yearReports = withData.filter((x) => !x.c.hidden && x.r!.year === year).map((x) => x.r!);
+    const top = yearReports.flatMap((r) => r.costGroups).map(([name, d]) => [name, sum(d)] as [string, number]).sort((a, b) => b[1] - a[1]); // all lines, so the percentages are shares of total cost
     return { year, top };
   });
   const one = company ? rows[0]?.c : undefined;
   const key = one && keyFor(one);
   const ys = key ? years(key) : [];
-  const edit = one && yr && ys.includes(+yr) ? +yr : undefined; // the P&L table shows only after View (?year=) is clicked
+  const edit = one && yearParam && ys.includes(+yearParam) ? +yearParam : undefined; // the P&L table shows only after View (?year=) is clicked
   // View/Hide on a data row toggles that year's grid below; other open grids of the same company stay open.
   const open = (c: Company) => (one?.id === c.id ? { year: edit ? String(edit) : undefined, sales: salesYear ? String(salesYear) : undefined, units: unitsYear ? String(unitsYear) : undefined } : {});
   const toggle = (c: Company, param: "year" | "sales" | "units", y: number) => link("/admin/finance", { company: String(c.id), ...open(c), [param]: open(c)[param] === String(y) ? undefined : String(y) });
   const salesRows = [...new Map(rows.map((x) => [x.c.id, x.c])).values()].flatMap((c) => salesFor(c).map((r) => ({ c, r })));
-  const salesYear = one && sy && salesRows.some((x) => x.c.id === one.id && x.r.year === +sy) ? +sy : undefined; // the sales grid shows only after View (?sales=) is clicked
+  const salesYear = one && salesParam && salesRows.some((x) => x.c.id === one.id && x.r.year === +salesParam) ? +salesParam : undefined; // the sales grid shows only after View (?sales=) is clicked
   const unitYears = key ? years(key, "units") : [];
-  const unitsYear = uy && unitYears.includes(+uy) ? +uy : undefined; // the unit-type grid shows only after View (?units=) is clicked
+  const unitsYear = unitsParam && unitYears.includes(+unitsParam) ? +unitsParam : undefined; // the unit-type grid shows only after View (?units=) is clicked
   const uniqueCompanies = [...new Map(rows.map((x) => [x.c.id, x.c])).values()];
   const pnlAll: Row[] = uniqueCompanies.flatMap((c): Row[] => {
     const items: Row[] = rows.filter((x) => x.c.id === c.id && x.r).map((x) => ({ c, kind: "pnl" as const, r: x.r! }));
@@ -223,10 +223,10 @@ function AccountGrid({ year, rows, onSave }: { year: number; rows: ReturnType<ty
       <div className="overflow-x-auto rounded-xl border bg-card">
         <table className="w-full text-sm">
           <thead><tr className="border-b bg-muted/50 text-left"><th className="sticky left-0 z-10 min-w-56 bg-muted px-2 py-2">Account</th>{MONTHS.map((m) => <th key={m} className="px-1 py-2 text-right">{m}</th>)}<th className="px-2 py-2 text-right">Total</th></tr></thead>
-          {[...groups].map(([main, rs]) => (
+          {[...groups].map(([main, groupRows]) => (
             <tbody key={main}>
-              <tr className="bg-muted/40 font-semibold"><td className="sticky left-0 bg-muted px-2 py-1.5">{main}</td>{MONTHS.map((_, i) => <td key={i} className="px-2 py-1.5 text-right tabular-nums">{fmt(sum(rs.map((r) => r.m[i])))}</td>)}<td className="px-2 py-1.5 text-right tabular-nums">{fmt(sum(rs.flatMap((r) => r.m)))}</td></tr>
-              {rs.map((r) => (
+              <tr className="bg-muted/40 font-semibold"><td className="sticky left-0 bg-muted px-2 py-1.5">{main}</td>{MONTHS.map((_, i) => <td key={i} className="px-2 py-1.5 text-right tabular-nums">{fmt(sum(groupRows.map((r) => r.m[i])))}</td>)}<td className="px-2 py-1.5 text-right tabular-nums">{fmt(sum(groupRows.flatMap((r) => r.m)))}</td></tr>
+              {groupRows.map((r) => (
                 <tr key={r.sub} className="border-t">
                   <td className="sticky left-0 bg-card px-2 py-1 pl-5">{r.sub}</td>
                   {r.m.map((v, i) => <td key={i} className={`px-2 py-1 text-right tabular-nums ${neg(v)}`}>{fmt(v)}</td>)}

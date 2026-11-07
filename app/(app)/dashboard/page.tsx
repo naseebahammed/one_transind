@@ -1,7 +1,7 @@
 import { SECTOR, SECTORS } from "@/lib/org";
 import { getSalesSectors } from "@/lib/sales-sectors";
 import { listSectors } from "@/lib/sectors";
-import { keyFor, plRows, report, sum as amSum, years, loadReports } from "@/lib/al-manzil";
+import { keyFor, plRows, report, years, loadReports } from "@/lib/al-manzil";
 import { listCompanies } from "@/lib/companies";
 import { Suspense } from "react";
 import { connection } from "next/server";
@@ -27,7 +27,7 @@ async function Content({ searchParams }: { searchParams: Params }) {
   const { p, all } = await searchParams;
   const path = parsePath(p);
   const o = await getOverview();
-  const [rows, labels, depts, adminSectors, fileCos, reCos] = await Promise.all([getDrill(o.month, "p", path), getDrillLabels(o.month, "p", path), getSalesSectors(true), listSectors(),
+  const [rows, labels, depts, adminSectors, fileSectorCompanies, realEstateCompanies] = await Promise.all([getDrill(o.month, "p", path), getDrillLabels(o.month, "p", path), getSalesSectors(true), listSectors(),
     Promise.all(FILE_SECTORS.map(([k]) => listCompanies("", k))), listCompanies("", SECTOR.realEstate)]);
   // Revenue by admin sector: departments are mapped to one under Admin → Sales sectors; the rest fall under "Unassigned".
   const known = new Set(adminSectors.map(([k]) => k));
@@ -35,15 +35,15 @@ async function Content({ searchParams }: { searchParams: Params }) {
   for (const d of depts) { const k = d.sector && known.has(d.sector) ? d.sector : ""; bySector.set(k, (bySector.get(k) ?? 0) + d.value); }
   // Health & Beauty (Pavati) and Retail (Top Perfume) companies report monthly sales through Admin → Finance, not the sales table.
   const fileSales = FILE_SECTORS.map(([k, name], i) => {
-    const cos = fileCos[i].filter((c) => c.active && !c.hidden), keys = cos.map(keyFor);
+    const cos = fileSectorCompanies[i].filter((c) => c.active && !c.hidden), keys = cos.map(keyFor);
     const rev = (y: number) => report(y, keys, plRows(y, keys, "sales")).revenue;
-    bySector.set(k, (bySector.get(k) ?? 0) + amSum(rev(o.year).slice(0, o.month + 1)));
+    bySector.set(k, (bySector.get(k) ?? 0) + sum(rev(o.year).slice(0, o.month + 1)));
     return { k, name, cos, rev, ys: years(keys, "sales").slice(-3) };
   });
   // Real Estate, same months as the other sectors: each property's P&L, or its monthly sales grid when that year's P&L is not uploaded yet (Al Manzil 2026).
-  bySector.set(SECTOR.realEstate, (bySector.get(SECTOR.realEstate) ?? 0) + amSum(reCos.filter((c) => c.active && !c.hidden).map((c) => {
+  bySector.set(SECTOR.realEstate, (bySector.get(SECTOR.realEstate) ?? 0) + sum(realEstateCompanies.filter((c) => c.active && !c.hidden).map((c) => {
     const key = keyFor(c);
-    return amSum(report(o.year, key, years(key).includes(o.year) ? undefined : plRows(o.year, key, "sales")).revenue.slice(0, o.month + 1));
+    return sum(report(o.year, key, years(key).includes(o.year) ? undefined : plRows(o.year, key, "sales")).revenue.slice(0, o.month + 1));
   })));
   const sectors = [...adminSectors.map(([k, name]) => ({ label: name, v: bySector.get(k) ?? 0 })), ...(bySector.get("") ? [{ label: "Unassigned", v: bySector.get("")! }] : [])];
   const cur = o.months[o.month], ytd = sum(o.months.map((m) => m.value));
