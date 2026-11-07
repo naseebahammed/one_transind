@@ -141,6 +141,7 @@ async function Summary({ searchParams }: { searchParams: Search }) {
         </TableBody>
       </Table>
       </CardContent></Card>
+      {one && !one.hidden && edit && <GridSection title={`P&L - ${edit}`}><AccountGrid year={edit} rows={plRows(edit, key!)} onSave={savePnlCell.bind(null, edit, key!)} /></GridSection>}
       <Card className="gap-2 py-3"><CardHeader><CardTitle className="text-sm">Monthly sales</CardTitle></CardHeader><CardContent>
       <Table>
         <TableHeader>
@@ -173,6 +174,7 @@ async function Summary({ searchParams }: { searchParams: Search }) {
         </TableBody>
       </Table>
       </CardContent></Card>
+      {one && !one.hidden && salesYear && <GridSection title={`Monthly sales - ${salesYear}`}><AccountGrid year={salesYear} rows={plRows(salesYear, key!, "sales")} onSave={one.sector === "re" ? undefined : saveSalesCell.bind(null, salesYear, key!)} /></GridSection>}
       <Card className="gap-2 py-3"><CardHeader><CardTitle className="text-sm">Expenses (QAR)</CardTitle></CardHeader><CardContent>
       <Table>
         <TableHeader>
@@ -197,13 +199,11 @@ async function Summary({ searchParams }: { searchParams: Search }) {
         </CardContent></Card>
       )}
       {one && !one.hidden && unitsYear && <GridSection title={`Sales by unit type - ${unitsYear}`}><AccountGrid year={unitsYear} rows={plRows(unitsYear, key!, "units")} onSave={saveUnitsCell.bind(null, unitsYear, key!)} /></GridSection>}
-      {one && !one.hidden && salesYear && <GridSection title={`Monthly sales - ${salesYear}`}><AccountGrid year={salesYear} rows={plRows(salesYear, key!, "sales")} onSave={one.sector === "re" ? undefined : saveSalesCell.bind(null, salesYear, key!)} /></GridSection>}
       {!company && !!withData.length && (
         <div className="grid gap-4 lg:grid-cols-2">
           {byYear.map(({ year, top }) => <Card key={year}><CardHeader><CardTitle>Cost breakdown - {year}</CardTitle></CardHeader><CardContent><HBars rows={top} /></CardContent></Card>)}
         </div>
       )}
-      {one && !one.hidden && edit && <GridSection title={`P&L - ${edit}`}><AccountGrid year={edit} rows={plRows(edit, key!)} onSave={savePnlCell.bind(null, edit, key!)} /></GridSection>}
     </>
   );
 }
