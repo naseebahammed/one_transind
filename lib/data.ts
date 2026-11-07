@@ -92,16 +92,6 @@ export async function getCustomers() {
   return { year, month, customers: top, customerCount: byId.size };
 }
 
-/** Sales by brand for one calendar month across every year in the table. */
-export async function getBrandYears(month: number) {
-  "use cache";
-  cacheLife("minutes");
-  const { rows } = await pg.query<{ year: number; brand: string; value: number }>(
-    `SELECT EXTRACT(year FROM "DOC_DATE")::int AS year, COALESCE("BRAND",'-') AS brand, SUM("NET_AMOUNT")::float8 AS value
-     FROM ${table} WHERE EXTRACT(month FROM "DOC_DATE") = $1 GROUP BY 1,2`, [month + 1]);
-  return rows;
-}
-
 export const DIMENSIONS = {
   dept: { label: "Department", sql: `COALESCE(d.department_name, s."DEPT_CODE", '-')`, join: `LEFT JOIN public.invs_departments d ON d.department_code = s."DEPT_CODE"` },
   brand: { label: "Brand", sql: `COALESCE(s."BRAND", '-')`, join: "" },
@@ -174,7 +164,6 @@ const LEVELS = {
     { key: `COALESCE(s."ITEM_CODE",'-')`, label: `MAX(COALESCE(s."ITEM_NAME",'-'))`, sub: `MAX(s."ITEM_CODE")` },
   ],
 } as const;
-export const DRILL_DEPTH = { p: 3, c: 4 };
 
 /** One level of a drill-down for a month: p = department > brand > item, c = customer group > customer > brand > item. */
 export async function getDrill(month: number, kind: "p" | "c", path: string[], dept = "") {

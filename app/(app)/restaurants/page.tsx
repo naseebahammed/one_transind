@@ -42,6 +42,8 @@ async function Content({ searchParams }: { searchParams: Params }) {
   const lastMonthGross = sum(before.map((b) => b.summary.gross));
   const mn = `${MONTHS[month]} ${year}`;
   const hasData = gross > 0;
+  // In the current month, hide days after today to avoid a long empty list.
+  const lastDay = year === thisYear && month === now.getMonth() ? now.getDate() : 31;
 
   return (
     <>
@@ -77,10 +79,10 @@ async function Content({ searchParams }: { searchParams: Params }) {
             <div className="tw"><table>
               <thead><tr><th>Day</th>{current.map((b) => <th key={b.name} className="n">{b.name}</th>)}<th className="n">Total</th></tr></thead>
               <tbody>
-                {current[0].table.days.map((d, i) => {
+                {current[0].table.days.map((d, i) => d.day > lastDay ? null : (() => {
                   const values = current.map((b) => b.table.days[i].gross);
                   return <tr key={d.day}><td>{String(d.day).padStart(2, "0")} {MONTHS[month]}</td>{values.map((v, k) => <td key={k} className="n num">{v === null ? "" : fmt(v)}</td>)}<td className="n num">{values.some((v) => v !== null) ? fmt(sum(values.map((v) => v ?? 0))) : ""}</td></tr>;
-                })}
+                })())}
               </tbody>
             </table></div>
           )}

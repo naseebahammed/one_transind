@@ -32,6 +32,6 @@ test("every query in lib/data.ts returns exactly the fields its row type declare
     }
     node.forEachChild(walk);
   })(sf);
-  assert.ok(checked >= 14, `found only ${checked} queries; the search is broken`);
+  assert.ok(checked >= 13, `found only ${checked} queries; the search is broken`);
   assert.deepEqual(problems, [], `\n${problems.join("\n")}`);
 });

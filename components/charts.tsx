@@ -101,17 +101,3 @@ export function CompareChart({ years, series: raw, sel, href }: { years: number[
     </ChartTip>
   );
 }
-
-export function HourBars({ values }: { values: number[] }) {
-  const W = 640, H = 220, pl = 36, pt = 10, pb = 24, iw = W - pl - 10, ih = H - pt - pb, bw = iw / values.length;
-  const top = Math.max(30, ...values), y = (v: number) => pt + ih - v / top * ih;
-  return (
-    <ChartTip><div className="tw">
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ minWidth: 420, direction: "ltr" }} role="img" aria-label="Sales by hour">
-        {[0, 10, 20, 30].map((v) => <g key={v}><line x1={pl} x2={W - 10} y1={y(v)} y2={y(v)} stroke="var(--line)" /><text x={pl - 6} y={y(v) + 4} textAnchor="end">{v}</text></g>)}
-        {values.map((v, i) => <g key={i}><rect x={pl + i * bw + 2} y={y(v)} width={bw - 4} height={Math.max(0, ih - (y(v) - pt))} rx="3" fill="var(--series)" /><text x={pl + i * bw + bw / 2} y={H - 6} textAnchor="middle">{i + 7}</text>
-          <rect className="chit" tabIndex={0} x={pl + i * bw} y={pt} width={bw} height={ih} data-tip={tip({ t: `${String(i + 7).padStart(2, "0")}:00 – ${String(i + 8).padStart(2, "0")}:00`, r: [["Sales", `${fmt(v)} QAR K`, "var(--series)"]] })} /></g>)}
-      </svg>
-    </div></ChartTip>
-  );
-}
