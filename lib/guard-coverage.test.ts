@@ -34,7 +34,8 @@ test("every dashboard page checks the user itself (or redirects, or hands off to
 
 test("every admin page goes through the shared Page wrapper, which checks the user", () => {
   const wrapper = readFileSync(join(APP_DIR, "..", "components", "admin", "Page.tsx"), "utf8");
-  assert.match(wrapper, /requireUser\(\)/, "admin Page wrapper must guard");
+  assert.match(wrapper, /requireAdmin\(\)/, "admin Page wrapper must require an admin");
+  assert.doesNotMatch(wrapper, /requireUser\(\)/);
   const pages = files.filter((f) => /[\\/]admin[\\/].*page\.tsx$/.test(f.file));
   const bad = pages.filter((f) => !/<Page\b|redirect\(/.test(f.text));
   assert.deepEqual(bad, [], `Admin pages outside the Page wrapper: ${show(bad)}`);
@@ -46,10 +47,11 @@ test("layouts do not call the guard (it would block prerendering and is skipped 
   assert.deepEqual(bad, [], `Layouts with a guard call: ${show(bad)}`);
 });
 
-test("the Users page actions require an admin, not just a signed-in user", () => {
-  const actions = files.find((f) => /[\\/]admin[\\/]users[\\/]actions\.ts$/.test(f.file));
-  assert.ok(actions, "app/admin/users/actions.ts is missing");
-  assert.ok(!/await\s+requireUser\(\)/.test(actions.text) && /await\s+requireAdmin\(\)/.test(actions.text));
+test("every admin action requires an admin, not just a signed-in user", () => {
+  const actions = files.filter((f) => /[\\/]admin[\\/]/.test(f.file) && /^\s*["']use server["']/.test(f.text));
+  assert.ok(actions.some((f) => /[\\/]users[\\/]actions\.ts$/.test(f.file)), "app/admin/users/actions.ts is missing");
+  const bad = actions.filter((f) => /await\s+requireUser\(\)/.test(f.text) || !/await\s+requireAdmin\(\)/.test(f.text));
+  assert.deepEqual(bad, [], `Admin actions not admin-only: ${show(bad)}`);
 });
 
 test("every Server Actions file calls requireUser or requireAdmin in each exported action", () => {

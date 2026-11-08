@@ -1,5 +1,5 @@
 "use server";
-import { requireUser } from "@/lib/guard";
+import { requireAdmin } from "@/lib/guard";
 import { revalidatePath } from "next/cache";
 import { createPropertyType, removePropertyType, renamePropertyTypeByKey } from "@/lib/property-types";
 
@@ -9,7 +9,7 @@ const name = (f: FormData) => String(f.get("name") ?? "").trim().slice(0, 60);
 const done = () => revalidatePath("/", "layout");
 
 export async function addPropertyType(_: PropertyTypeState, f: FormData): Promise<PropertyTypeState> {
-  await requireUser();
+  await requireAdmin();
   const n = name(f);
   if (!n) return { error: "Name is required." };
   const res = await createPropertyType(n);
@@ -19,13 +19,13 @@ export async function addPropertyType(_: PropertyTypeState, f: FormData): Promis
 }
 
 export async function renamePropertyType(f: FormData) {
-  await requireUser();
+  await requireAdmin();
   await renamePropertyTypeByKey(String(f.get("key")), name(f));
   done();
 }
 
 export async function deletePropertyType(f: FormData) {
-  await requireUser();
+  await requireAdmin();
   await removePropertyType(String(f.get("key")));
   done();
 }

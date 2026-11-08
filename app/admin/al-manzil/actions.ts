@@ -1,5 +1,5 @@
 "use server";
-import { requireUser } from "@/lib/guard";
+import { requireAdmin } from "@/lib/guard";
 import { SECTOR } from "@/lib/org";
 import { revalidatePath } from "next/cache";
 import { listAccounts } from "@/lib/accounts";
@@ -120,7 +120,7 @@ async function loadFile(type: string, company: Company, u: Upload, formYear: num
 
 /** One upload form for every report type: "pnl" (monthly P&L workbook), "daily" (daily sales report), "units" (per unit-type sales) or "sales" (monthly sales template), as .xlsx or .csv. */
 export async function uploadReport(_: UploadState, f: FormData): Promise<UploadState> {
-  await requireUser();
+  await requireAdmin();
   const type = String(f.get("type")), file = f.get("file");
   if (!(type in LABEL)) return { error: "Unknown report type." };
   const company = await getCompany(Number(f.get("companyId")));
@@ -160,25 +160,25 @@ async function saveCell(section: string, year: number, key: string, main: string
 
 /** Save one edited figure: year + key bind first so the client component gets a plain (main, sub, month, value) action. */
 export async function savePnlCell(year: number, key: string, main: string, sub: string, month: number, value: number) {
-  await requireUser();
+  await requireAdmin();
   return saveCell("pnl", year, key, main, sub, month, value);
 }
 
 /** One edited monthly sales figure, for companies with no daily report. A hotel's monthly sales are calculated from its daily rows. */
 export async function saveSalesCell(year: number, key: string, main: string, sub: string, month: number, value: number) {
-  await requireUser();
+  await requireAdmin();
   return saveCell("sales", year, key, main, sub, month, value);
 }
 
 /** One edited unit-type figure. In the grid the unit type shows as the group, so "main" here is the unit type. */
 export async function saveUnitsCell(year: number, key: string, main: string, sub: string, month: number, value: number) {
-  await requireUser();
+  await requireAdmin();
   return saveCell("units", year, key, (await linesOf("units")).get(sub) ?? "UNITS", sub, month, value, main);
 }
 
 /** Delete one year's P&L statement for a company. */
 export async function deletePnlYear(f: FormData) {
-  await requireUser();
+  await requireAdmin();
   const company = await companyFrom(String(f.get("key"))), year = Number(f.get("year"));
   await deleteFigureYear(company.id, "pnl", year);
   await addLog(`${company.name}: P&L ${year} deleted`);
@@ -187,7 +187,7 @@ export async function deletePnlYear(f: FormData) {
 
 /** Delete one year of a company's monthly sales: its daily rows and any monthly sales figures. */
 export async function deleteDailyYear(f: FormData) {
-  await requireUser();
+  await requireAdmin();
   const company = await companyFrom(String(f.get("key"))), year = Number(f.get("year"));
   await deleteDailyYearRows(company.id, year);
   await deleteFigureYear(company.id, "sales", year);

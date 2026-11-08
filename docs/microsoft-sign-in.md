@@ -41,7 +41,7 @@ Until the table exists, only `ADMIN_EMAILS` people can sign in.
 ## 4. Check it works
 
 1. Sign in as an admin, open Admin → Users, add a colleague.
-2. Sign in as that colleague: they reach the dashboard but not the Users page.
+2. Sign in as that colleague: they reach the dashboard but not anything under Admin (they see "No access").
 3. Remove them: their next page load shows "No access".
 4. Sign in with a Transind account that is not on the list: "No access".
 5. Open `/api/ask` without signing in: 401.

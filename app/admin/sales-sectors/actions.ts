@@ -1,11 +1,11 @@
 "use server";
-import { requireUser } from "@/lib/guard";
+import { requireAdmin } from "@/lib/guard";
 import { revalidatePath } from "next/cache";
 import { setSalesDepartmentLabel, setSalesDepartmentSector, toggleSalesDepartmentHidden } from "@/lib/sales-sectors";
 
 // Empty label = use the database name. Overrides only affect display; sales data is untouched.
 export async function saveSalesSector(f: FormData) {
-  await requireUser();
+  await requireAdmin();
   const code = String(f.get("code") ?? "");
   if (!code) return;
   const label = String(f.get("label") ?? "").trim().slice(0, 60) || null;
@@ -15,7 +15,7 @@ export async function saveSalesSector(f: FormData) {
 
 // Which admin sector this department's revenue counts under on the home dashboard ("" = unassigned).
 export async function assignSalesSector(f: FormData) {
-  await requireUser();
+  await requireAdmin();
   const code = String(f.get("code") ?? "");
   if (!code) return;
   const sector = String(f.get("sector") ?? "") || null;
@@ -24,7 +24,7 @@ export async function assignSalesSector(f: FormData) {
 }
 
 export async function toggleSalesSector(f: FormData) {
-  await requireUser();
+  await requireAdmin();
   const code = String(f.get("code") ?? "");
   if (!code) return;
   await toggleSalesDepartmentHidden(code);

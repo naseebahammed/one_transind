@@ -1,5 +1,5 @@
 "use server";
-import { requireUser } from "@/lib/guard";
+import { requireAdmin } from "@/lib/guard";
 import { revalidatePath } from "next/cache";
 import { createSector, removeSector, renameSectorByKey } from "@/lib/sectors";
 
@@ -9,7 +9,7 @@ const name = (f: FormData) => String(f.get("name") ?? "").trim().slice(0, 60);
 const done = () => revalidatePath("/", "layout");
 
 export async function addSector(_: SectorState, f: FormData): Promise<SectorState> {
-  await requireUser();
+  await requireAdmin();
   const n = name(f);
   if (!n) return { error: "Name is required." };
   const res = await createSector(n);
@@ -19,7 +19,7 @@ export async function addSector(_: SectorState, f: FormData): Promise<SectorStat
 }
 
 export async function renameSector(_: SectorState, f: FormData): Promise<SectorState> {
-  await requireUser();
+  await requireAdmin();
   const n = name(f), key = String(f.get("key"));
   if (!n) return { error: "Name is required." };
   const res = await renameSectorByKey(key, n);
@@ -29,7 +29,7 @@ export async function renameSector(_: SectorState, f: FormData): Promise<SectorS
 }
 
 export async function deleteSector(f: FormData) {
-  await requireUser();
+  await requireAdmin();
   await removeSector(String(f.get("key")));
   done();
 }

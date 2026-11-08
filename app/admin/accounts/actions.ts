@@ -1,5 +1,5 @@
 "use server";
-import { requireUser } from "@/lib/guard";
+import { requireAdmin } from "@/lib/guard";
 import { revalidatePath } from "next/cache";
 import { createAccount, removeAccount, updateAccountById } from "@/lib/accounts";
 
@@ -9,7 +9,7 @@ const text = (f: FormData, k: string) => String(f.get(k) ?? "").trim().replace(/
 const done = () => revalidatePath("/", "layout");
 
 export async function addAccount(_: AccountState, f: FormData): Promise<AccountState> {
-  await requireUser();
+  await requireAdmin();
   const main = text(f, "main"), sub = text(f, "sub");
   if (!main || !sub) return { error: "Main account and sub ledger account are required." };
   const res = await createAccount(main, sub);
@@ -19,7 +19,7 @@ export async function addAccount(_: AccountState, f: FormData): Promise<AccountS
 }
 
 export async function updateAccount(f: FormData): Promise<AccountState> {
-  await requireUser();
+  await requireAdmin();
   const id = Number(f.get("id")), main = text(f, "main"), sub = text(f, "sub");
   if (!Number.isInteger(id) || id <= 0 || !main || !sub) return { error: "Main account and sub ledger account are required." };
   const res = await updateAccountById(id, main, sub);
@@ -29,7 +29,7 @@ export async function updateAccount(f: FormData): Promise<AccountState> {
 }
 
 export async function deleteAccount(f: FormData) {
-  await requireUser();
+  await requireAdmin();
   const id = Number(f.get("id"));
   if (!Number.isInteger(id)) return;
   await removeAccount(id);
