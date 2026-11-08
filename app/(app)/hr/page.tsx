@@ -22,12 +22,14 @@ async function Content({ searchParams }: { searchParams: Params }) {
   const o = await getOverview();
   const team = await getSalesmen(o.month);
   const sec = SECTORS.find((s) => s[0] === p[0]);
+  const deptIdx = Number.isInteger(+p[1]) && +p[1] >= 0 && +p[1] < DEPTS.length ? +p[1] : -1;
+  const jobs = sec && deptIdx >= 0 ? JOBS[sec[0]]?.[deptIdx] : undefined;
   const rows: { k: string; l: string; sub?: string }[] | null =
     p.length === 0 ? SECTORS.map((s) => ({ k: s[0], l: s[1], sub: DEPTS.join(" · ") }))
-    : p.length === 1 ? DEPTS.map((d, i) => ({ k: String(i), l: d, sub: JOBS[p[0]][i].join(", ") }))
-    : p.length === 2 ? JOBS[p[0]][+p[1]].map((j, i) => ({ k: String(i), l: j })) : null;
-  const level = ["Sectors", "Departments", "Job titles", "Employees"][p.length];
-  const crumbs = [sec?.[1], DEPTS[+p[1]], JOBS[p[0]]?.[+p[1]]?.[+p[2]]];
+    : p.length === 1 && sec ? DEPTS.map((d, i) => ({ k: String(i), l: d, sub: JOBS[sec[0]]?.[i]?.join(", ") }))
+    : p.length === 2 && jobs ? jobs.map((j, i) => ({ k: String(i), l: j })) : null;
+  const level = ["Sectors", "Departments", "Job titles", "Employees"][Math.min(p.length, 3)];
+  const crumbs = [sec?.[1] ?? p[0], DEPTS[deptIdx] ?? p[1], jobs?.[+p[2]] ?? p[2]];
 
   return (
     <>

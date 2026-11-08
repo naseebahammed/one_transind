@@ -10,9 +10,9 @@ type Series = { name: string; color: string; data: number[] };
 /** Grouped monthly bars on a shared zero baseline; negatives hang below it. */
 export function MonthBars({ months, series, label }: { months: string[]; series: Series[]; label: string }) {
   const all = series.flatMap((s) => s.data);
-  const step = 10 ** Math.floor(Math.log10(Math.max(...all.map(Math.abs)) || 1));
-  const hi = Math.ceil(Math.max(...all, 0) / step) * step, lo = Math.floor(Math.min(...all, 0) / step) * step;
-  const y = (v: number) => PT + (H - PT - PB) * (1 - (v - lo) / (hi - lo));
+  const step = 10 ** Math.floor(Math.log10(Math.max(0, ...all.map(Math.abs)) || 1));
+  const hi = Math.ceil(Math.max(...all, 0) / step) * step, lo = Math.floor(Math.min(...all, 0) / step) * step, span = hi - lo || 1;
+  const y = (v: number) => PT + (H - PT - PB) * (1 - (v - lo) / span);
   const gw = (W - PL - PR) / months.length, bw = gw / (series.length + 1);
   const ticks: number[] = []; for (let v = lo; v <= hi; v += step) ticks.push(v);
   return (
@@ -54,7 +54,7 @@ export function HBars({ rows }: { rows: [string, number][] }) {
         <div key={name} className="grid grid-cols-[9rem_1fr_9rem] items-center gap-3 text-sm">
           <span className="truncate">{name}</span>
           <div className="h-3 rounded bg-muted"><div className="h-3 rounded bg-primary" style={{ width: `${(v / max) * 100}%` }} /></div>
-          <span className="text-right tabular-nums text-muted-foreground">{fmt(v, 2, 0)} · {((v / total) * 100).toFixed(1)}%</span>
+          <span className="text-right tabular-nums text-muted-foreground">{fmt(v, 2, 0)} · {total ? ((v / total) * 100).toFixed(1) : "0.0"}%</span>
         </div>
       ))}
     </div>

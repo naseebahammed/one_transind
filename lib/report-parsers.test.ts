@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import ExcelJS from "exceljs";
-import { cellDate, checkDaily, cogsFromWorkbook, dailyFromWorkbook, matchAccounts, num, pnlFromWorkbook, receiptsFromWorkbook, unitsFromWorkbook } from "./report-parsers.ts";
+import { cellDate, checkDaily, cogsForCompany, cogsFromWorkbook, dailyFromWorkbook, matchAccounts, num, pnlFromWorkbook, receiptsFromWorkbook, unitsFromWorkbook } from "./report-parsers.ts";
 import { readWorkbook } from "./company-template.ts";
 
 test("num reads numbers, formulas and CSV text, keeps blank as null, and refuses text", () => {
@@ -231,6 +231,18 @@ test("cogsFromWorkbook reads the top block only, makes costs negative, skips wor
   assert.equal(rows[0].month, 9);
   assert.equal(issues.length, 1, "gross 100 less discount 10 is not the 89 in the sheet");
   assert.equal(cogsFromWorkbook(wb, 2027).rows.length, 0);
+});
+
+test("cogsForCompany keeps one company's columns, finds their branches and holds back an unconfirmed column", () => {
+  const row = (branch: string) => ({ year: 2026, month: 9, branch, line: "COGS", value: -1 });
+  const rows = ["Mr.Shawarma Bin Omran", "West Bay", "Asian Wok Old airport", "Burger Stop", "Mr.Shawarma Gharafa", "New Kitchen", "New Kitchen"].map(row);
+  const shawarma = cogsForCompany(rows, "Mr. Shawarma", [{ id: 1, name: "Bin Omran" }, { id: 2, name: "Qatar Sports Club" }, { id: 3, name: "Gharafa" }]);
+  assert.deepEqual(shawarma.rows.map((r) => [r.branch, r.branchId]), [["Mr.Shawarma Bin Omran", 1], ["West Bay", 2], ["Mr.Shawarma Gharafa", 3]]);
+  assert.match(shawarma.issues[0].reason, /"New Kitchen" has no confirmed owner/);
+  assert.equal(shawarma.issues.length, 1, "reported once, however many rows the column has");
+  assert.deepEqual(cogsForCompany(rows, "Asian Wok", []).rows.map((r) => r.branchId), [null]);
+  assert.deepEqual(cogsForCompany(rows, "Burger Stop", [{ id: 9, name: "Gharafa" }]).rows.map((r) => [r.branch, r.branchId]), [["Burger Stop", null]], "whole company, and another brand's Gharafa column never lands here");
+  assert.throws(() => cogsForCompany(rows, "Mr. Shawarma", [{ id: 2, name: "Qatar Sports Club" }]), /no branch for the column "Mr.Shawarma Bin Omran"/);
 });
 
 test("receiptsFromWorkbook asks for a recalculated file when a date was never calculated", () => {

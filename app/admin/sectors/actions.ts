@@ -21,9 +21,10 @@ export async function addSector(_: SectorState, f: FormData): Promise<SectorStat
 }
 
 export async function renameSector(_: SectorState, f: FormData): Promise<SectorState> {
-  const n = name(f);
+  const n = name(f), key = String(f.get("key"));
   if (!n) return { error: "Name is required." };
-  await q("UPDATE app.sectors SET name=$1 WHERE key=$2", [n, String(f.get("key"))]);
+  if (await q1("SELECT 1 FROM app.sectors WHERE lower(name)=lower($1) AND key<>$2", [n, key])) return { error: "A sector with this name already exists." };
+  await q("UPDATE app.sectors SET name=$1 WHERE key=$2", [n, key]);
   done();
   return { success: true };
 }

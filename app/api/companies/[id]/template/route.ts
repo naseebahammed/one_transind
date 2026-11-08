@@ -15,7 +15,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const q = new URL(req.url).searchParams;
   const section = q.get("section") ?? "";
   if (!(section in MONTHLY) && !isFigureSection(section) && section !== "sales") return bad("Unknown section.");
-  const company = await getCompany(Number((await params).id));
+  const id = Number((await params).id);
+  if (!Number.isInteger(id)) return new Response("Unknown company.", { status: 404 });
+  const company = await getCompany(id);
   if (!company) return new Response("Unknown company.", { status: 404 });
 
   const send = async (wb: ExcelJS.Workbook, ...parts: (string | number)[]) => {

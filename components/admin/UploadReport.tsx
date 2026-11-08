@@ -12,9 +12,10 @@ const TYPES = {
   daily: { label: "Monthly sales report", accept: ".csv,.xlsx", hint: "Excel or CSV with the columns of the downloaded template. Days in the file replace the same days." },
   units: { label: "1 BHK / 2 BHK report", accept: ".xlsx,.csv", hint: "Excel or CSV sales report split by unit type (availability, long/short stay, revenue per unit type). Months in the file replace the same months on file." },
   receipts: { label: "Daily sales deposit", accept: ".xlsx", hint: "The branch's Daily Sales Deposit workbook, all months. Pick the branch first. Days in the file replace the same days; days after the last figure are ignored." },
+  cogs: { label: "COGS summary", accept: ".xlsx", hint: "The group Restaurants COGS Summary workbook. Only this company's columns are loaded, so upload it once on each company. Months in the file replace the same months on file." },
   sales: { label: "Monthly sales", accept: ".xlsx,.csv", hint: "The downloaded template, as Excel or CSV, one sales figure per month. Months you fill in replace the same months on file." },
 } as const;
-const FOR_REAL_ESTATE = ["pnl", "daily", "units"], FOR_FOOD_BEVERAGE = ["pnl", "receipts"], FOR_OTHERS = ["pnl", "sales"];
+const FOR_REAL_ESTATE = ["pnl", "daily", "units"], FOR_FOOD_BEVERAGE = ["pnl", "receipts", "cogs"], FOR_OTHERS = ["pnl", "sales"];
 
 export function UploadReport({ companyId, sector, branchId, initialType = "pnl" }: { companyId: number; sector: string; branchId?: number | null; initialType?: keyof typeof TYPES }) {
   const [s, act, pending] = useActionState<UploadState, FormData>(uploadReport, {});
@@ -31,12 +32,12 @@ export function UploadReport({ companyId, sector, branchId, initialType = "pnl" 
         <NativeSelect name="type" value={type} onChange={(e) => setType(e.target.value as keyof typeof TYPES)}>
           {Object.entries(TYPES).filter(([k]) => (sector === SECTOR.realEstate ? FOR_REAL_ESTATE : sector === SECTOR.foodBeverage ? FOR_FOOD_BEVERAGE : FOR_OTHERS).includes(k)).map(([k, t]) => <option key={k} value={k}>{t.label}</option>)}
         </NativeSelect>
-        {type !== "sales" && type !== "receipts" && <NativeSelect aria-label="Template month" value={month} onChange={(e) => setMonth(e.target.value)}>
+        {type !== "sales" && type !== "receipts" && type !== "cogs" && <NativeSelect aria-label="Template month" value={month} onChange={(e) => setMonth(e.target.value)}>
           <option value="">Last month</option>
           {MONTHS.map((m, i) => <option key={m} value={i}>{m}</option>)}
         </NativeSelect>}
-        {type !== "receipts" && <Input type="number" name="year" placeholder="Year" title="Template year. Also used for a P&L file with no year in its headers." className="w-24" value={year} onChange={(e) => setYear(e.target.value)} />}
-        {type !== "receipts" && <Button asChild variant="outline"><a href={template}>Download template</a></Button>}
+        {type !== "receipts" && type !== "cogs" && <Input type="number" name="year" placeholder="Year" title="Template year. Also used for a P&L file with no year in its headers." className="w-24" value={year} onChange={(e) => setYear(e.target.value)} />}
+        {type !== "receipts" && type !== "cogs" && <Button asChild variant="outline"><a href={template}>Download template</a></Button>}
         <input key={type} type="file" name="file" accept={TYPES[type].accept} required className="text-sm" />
         <Button type="submit" disabled={pending}>{pending ? "Uploading..." : "Upload"}</Button>
         {s.error && <span className="text-sm text-destructive">{s.error}</span>}

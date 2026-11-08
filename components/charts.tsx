@@ -7,8 +7,10 @@ const vs = (a: number | null | undefined, b: number | null | undefined, ref: str
   a == null || !b ? {} : { f: `${a >= b ? "▲" : "▼"} ${fmt(Math.abs(((a - b) / Math.abs(b)) * 100), 1)}% vs ${ref}`, fc: a >= b ? ("up" as const) : ("down" as const) };
 
 export function Spark({ id, data }: { id: string; data: number[] }) {
-  const W = 120, H = 30, mn = Math.min(...data), mx = Math.max(...data), r = mx - mn || 1;
-  const d = data.map((v, i) => `${i ? "L" : "M"}${(i / Math.max(1, data.length - 1) * W).toFixed(1)},${(H - 3 - (v - mn) / r * (H - 6)).toFixed(1)}`).join("");
+  if (!data.length) return null;
+  const pts = data.length === 1 ? [data[0], data[0]] : data;
+  const W = 120, H = 30, mn = Math.min(...pts), mx = Math.max(...pts), r = mx - mn || 1;
+  const d = pts.map((v, i) => `${i ? "L" : "M"}${(i / (pts.length - 1) * W).toFixed(1)},${(H - 3 - (v - mn) / r * (H - 6)).toFixed(1)}`).join("");
   return (
     <svg className="spark" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" aria-hidden="true">
       <defs><linearGradient id={id} x1="0" x2="0" y1="0" y2="1"><stop offset="0" style={{ stopColor: "var(--cyan)", stopOpacity: 0.35 }} /><stop offset="1" style={{ stopColor: "var(--cyan)", stopOpacity: 0 }} /></linearGradient></defs>
@@ -27,6 +29,7 @@ const scale = (a: (number | null)[], f: number) => a.map((v) => (v == null ? nul
 
 /** Group revenue by month: solid actual line, dashed target line. Values in QAR M. */
 export function LineChart({ actual: rawA, target: rawT }: { actual: number[]; target: number[] }) {
+  if (!rawA.length) return <p className="empty">—</p>;
   const { f, u: unit } = autoUnit([...rawA, ...rawT]), actual = scale(rawA, f) as number[], target = scale(rawT, f) as number[];
   const W = 640, H = 230, pl = 36, pr = 12, pt = 12, pb = 26, iw = W - pl - pr, ih = H - pt - pb;
   const mx = Math.max(...actual, ...target, 1), step = Math.pow(10, Math.floor(Math.log10(mx))), top = Math.ceil(mx / step) * step;
@@ -44,13 +47,16 @@ export function LineChart({ actual: rawA, target: rawT }: { actual: number[]; ta
             <linearGradient id="lcl" x1="0" x2="1"><stop offset="0" style={{ stopColor: "#4a63ff" }} /><stop offset="1" style={{ stopColor: "#3ad6ff" }} /></linearGradient>
           </defs>
           <path d={`${ap}L${x(last)},${y(0)}L${x(0)},${y(0)}Z`} fill="url(#lca)" />
-          <path d={path(target)} fill="none" stroke="var(--series-2)" strokeWidth="2" strokeDasharray="5 4" />
+          {target.length > 0 && <path d={path(target)} fill="none" stroke="var(--series-2)" strokeWidth="2" strokeDasharray="5 4" />}
           <path d={ap} fill="none" stroke="url(#lcl)" strokeWidth="2.5" strokeLinejoin="round" style={{ filter: "drop-shadow(0 0 6px rgba(58,214,255,.5))" }} />
           <circle cx={x(last)} cy={y(actual[last])} r="4.5" fill="var(--series)" stroke="var(--panel)" strokeWidth="2" />
           <text x={x(last)} y={y(actual[last]) - 10} textAnchor="middle" style={{ fill: "var(--ink)" }}>{fmt(actual[last], 1)}</text>
           {MONTHS.map((m, i) => <rect key={m} className="chit" tabIndex={0} aria-label={`${m} revenue`} x={x(i) - iw / 22} y={pt} width={iw / 11} height={ih} data-tip={tip({
             t: m,
-            r: [["Actual", actual[i] == null ? "—" : `${fmt(actual[i], 1)} ${unit}`, "#3ad6ff"], ["Target", target[i] == null ? "—" : `${fmt(target[i], 1)} ${unit}`, "var(--series-2)", true]],
+            r: [
+              ["Actual", actual[i] == null ? "—" : `${fmt(actual[i], 1)} ${unit}`, "#3ad6ff"],
+              ...(rawT.length > 0 ? [["Target", target[i] == null ? "—" : `${fmt(target[i], 1)} ${unit}`, "var(--series-2)", true] as [string, string, string, boolean]] : []),
+            ],
             ...vs(actual[i], target[i], "target"),
           })} />)}
         </svg>

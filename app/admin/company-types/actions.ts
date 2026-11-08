@@ -21,8 +21,8 @@ export async function addPropertyType(_: PropertyTypeState, f: FormData): Promis
 }
 
 export async function renamePropertyType(f: FormData) {
-  const n = name(f);
-  if (n) await q("UPDATE app.property_types SET name=$1 WHERE key=$2", [n, String(f.get("key"))]);
+  const n = name(f), key = String(f.get("key"));
+  if (n && !(await q1("SELECT 1 FROM app.property_types WHERE lower(name)=lower($1) AND key<>$2", [n, key]))) await q("UPDATE app.property_types SET name=$1 WHERE key=$2", [n, key]);
   done();
 }
 

@@ -32,6 +32,8 @@ export async function updateAccount(f: FormData): Promise<AccountState> {
 }
 
 export async function deleteAccount(f: FormData) {
-  await q("DELETE FROM app.accounts WHERE id=$1", [Number(f.get("id"))]);
+  const id = Number(f.get("id"));
+  if (!Number.isInteger(id)) return;
+  await q("DELETE FROM app.accounts a WHERE a.id=$1 AND a.section='pnl' AND NOT EXISTS(SELECT 1 FROM app.company_figures f WHERE f.section=a.section AND f.main=a.main AND f.line=a.sub)", [id]);
   done();
 }

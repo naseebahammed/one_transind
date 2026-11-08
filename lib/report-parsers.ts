@@ -290,6 +290,35 @@ export function receiptsFromWorkbook(wb: ExcelJS.Workbook, fromYear = 0) {
 const COGS_LINES = [["gross sales", "Gross sales", 1], ["disc sales", "Discount", -1], ["net sales", "Net sales", 1], ["cpu transfer", "CPU transfer", -1], ["stock tb", "Stock GL balance", 1], ["closing inventory", "Closing inventory", 1], ["cogs", "COGS", -1]] as const;
 export type CogsRow = { year: number; month: number; branch: string; line: string; value: number };
 
+/** Who each COGS column belongs to. shortcut: hard-coded for the columns the workbook has today, a new column is reported and not loaded until it is added here.
+ *  "Burger Stop" is the Burger Stop company as a whole, confirmed by the owner, even though its sales are about five times the company's two deposit books. */
+const COGS_COLUMNS: Record<string, { company: string; branch?: string[] }> = {
+  "burger stop": { company: "burger stop" },
+  "mr.shawarma bin omran": { company: "shawarma", branch: ["bin omran"] },
+  "mr.shawarma gharafa": { company: "shawarma", branch: ["gharafa"] },
+  "abu hamour": { company: "shawarma", branch: ["abu hamour"] },
+  "west bay": { company: "shawarma", branch: ["qatar sports club", "west bay", "westbay"] },
+  "asian wok old airport": { company: "asian wok" },
+};
+
+/** The COGS rows of one company, each with its branch id (null = the whole company). The workbook covers several companies, so it is uploaded once on each. Columns of other companies are skipped. */
+export function cogsForCompany(rows: CogsRow[], companyName: string, branches: { id: number; name: string }[]) {
+  const company = fold(companyName), mine: (CogsRow & { branchId: number | null })[] = [], issues: ImportIssue[] = [], resolved = new Map<string, number | null | undefined>();
+  for (const r of rows) {
+    if (!resolved.has(r.branch)) {
+      const owner = COGS_COLUMNS[fold(r.branch)];
+      if (!owner) { issues.push({ sheet: "", row: 0, reason: `The column "${r.branch}" has no confirmed owner, so it was not loaded.`, loaded: false }); resolved.set(r.branch, undefined); continue; }
+      if (!company.includes(owner.company)) { resolved.set(r.branch, undefined); continue; }
+      const branch = owner.branch ? branches.find((b) => owner.branch!.some((n) => fold(b.name).includes(n))) : null;
+      if (branch === undefined) throw new Error(`${companyName} has no branch for the column "${r.branch}". Add the branch first.`);
+      resolved.set(r.branch, branch?.id ?? null);
+    }
+    const branchId = resolved.get(r.branch);
+    if (branchId !== undefined) mine.push({ ...r, branchId });
+  }
+  return { rows: mine, issues };
+}
+
 /** Monthly cost of goods per restaurant from the group "Restaurants COGS Summary" workbook. Only sheets named like OCT-2026 are read (the rest are old workings).
  *  Costs are negative. A column with no Gross Sales that month is left out: a closed branch, or the central kitchen, which only passes stock to the branches. Cost % is calculated when read, never stored. */
 export function cogsFromWorkbook(wb: ExcelJS.Workbook, fromYear = 0) {

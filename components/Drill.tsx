@@ -24,7 +24,7 @@ type Props = {
 /** Click-through drill panel: rows link to the next level, breadcrumbs link back. State lives in the URL. */
 export function Drill({ title, src, mode, rows, labels, path, levels, rootLabel, href, all, q, yoyLabels, momLabel, span = 12 }: Props) {
   const shown = q ? rows.filter((r) => (r.label + " " + r.sub).toLowerCase().includes(q.toLowerCase())) : rows;
-  const leaf = path.length === levels.length - 1;
+  const leaf = path.length >= levels.length - 1;
   const tot = shown.reduce((a, r) => a + r.value, 0), cost = shown.reduce((a, r) => a + r.cost, 0);
   const lm = shown.reduce((a, r) => a + r.lastMonth, 0), ly = shown.reduce((a, r) => a + r.lastYear, 0), ly2 = shown.reduce((a, r) => a + r.twoYearsAgo, 0);
   const mx = Math.max(1, ...shown.map((r) => Math.abs(r.value)));
@@ -52,7 +52,7 @@ export function Drill({ title, src, mode, rows, labels, path, levels, rootLabel,
             <span key={i} style={{ display: "contents" }}><i>›</i>{i < path.length - 1 ? <Link href={href(path.slice(0, i + 1))}>{labels[i]}</Link> : <span className="cur">{labels[i]}</span>}</span>
           ))}
         </nav>
-        <span className="src">{levels[path.length]} · {fmt(shown.length)}{leaf ? "" : " · click any row to drill down"}</span>
+        <span className="src">{levels[Math.min(path.length, levels.length - 1)]} · {fmt(shown.length)}{leaf ? "" : " · click any row to drill down"}</span>
       </div>
       <div className="drill">
         {list.map((r) => {

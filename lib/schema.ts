@@ -209,7 +209,29 @@ const REJECTED_ROWS_LOADED = `
 ALTER TABLE stg.rejected_rows ADD COLUMN loaded BOOLEAN NOT NULL DEFAULT false;
 `;
 
-const MIGRATIONS: readonly (readonly [string, string])[] = [["001_baseline", BASELINE], ["002_standard_data", STANDARD_DATA], ["003_drop_report_files", DROP_REPORT_FILES], ["005_company_expenses", COMPANY_EXPENSES], ["006_company_branches", COMPANY_BRANCHES], ["007_company_has_branches", COMPANY_HAS_BRANCHES], ["008_daily_receipts", DAILY_RECEIPTS], ["009_drop_deals", DROP_DEALS], ["010_drop_invoices", DROP_INVOICES], ["011_enterprise_foundation", ENTERPRISE_FOUNDATION], ["012_rejected_rows_loaded", REJECTED_ROWS_LOADED]];
+// Monthly cost of goods per restaurant. Cost % is calculated in the view, never stored. Costs are negative, so -cogs / net is the percentage.
+const RESTAURANT_COGS = `
+ALTER TABLE app.imports DROP CONSTRAINT imports_section_check;
+ALTER TABLE app.imports ADD CONSTRAINT imports_section_check CHECK (section IN ('pnl','sales','units','daily','balance','budget','people','expenses','receipts','cogs'));
+ALTER TABLE app.company_figures DROP CONSTRAINT company_figures_section_check;
+ALTER TABLE app.company_figures ADD CONSTRAINT company_figures_section_check CHECK (section IN ('pnl','sales','units','balance','budget','people','expenses','cogs'));
+INSERT INTO app.accounts(section, main, sub) VALUES ('cogs','COGS','Gross sales'), ('cogs','COGS','Discount'), ('cogs','COGS','Net sales'), ('cogs','COGS','CPU transfer'),
+  ('cogs','COGS','Stock GL balance'), ('cogs','COGS','Closing inventory'), ('cogs','COGS','COGS');
+CREATE VIEW rpt.restaurant_cogs_month AS
+  SELECT c.name AS company, b.name AS branch, f.period,
+    SUM(f.value) FILTER (WHERE f.line = 'Gross sales') AS gross_sales_qar,
+    SUM(f.value) FILTER (WHERE f.line = 'Discount') AS discount_qar,
+    SUM(f.value) FILTER (WHERE f.line = 'Net sales') AS net_sales_qar,
+    SUM(f.value) FILTER (WHERE f.line = 'CPU transfer') AS cpu_transfer_qar,
+    SUM(f.value) FILTER (WHERE f.line = 'Stock GL balance') AS stock_gl_balance_qar,
+    SUM(f.value) FILTER (WHERE f.line = 'Closing inventory') AS closing_inventory_qar,
+    SUM(f.value) FILTER (WHERE f.line = 'COGS') AS cogs_qar,
+    round(-SUM(f.value) FILTER (WHERE f.line = 'COGS') / NULLIF(SUM(f.value) FILTER (WHERE f.line = 'Net sales'), 0) * 100, 2) AS cost_pct
+  FROM app.company_figures f JOIN app.companies c ON c.id = f.company_id LEFT JOIN app.branches b ON b.id = f.branch_id
+  WHERE f.section = 'cogs' GROUP BY c.name, b.name, f.period;
+`;
+
+const MIGRATIONS: readonly (readonly [string, string])[] = [["001_baseline", BASELINE], ["002_standard_data", STANDARD_DATA], ["003_drop_report_files", DROP_REPORT_FILES], ["005_company_expenses", COMPANY_EXPENSES], ["006_company_branches", COMPANY_BRANCHES], ["007_company_has_branches", COMPANY_HAS_BRANCHES], ["008_daily_receipts", DAILY_RECEIPTS], ["009_drop_deals", DROP_DEALS], ["010_drop_invoices", DROP_INVOICES], ["011_enterprise_foundation", ENTERPRISE_FOUNDATION], ["012_rejected_rows_loaded", REJECTED_ROWS_LOADED], ["013_restaurant_cogs", RESTAURANT_COGS]];
 
 /** Applies the migrations not yet recorded, optionally only up to and including one. Run it inside a transaction holding the init lock. */
 export async function migrate(c: { query: (text: string, params?: unknown[]) => Promise<{ rows: { id: string }[] }> }, upTo?: string) {

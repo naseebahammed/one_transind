@@ -1,6 +1,7 @@
 "use client";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
+import { link } from "@/lib/url";
 
 const ROLES = ["Group management", "CFO", "FMCG sector manager", "Sales rep", "HR", "Logistics manager"];
 
@@ -15,7 +16,7 @@ export function SalesToolbar({ sectors }: { sectors: { key: string; label: strin
     <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
       <label className="ctl">
         <span>Sector</span>{" "}
-        <select value={dept} onChange={(e) => router.push(`/sales?${month ? `m=${month}&` : ""}${e.target.value ? `p=${encodeURIComponent(e.target.value)}` : ""}`)}>
+        <select value={dept} onChange={(e) => router.push(link("/sales", { m: month ?? undefined, p: e.target.value || undefined }))}>
           <option value="">All sectors</option>
           {sectors.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
         </select>

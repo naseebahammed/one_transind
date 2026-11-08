@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
 import type { PoolClient } from "pg";
 import { numbering, q, q1 } from "@/lib/db";
-import type { DailyRow, ImportIssue, ReceiptRow } from "@/lib/report-parsers";
-import type { Figure, FigureSection } from "@/lib/company-data";
+import type { CogsRow, DailyRow, ImportIssue, ReceiptRow } from "@/lib/report-parsers";
+import { LINES, type Figure, type FigureSection } from "@/lib/company-data";
 
 /** One uploaded file, kept with its import so it can be re-read or downloaded later. */
 export type Upload = { companyId: number; section: string; name: string; type: string; buf: Buffer; branchId?: number | null };
@@ -27,7 +27,8 @@ export const listExpenses = () =>
 /** Which months of a year each section has on file. Omit branchId to check across the whole company (including branch uploads); pass null for company-level rows only. */
 export async function listFilledMonths(companyId: number, year: number, branchId?: number | null) {
   const out: Record<FigureSection | "pnl", Set<number>> = { pnl: new Set(), balance: new Set(), budget: new Set(), people: new Set(), expenses: new Set() };
-  for (const r of await q<{ section: FigureSection | "pnl"; month: number }>(`SELECT DISTINCT section, EXTRACT(month FROM period)::int - 1 AS month FROM app.company_figures WHERE company_id=$1 AND ${inYear("period", "$2")} AND ($3::boolean OR branch_id IS NOT DISTINCT FROM $4)`, [companyId, year, branchId === undefined, branchId ?? null])) out[r.section]?.add(r.month);
+  for (const r of await q<{ section: FigureSection | "pnl"; month: number; n: number }>(`SELECT section, EXTRACT(month FROM period)::int - 1 AS month, COUNT(DISTINCT line)::int AS n FROM app.company_figures WHERE company_id=$1 AND ${inYear("period", "$2")} AND ($3::boolean OR branch_id IS NOT DISTINCT FROM $4) GROUP BY 1, 2`, [companyId, year, branchId === undefined, branchId ?? null]))
+    if (r.section === "pnl" || (r.section in LINES && r.n >= LINES[r.section as FigureSection].length)) out[r.section]?.add(r.month);
   return out;
 }
 
@@ -39,7 +40,7 @@ export const recordRejected = (u: Upload, error: string) =>
   q("INSERT INTO app.imports(company_id,section,file_name,file_type,file_size,sha256,file,status,error) VALUES($1,$2,$3,$4,$5,$6,$7,'rejected',$8)", [u.companyId, u.section, u.name, u.type, u.buf.length, sha(u.buf), u.buf, error]);
 
 /** How completely a file loaded. controlTotal is the total the sheet itself prints, to compare with what was loaded. */
-type ImportQuality = { rowsRead: number; controlTotal: number; issues: ImportIssue[] };
+type ImportQuality = { rowsRead: number; controlTotal: number | null; issues: ImportIssue[] };
 
 async function addImport(c: PoolClient, u: Upload, rows: number, periods: string[], quality?: ImportQuality) {
   const sorted = [...periods].sort(), issues = quality?.issues ?? [];
@@ -58,6 +59,17 @@ export const importFigures = (u: Upload, rows: FigureRow[]) =>
     await c.query("DELETE FROM app.company_figures WHERE company_id=$1 AND section=$2 AND period = ANY($3::date[]) AND branch_id IS NOT DISTINCT FROM $4", [u.companyId, u.section, periods, u.branchId ?? null]);
     for (const r of rows)
       await c.query("INSERT INTO app.company_figures(company_id,section,period,main,line,unit_type,value,import_id,branch_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)", [u.companyId, u.section, period(r.year, r.month), r.main, r.line, r.unit_type ?? "", r.value, id, u.branchId ?? null]);
+  });
+
+/** All or nothing, as one import: the months in the file are replaced for each branch of the company the file has a column for. */
+export const importCogs = (u: Upload, rows: (CogsRow & { branchId: number | null })[], issues: ImportIssue[]) =>
+  numbering(async (c) => {
+    const periods = [...new Set(rows.map((r) => period(r.year, r.month)))];
+    const id = await addImport(c, u, rows.length, periods, { rowsRead: rows.length, controlTotal: null, issues });
+    for (const branchId of new Set(rows.map((r) => r.branchId)))
+      await c.query("DELETE FROM app.company_figures WHERE company_id=$1 AND section='cogs' AND period = ANY($2::date[]) AND branch_id IS NOT DISTINCT FROM $3", [u.companyId, periods, branchId]);
+    for (const r of rows)
+      await c.query("INSERT INTO app.company_figures(company_id,section,period,main,line,value,import_id,branch_id) VALUES($1,'cogs',$2,'COGS',$3,$4,$5,$6)", [u.companyId, period(r.year, r.month), r.line, r.value, id, r.branchId]);
   });
 
 const DAILY = ["long_guests", "long_rate", "long_total", "short_guests", "short_rate", "short_total", "rooms_occupied", "room_revenue", "other_revenue", "rooms_available"] as const;

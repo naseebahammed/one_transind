@@ -30,7 +30,8 @@ async function Content({ searchParams }: { searchParams: Params }) {
   const now = new Date(), thisYear = now.getFullYear();
   const years = [thisYear - 2, thisYear - 1, thisYear];
   const year = years.includes(Number(rawYear)) ? Number(rawYear) : (latest?.year ?? thisYear);
-  const month = m && +m >= 1 && +m <= 12 ? +m - 1 : latest && latest.year === year ? latest.month : latest ? 11 : now.getMonth();
+  const rawM = Number(m);
+  const month = m && Number.isInteger(rawM) && rawM >= 1 && rawM <= 12 ? rawM - 1 : latest && latest.year === year ? latest.month : latest ? 11 : now.getMonth();
   const active = branches.filter((b) => b.active);
   const previous = month === 0 ? { year: year - 1, month: 11 } : { year, month: month - 1 };
   const load = (y: number, mo: number) => Promise.all(active.map(async (b) => {
@@ -41,7 +42,7 @@ async function Content({ searchParams }: { searchParams: Params }) {
   const gross = sum(current.map((b) => b.summary.gross)), cash = sum(current.map((b) => b.summary.cash)), card = sum(current.map((b) => b.summary.card)), apps = sum(current.map((b) => b.summary.deliveryApps));
   const lastMonthGross = sum(before.map((b) => b.summary.gross));
   const mn = `${MONTHS[month]} ${year}`;
-  const hasData = gross > 0;
+  const hasData = current.some((b) => b.summary.days > 0);
   // In the current month, hide days after today to avoid a long empty list.
   const lastDay = year === thisYear && month === now.getMonth() ? now.getDate() : 31;
 
@@ -53,7 +54,7 @@ async function Content({ searchParams }: { searchParams: Params }) {
         <span className="note">{company.name}</span>
       </div>
       <div className="kpis">
-        <Kpi label={`Gross sales ${mn}`} value={hasData ? `${fmt(gross)} QAR` : "-"} delta={hasData && lastMonthGross ? <>{fmt(Math.abs(pct(gross, lastMonthGross)), 1)}% vs {MONTHS[previous.month]} {previous.year}</> : undefined} up={gross >= lastMonthGross} />
+        <Kpi label={`Gross sales ${mn}`} value={hasData ? `${fmt(gross)} QAR` : "-"} delta={hasData && lastMonthGross ? <>{gross >= lastMonthGross ? "▲" : "▼"} {fmt(Math.abs(pct(gross, lastMonthGross)), 1)}% vs {MONTHS[previous.month]} {previous.year}</> : undefined} up={gross >= lastMonthGross} />
         <Kpi label="Cash share" value={hasData ? share(cash, gross) : "-"} />
         <Kpi label="Card share" value={hasData ? share(card, gross) : "-"} />
         <Kpi label="Delivery apps share" value={hasData ? share(apps, gross) : "-"} />

@@ -31,7 +31,7 @@ export async function saveCompany(_: FormState, f: FormData): Promise<FormState>
     if ((e as { code?: string }).code === "23505") return { error: "A company with this name already exists." };
     throw e;
   }
-  revalidatePath("/admin/companies");
+  revalidatePath("/", "layout");
   redirect("/admin/companies");
 }
 
@@ -40,5 +40,5 @@ export async function toggleCompanyHidden(f: FormData) {
   const id = Number(f.get("id"));
   if (!id) return;
   await q("UPDATE app.companies SET hidden=$1 WHERE id=$2", [f.get("hidden") === "1" ? 1 : 0, id]);
-  revalidatePath("/admin/finance");
+  revalidatePath("/", "layout");
 }

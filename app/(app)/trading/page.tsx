@@ -20,7 +20,8 @@ async function Content({ searchParams }: { searchParams: Params }) {
   await connection();
   const { m, p, c, q, all } = await searchParams;
   const o = await getOverview();
-  const month = Math.min(o.month, Math.max(0, m ? +m - 1 || 0 : o.month));
+  const rawM = Number(m);
+  const month = Math.min(o.month, Math.max(0, m && Number.isInteger(rawM) && rawM >= 1 ? rawM - 1 : o.month));
   const pp = parsePath(p), cp = parsePath(c);
   const [prow, plab, crow, clab, groups, brands, dept] = await Promise.all([
     getDrill(month, "p", pp), getDrillLabels(month, "p", pp), getDrill(month, "c", cp), getDrillLabels(month, "c", cp),

@@ -21,15 +21,21 @@ export function Nav() {
   const path = usePathname();
   const [mini, setMini] = useState(false);
   useEffect(() => {
-    try { setMini(localStorage.getItem("rail-mini") === "1"); } catch {}
+    try {
+      const saved = localStorage.getItem("rail-mini") === "1";
+      setMini(saved);
+      document.querySelector(".app")?.classList.toggle("mini", saved);
+    } catch {}
   }, []);
-  useEffect(() => {
-    document.querySelector(".app")?.classList.toggle("mini", mini);
-    try { localStorage.setItem("rail-mini", mini ? "1" : "0"); } catch {}
-  }, [mini]);
+  const toggleMini = () => {
+    const next = !mini;
+    setMini(next);
+    document.querySelector(".app")?.classList.toggle("mini", next);
+    try { localStorage.setItem("rail-mini", next ? "1" : "0"); } catch {}
+  };
   return (
     <nav className="nav">
-      <button type="button" className="rail-toggle" onClick={() => setMini(!mini)} aria-label={mini ? "Expand sidebar" : "Collapse sidebar"} title={mini ? "Expand sidebar" : "Collapse sidebar"} aria-expanded={!mini}>
+      <button type="button" className="rail-toggle" onClick={toggleMini} aria-label={mini ? "Expand sidebar" : "Collapse sidebar"} title={mini ? "Expand sidebar" : "Collapse sidebar"} aria-expanded={!mini}>
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           {/* panel-left-open / panel-left-close */}
           <path d={"M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM9 3v18" + (mini ? "M14 9l3 3-3 3" : "M16 15l-3-3 3-3")} />

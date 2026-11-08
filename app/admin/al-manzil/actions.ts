@@ -2,22 +2,22 @@
 import { SECTOR } from "@/lib/org";
 import { revalidatePath } from "next/cache";
 import { listAccounts } from "@/lib/accounts";
-import { branchName, branchOf } from "@/lib/branches";
+import { branchName, branchOf, listBranches } from "@/lib/branches";
 import { getCompany } from "@/lib/companies";
 import { parseGrid, sectionName } from "@/lib/company-data";
-import { deleteDailyYearRows, deleteFigureYear, importDaily, importFigures, importReceipts, linesOf, recordRejected, setFigure, type Upload } from "@/lib/company-figures";
+import { deleteDailyYearRows, deleteFigureYear, importCogs, importDaily, importFigures, importReceipts, linesOf, recordRejected, setFigure, type Upload } from "@/lib/company-figures";
 import { gridFromWorkbook, MAX_UPLOAD_BYTES, readWorkbook } from "@/lib/company-template";
 import { addLog } from "@/lib/db";
-import { checkDaily, dailyFromWorkbook, matchAccounts, pnlFromWorkbook, receiptsFromWorkbook, unitsFromWorkbook } from "@/lib/report-parsers";
+import { checkDaily, cogsForCompany, cogsFromWorkbook, dailyFromWorkbook, matchAccounts, pnlFromWorkbook, receiptsFromWorkbook, unitsFromWorkbook } from "@/lib/report-parsers";
 import { MONTHS } from "@/lib/format";
 
 export type UploadState = { error?: string; ok?: string };
 type Company = NonNullable<Awaited<ReturnType<typeof getCompany>>>;
 
-const LABEL: Record<string, string> = { pnl: "P&L", daily: "Daily sales", units: "Unit types", sales: "Monthly sales", receipts: "Daily sales deposit" };
+const LABEL: Record<string, string> = { pnl: "P&L", daily: "Daily sales", units: "Unit types", sales: "Monthly sales", receipts: "Daily sales deposit", cogs: "COGS summary" };
 
 function refresh() {
-  for (const p of ["/admin/finance", "/admin/data-status", "/admin/activity", "/real-estate", "/finance", "/dashboard", "/health-beauty", "/retail"]) revalidatePath(p);
+  for (const p of ["/admin/finance", "/admin/data-status", "/admin/activity", "/real-estate", "/real-estate/overview", "/real-estate/details", "/restaurants", "/finance", "/dashboard", "/health-beauty", "/retail"]) revalidatePath(p);
   revalidatePath("/admin", "layout");
 }
 const monthNames = (rows: { year: number; month: number }[]) => [...new Set(rows.map((r) => `${MONTHS[r.month]} ${r.year}`))].join(", ");
@@ -50,6 +50,14 @@ async function loadFile(type: string, company: Company, u: Upload, formYear: num
     const days = [...new Set(rows.map((r) => r.date))].sort();
     const review = issues.length ? ` ${issues.length} to check, first: ${issues[0].sheet} row ${issues[0].row}: ${issues[0].reason}` : "";
     return { rows: rows.length, ok: `Loaded ${days.length} days for ${name}, ${days[0]} to ${days.at(-1)}.${review}` };
+  }
+  if (type === "cogs") {
+    const parsed = cogsFromWorkbook(wb, LOAD_FROM_YEAR);
+    const { rows, issues } = cogsForCompany(parsed.rows, company.name, await listBranches(company.id));
+    if (!rows.length) throw new Error(`This file has no COGS columns for ${company.name}.`);
+    await importCogs(u, rows, [...parsed.issues, ...issues]);
+    const heldBack = issues.length ? ` ${issues.map((x) => x.reason).join(" ")}` : "";
+    return { rows: rows.length, ok: `Loaded ${rows.length} COGS figures for ${monthNames(rows)}.${heldBack}` };
   }
   if (type === "daily") {
     const rows = dailyFromWorkbook(wb);
