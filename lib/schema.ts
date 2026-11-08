@@ -385,7 +385,15 @@ ALTER TABLE app.imports DROP COLUMN file;
 DO 'BEGIN IF to_regclass(''app.sector_expenses'') IS NOT NULL THEN PERFORM 1 / (CASE WHEN EXISTS (SELECT 1 FROM app.sector_expenses) THEN 0 ELSE 1 END); DROP TABLE app.sector_expenses; END IF; END';
 `;
 
-const MIGRATIONS: readonly (readonly [string, string])[] = [["001_baseline", BASELINE], ["002_standard_data", STANDARD_DATA], ["003_drop_report_files", DROP_REPORT_FILES], ["005_company_expenses", COMPANY_EXPENSES], ["006_company_branches", COMPANY_BRANCHES], ["007_company_has_branches", COMPANY_HAS_BRANCHES], ["008_daily_receipts", DAILY_RECEIPTS], ["009_drop_deals", DROP_DEALS], ["010_drop_invoices", DROP_INVOICES], ["011_enterprise_foundation", ENTERPRISE_FOUNDATION], ["012_rejected_rows_loaded", REJECTED_ROWS_LOADED], ["013_restaurant_cogs", RESTAURANT_COGS], ["014_drop_ownership_pct", DROP_OWNERSHIP_PCT], ["015_fmcg_masters", FMCG_MASTERS], ["016_data_standardization", DATA_STANDARDIZATION], ["017_fmcg_sales_views", FMCG_SALES_VIEWS], ["018_fmcg_balances", FMCG_BALANCES], ["019_fmcg_control", FMCG_CONTROL], ["020_app_optimizations", APP_OPTIMIZATIONS]];
+// People allowed to sign in. Admins are not stored here: they come from the ADMIN_EMAILS setting.
+const APP_USERS = `
+CREATE TABLE app.users(
+  email TEXT PRIMARY KEY CHECK (email = lower(btrim(email))),
+  created TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+`;
+
+const MIGRATIONS: readonly (readonly [string, string])[] = [["001_baseline", BASELINE], ["002_standard_data", STANDARD_DATA], ["003_drop_report_files", DROP_REPORT_FILES], ["005_company_expenses", COMPANY_EXPENSES], ["006_company_branches", COMPANY_BRANCHES], ["007_company_has_branches", COMPANY_HAS_BRANCHES], ["008_daily_receipts", DAILY_RECEIPTS], ["009_drop_deals", DROP_DEALS], ["010_drop_invoices", DROP_INVOICES], ["011_enterprise_foundation", ENTERPRISE_FOUNDATION], ["012_rejected_rows_loaded", REJECTED_ROWS_LOADED], ["013_restaurant_cogs", RESTAURANT_COGS], ["014_drop_ownership_pct", DROP_OWNERSHIP_PCT], ["015_fmcg_masters", FMCG_MASTERS], ["016_data_standardization", DATA_STANDARDIZATION], ["017_fmcg_sales_views", FMCG_SALES_VIEWS], ["018_fmcg_balances", FMCG_BALANCES], ["019_fmcg_control", FMCG_CONTROL], ["020_app_optimizations", APP_OPTIMIZATIONS], ["021_app_users", APP_USERS]];
 
 /** Applies the migrations not yet recorded, optionally only up to and including one. Run it inside a transaction holding the init lock. */
 export async function migrate(c: { query: (text: string, params?: unknown[]) => Promise<{ rows: { id: string }[] }> }, upTo?: string) {
