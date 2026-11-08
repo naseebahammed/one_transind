@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import type { PoolClient } from "pg";
 import { numbering, q, q1 } from "@/lib/db";
-import type { DailyRow, ReceiptRow } from "@/lib/report-parsers";
+import type { DailyRow, ImportIssue, ReceiptRow } from "@/lib/report-parsers";
 import type { Figure, FigureSection } from "@/lib/company-data";
 
 /** One uploaded file, kept with its import so it can be re-read or downloaded later. */
@@ -38,10 +38,15 @@ export const linesOf = async (section: string) => new Map((await q<{ main: strin
 export const recordRejected = (u: Upload, error: string) =>
   q("INSERT INTO app.imports(company_id,section,file_name,file_type,file_size,sha256,file,status,error) VALUES($1,$2,$3,$4,$5,$6,$7,'rejected',$8)", [u.companyId, u.section, u.name, u.type, u.buf.length, sha(u.buf), u.buf, error]);
 
-async function addImport(c: PoolClient, u: Upload, rows: number, periods: string[]) {
-  const sorted = [...periods].sort();
-  const { rows: [r] } = await c.query<{ id: number }>("INSERT INTO app.imports(company_id,section,file_name,file_type,file_size,sha256,file,status,rows_loaded,period_from,period_to) VALUES($1,$2,$3,$4,$5,$6,$7,'loaded',$8,$9,$10) RETURNING id",
-    [u.companyId, u.section, u.name, u.type, u.buf.length, sha(u.buf), u.buf, rows, sorted[0] ?? null, sorted.at(-1) ?? null]);
+/** How completely a file loaded. controlTotal is the total the sheet itself prints, to compare with what was loaded. */
+type ImportQuality = { rowsRead: number; controlTotal: number; issues: ImportIssue[] };
+
+async function addImport(c: PoolClient, u: Upload, rows: number, periods: string[], quality?: ImportQuality) {
+  const sorted = [...periods].sort(), issues = quality?.issues ?? [];
+  const { rows: [r] } = await c.query<{ id: number }>("INSERT INTO app.imports(company_id,section,file_name,file_type,file_size,sha256,file,status,rows_loaded,period_from,period_to,rows_read,rows_rejected,control_total) VALUES($1,$2,$3,$4,$5,$6,$7,'loaded',$8,$9,$10,$11,$12,$13) RETURNING id",
+    [u.companyId, u.section, u.name, u.type, u.buf.length, sha(u.buf), u.buf, rows, sorted[0] ?? null, sorted.at(-1) ?? null, quality?.rowsRead ?? null, issues.filter((x) => !x.loaded).length, quality?.controlTotal ?? null]);
+  if (issues.length) await c.query("INSERT INTO stg.rejected_rows(import_id,sheet,row_no,reason,loaded) SELECT $1,s,n,m,l FROM unnest($2::text[],$3::int[],$4::text[],$5::boolean[]) AS t(s,n,m,l)",
+    [r.id, issues.map((x) => x.sheet), issues.map((x) => x.row), issues.map((x) => x.reason), issues.map((x) => x.loaded)]);
   return r.id;
 }
 
@@ -106,10 +111,10 @@ export const listReceipts = (branchId: number, year: number, month: number) =>
   q<ReceiptRow>(`SELECT to_char(date,'YYYY-MM-DD') AS date, line, value::float8 AS value FROM app.daily_receipts WHERE branch_id=$1 AND date >= make_date($2::int,$3::int + 1,1) AND date < make_date($2::int,$3::int + 1,1) + interval '1 month'`, [branchId, year, month]);
 
 /** All or nothing: the months in the file replace the same months of that branch (so a cleared cell or trailing day removes its old value), every other month stays as it is. */
-export const importReceipts = (u: Upload & { branchId: number }, rows: ReceiptRow[]) =>
+export const importReceipts = (u: Upload & { branchId: number }, rows: ReceiptRow[], quality: ImportQuality) =>
   numbering(async (c) => {
     const periods = [...new Set(rows.map((r) => `${r.date.slice(0, 7)}-01`))];
-    const id = await addImport(c, u, rows.length, periods);
+    const id = await addImport(c, u, rows.length, periods, quality);
     await c.query("DELETE FROM app.daily_receipts WHERE branch_id=$1 AND date_trunc('month', date)::date = ANY($2::date[])", [u.branchId, periods]);
     await c.query(`INSERT INTO app.daily_receipts(company_id,branch_id,date,line,value,import_id) SELECT $1,$2,d,l,v,$6 FROM unnest($3::date[],$4::text[],$5::numeric[]) AS t(d,l,v)
       ON CONFLICT (branch_id,date,line) DO UPDATE SET value=EXCLUDED.value,import_id=EXCLUDED.import_id,updated=now()`,

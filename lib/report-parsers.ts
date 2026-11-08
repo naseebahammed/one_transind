@@ -198,47 +198,76 @@ export function unitsFromWorkbook(wb: ExcelJS.Workbook) {
 
 export type ReceiptRow = { date: string; line: string; value: number };
 
+/** A row the parser refused (loaded false), or kept but a person should check (loaded true). Saved to stg.rejected_rows with the import. */
+export type ImportIssue = { sheet: string; row: number; reason: string; loaded: boolean };
+
+/** The month a sheet's name gives ("March 2026", "April2026", "NOVEMBER "): year null if the name has none. Null when the name is not a month. */
+function monthOfSheetName(name: string) {
+  const mi = MONTHS.findIndex((m) => name.toLowerCase().startsWith(m.toLowerCase()));
+  return mi < 0 ? null : { month: String(mi + 1).padStart(2, "0"), year: name.match(/20\d{2}/)?.[0] ?? null };
+}
+
 /** Daily takings from a branch's "Daily Sales Deposit" workbook: one sheet per month, one row per day, one column per payment channel.
  *  Columns are found by header text because the headings change between months. Gross sales and the totals rows are formulas, so they are recalculated, not read.
  *  In the newest sheet, days after the last day with a figure are the unfilled rest of the month (all zeros), so they are skipped; every other zero is a real zero.
- *  shortcut: a figure under a column with no heading is ignored, add a check if the layout grows an unlabelled channel. */
-export function receiptsFromWorkbook(wb: ExcelJS.Workbook) {
-  const rows: ReceiptRow[] = [], seen = new Map<string, string>(), sheets: { name: string; days: { date: string; values: [string, number][] }[]; last: number }[] = [];
-  let title = "";
+ *  A sheet named for one month but dated in another is set aside and reported, so one bad sheet does not block the other months. fromYear leaves out older sheets. */
+export function receiptsFromWorkbook(wb: ExcelJS.Workbook, fromYear = 0) {
+  type Day = { date: string; values: [string, number][]; row: number; printed: number | null; unlabelled: [number, number][] };
+  const rows: ReceiptRow[] = [], issues: ImportIssue[] = [], seen = new Map<string, string>(), sheets: { name: string; days: Day[]; last: number }[] = [];
+  let title = "", rowsRead = 0, controlTotal = 0;
   for (const ws of wb.worksheets) {
-    let head = 0, bank = 0;
+    const sheet = ws.name.trim(), named = monthOfSheetName(sheet);
+    if (named?.year && +named.year < fromYear) continue;
+    let head = 0, bank = 0, grossCol = 0, lastHeading = 0;
     for (let i = 1; i <= 6 && !head; i++) ws.getRow(i).eachCell((c, n) => { if (String(c.value ?? "").trim().toLowerCase() === "bank deposits") { head = i; bank = n; } });
     if (!head) continue; // not a daily deposit sheet
     ws.getRow(1).eachCell((c) => { title ||= String(c.value ?? "").trim(); });
-    const lines = new Map<number, string>(); // column -> line name
+    const lines = new Map<number, string>(), headed = new Set<number>(); // lines: column -> line name
     ws.getRow(head).eachCell((c, n) => {
       const t = String(c.value ?? "").trim().replace(/\s+/g, " ").toLowerCase(); // not c.text: ExcelJS throws on a merged cell whose first cell is empty
+      if (t) { headed.add(n); lastHeading = Math.max(lastHeading, n); }
+      if (t === "gross sales") grossCol = n;
       if (n >= bank && t && t !== "date of deposit" && t !== "gross sales") lines.set(n, t[0].toUpperCase() + t.slice(1));
     });
-    const days: { date: string; values: [string, number][] }[] = [];
+    const days: Day[] = [];
     let ended = false; // ended: the totals and notes below the last day have started
     ws.eachRow({ includeEmpty: false }, (row, i) => {
       if (i <= head || ended) return;
-      const where = `${ws.name.trim()}, row ${i}`;
+      const where = `${sheet}, row ${i}`;
       const dateCell: unknown = row.getCell(bank - 1).value; // the date column sits left of "Bank Deposits" and has no heading; dates are =previous+1 formulas
-      const date = cellDate(dateCell as ExcelJS.CellValue, where);
+      let date = cellDate(dateCell as ExcelJS.CellValue, where);
       if (!date) {
         if (dateCell && typeof dateCell === "object" && !(dateCell instanceof Date)) throw new Error(`${where}: the date was never calculated. Open the file in Excel, let it calculate, save it and upload again.`);
         ended = days.length > 0;
         return;
       }
-      const values: [string, number][] = [];
-      for (const [n, line] of lines) { const v = num(row.getCell(n).value, `${where}, ${line}`); if (v !== null) values.push([line, v]); }
-      days.push({ date, values });
+      if (date < "2000" && named?.year) date = `${named.year}-${named.month}-${String(i - head).padStart(2, "0")}`; // typed without a year, so Excel stored 1900; rows run day 1, 2, 3...
+      const values: [string, number][] = [], unlabelled: [number, number][] = [];
+      let printed: number | null = null;
+      try {
+        for (const [n, line] of lines) { const v = num(row.getCell(n).value, `${where}, ${line}`); if (v !== null) values.push([line, v]); }
+        if (grossCol) printed = num(row.getCell(grossCol).value, `${where}, Gross sales`);
+        for (let n = bank + 1; n < lastHeading; n++) { if (headed.has(n)) continue; const v = num(row.getCell(n).value, `${where}, column ${n}`); if (v) unlabelled.push([n, v]); }
+      } catch (e) {
+        issues.push({ sheet, row: i, reason: (e as Error).message, loaded: false });
+        return;
+      }
+      days.push({ date, values, row: i, printed, unlabelled });
     });
     // A 30-day month still has 31 rows; the extra one carries a date from the next (or wrong) month and only zeros. Keep the days of the month most rows belong to.
     const perMonth = new Map<string, number>();
     for (const d of days) perMonth.set(d.date.slice(0, 7), (perMonth.get(d.date.slice(0, 7)) ?? 0) + 1);
     const month = [...perMonth].sort((a, b) => b[1] - a[1])[0]?.[0];
-    const stray = days.find((d) => d.date.slice(0, 7) !== month && d.values.some(([, v]) => v !== 0));
-    if (stray) throw new Error(`${ws.name.trim()} has figures dated ${stray.date}, which is outside the sheet's month. Correct the date.`);
-    const own = days.filter((d) => d.date.slice(0, 7) === month), last = own.findLastIndex((d) => d.values.some(([, v]) => v !== 0));
-    if (last >= 0) sheets.push({ name: ws.name.trim(), days: own, last });
+    if (month && month < String(fromYear)) continue;
+    const hasFigures = (d: Day) => d.values.some(([, v]) => v !== 0);
+    if (month && named && days.some(hasFigures) && (month.slice(5) !== named.month || (named.year && month.slice(0, 4) !== named.year))) {
+      issues.push({ sheet, row: head, reason: `The sheet is named ${sheet} but its dates are in ${month}, so it was not loaded.`, loaded: false });
+      continue;
+    }
+    const stray = days.find((d) => d.date.slice(0, 7) !== month && hasFigures(d));
+    if (stray) throw new Error(`${sheet} has figures dated ${stray.date}, which is outside the sheet's month. Correct the date.`);
+    const own = days.filter((d) => d.date.slice(0, 7) === month), last = own.findLastIndex(hasFigures);
+    if (last >= 0) sheets.push({ name: sheet, days: own, last });
   }
   const latest = sheets.map((x) => x.days[0].date).sort().at(-1);
   for (const x of sheets) {
@@ -247,7 +276,48 @@ export function receiptsFromWorkbook(wb: ExcelJS.Workbook) {
       if (other) throw new Error(`${x.name} and ${other} both have the date ${d.date}. Correct the dates in one of the two sheets.`);
       seen.set(d.date, x.name);
       for (const [line, value] of d.values) rows.push({ date: d.date, line, value });
+      rowsRead++;
+      controlTotal = round(controlTotal + (d.printed ?? 0));
+      const gross = round(d.values.reduce((s, [line, v]) => (line === "Bank deposits" ? s : s + v), 0));
+      if (d.printed !== null && Math.abs(gross - d.printed) > 0.05) issues.push({ sheet: x.name, row: d.row, reason: `${d.date}: the channels add up to ${gross} but the sheet's Gross Sales says ${d.printed}.`, loaded: true });
+      for (const [n, v] of d.unlabelled) issues.push({ sheet: x.name, row: d.row, reason: `${d.date}: column ${n} holds ${v} but has no heading, so that figure was not loaded.`, loaded: true });
     }
   }
-  return { title, rows };
+  return { title, rows, issues, rowsRead, controlTotal };
+}
+
+// Only the top block of each COGS sheet: its second block repeats the same stock and purchase figures month after month (April, September and October are identical).
+const COGS_LINES = [["gross sales", "Gross sales", 1], ["disc sales", "Discount", -1], ["net sales", "Net sales", 1], ["cpu transfer", "CPU transfer", -1], ["stock tb", "Stock GL balance", 1], ["closing inventory", "Closing inventory", 1], ["cogs", "COGS", -1]] as const;
+export type CogsRow = { year: number; month: number; branch: string; line: string; value: number };
+
+/** Monthly cost of goods per restaurant from the group "Restaurants COGS Summary" workbook. Only sheets named like OCT-2026 are read (the rest are old workings).
+ *  Costs are negative. A column with no Gross Sales that month is left out: a closed branch, or the central kitchen, which only passes stock to the branches. Cost % is calculated when read, never stored. */
+export function cogsFromWorkbook(wb: ExcelJS.Workbook, fromYear = 0) {
+  const rows: CogsRow[] = [], issues: ImportIssue[] = [];
+  for (const ws of wb.worksheets) {
+    const sheet = ws.name.trim(), named = sheet.match(/^([A-Za-z]{3})-(\d{4})$/), month = named ? MONTHS.findIndex((m) => m.toLowerCase() === named[1].toLowerCase()) : -1;
+    if (!named || month < 0 || +named[2] < fromYear) continue;
+    let head = 0, label = 0;
+    for (let i = 1; i <= 6 && !head; i++) ws.getRow(i).eachCell((c, n) => { if (fold(String(c.value ?? "")) === "description") { head = i; label = n; } });
+    if (!head) continue;
+    const branches = new Map<number, string>();
+    ws.getRow(head).eachCell((c, n) => { const t = String(c.value ?? "").replace(/\s+/g, " ").trim(); if (n > label && t && fold(t) !== "total") branches.set(n, t); });
+    const found = new Map<string, { row: number; values: Map<number, number> }>();
+    for (let i = head + 1; i <= head + 15 && found.size < COGS_LINES.length; i++) {
+      const row = ws.getRow(i), text = fold(String(row.getCell(label).value ?? "")), line = COGS_LINES.find(([key]) => text === key || (key !== "cogs" && text.startsWith(key)));
+      if (!line || found.has(line[1])) continue;
+      const values = new Map<number, number>();
+      for (const n of branches.keys()) { const v = num(row.getCell(n).value, `${sheet}, row ${i}, ${branches.get(n)}`); if (v !== null) values.set(n, v); }
+      found.set(line[1], { row: i, values });
+    }
+    const gross = found.get("Gross sales");
+    if (!gross) { issues.push({ sheet, row: head, reason: "No Gross Sales row, so the sheet was not loaded.", loaded: false }); continue; }
+    for (const [n, branch] of branches) {
+      if (!gross.values.get(n)) continue;
+      for (const [, line, sign] of COGS_LINES) { const v = found.get(line)?.values.get(n); if (v !== undefined) rows.push({ year: +named[2], month, branch, line, value: round(sign * v) }); }
+      const net = found.get("Net sales")?.values.get(n), discount = found.get("Discount")?.values.get(n) ?? 0, expected = round(gross.values.get(n)! - discount);
+      if (net !== undefined && Math.abs(net - expected) > 0.05) issues.push({ sheet, row: found.get("Net sales")!.row, reason: `${branch}: gross less discount is ${expected} but Net Sales says ${net}.`, loaded: true });
+    }
+  }
+  return { rows, issues };
 }

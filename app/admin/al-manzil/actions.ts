@@ -22,6 +22,9 @@ function refresh() {
 }
 const monthNames = (rows: { year: number; month: number }[]) => [...new Set(rows.map((r) => `${MONTHS[r.month]} ${r.year}`))].join(", ");
 
+/** shortcut: restaurant sheets from before this year are skipped, as agreed for the first load; lower it to bring in older history. */
+const LOAD_FROM_YEAR = 2026;
+
 /** A branch whose workbook is headed with a different name than the branch (lower-case branch name -> names its sheet may carry). shortcut: hard-coded, move to a branch column if more appear. */
 const OTHER_SHEET_NAMES: Record<string, string[]> = { "qatar sports club": ["Westbay"] };
 
@@ -38,14 +41,15 @@ async function loadFile(type: string, company: Company, u: Upload, formYear: num
   }
   if (type === "receipts") {
     if (!u.branchId) throw new Error("Pick the branch in the \"Data for\" row first.");
-    const { title, rows } = receiptsFromWorkbook(wb);
+    const { title, rows, issues, rowsRead, controlTotal } = receiptsFromWorkbook(wb, LOAD_FROM_YEAR);
     if (!rows.length) throw new Error("No dated rows found - is this the Daily Sales Deposit layout?");
     const name = await branchName(u.branchId);
     const known = [name, ...(OTHER_SHEET_NAMES[name.toLowerCase()] ?? [])].map((n) => n.toLowerCase());
     if (!known.some((n) => title.toLowerCase().includes(n))) throw new Error(`This file is headed "${title}", not ${name}. Pick the right branch or file.`);
-    await importReceipts({ ...u, branchId: u.branchId }, rows);
+    await importReceipts({ ...u, branchId: u.branchId }, rows, { rowsRead, controlTotal, issues });
     const days = [...new Set(rows.map((r) => r.date))].sort();
-    return { rows: rows.length, ok: `Loaded ${days.length} days for ${name}, ${days[0]} to ${days.at(-1)}.` };
+    const review = issues.length ? ` ${issues.length} to check, first: ${issues[0].sheet} row ${issues[0].row}: ${issues[0].reason}` : "";
+    return { rows: rows.length, ok: `Loaded ${days.length} days for ${name}, ${days[0]} to ${days.at(-1)}.${review}` };
   }
   if (type === "daily") {
     const rows = dailyFromWorkbook(wb);

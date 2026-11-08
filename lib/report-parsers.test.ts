@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import ExcelJS from "exceljs";
-import { cellDate, checkDaily, dailyFromWorkbook, matchAccounts, num, pnlFromWorkbook, receiptsFromWorkbook, unitsFromWorkbook } from "./report-parsers.ts";
+import { cellDate, checkDaily, cogsFromWorkbook, dailyFromWorkbook, matchAccounts, num, pnlFromWorkbook, receiptsFromWorkbook, unitsFromWorkbook } from "./report-parsers.ts";
 import { readWorkbook } from "./company-template.ts";
 
 test("num reads numbers, formulas and CSV text, keeps blank as null, and refuses text", () => {
@@ -166,13 +166,71 @@ test("receiptsFromWorkbook keeps real zero days, drops the unfilled end of the n
 
 test("receiptsFromWorkbook refuses two sheets with the same date and figures dated outside the sheet's month", () => {
   const dup = new ExcelJS.Workbook();
-  depositSheet(dup, "JANUARY", "2026-02", [[1, 1, 1]]);
+  depositSheet(dup, "FEB", "2026-02", [[1, 1, 1]]);
   depositSheet(dup, "FEBRUARY", "2026-02", [[2, 2, 2]]);
-  assert.throws(() => receiptsFromWorkbook(dup), /FEBRUARY and JANUARY both have the date 2026-02-01/);
+  assert.throws(() => receiptsFromWorkbook(dup), /FEBRUARY and FEB both have the date 2026-02-01/);
   const stray = new ExcelJS.Workbook();
   const ws = depositSheet(stray, "June 2026", "2026-06", [[1, 1, 1]]);
   ws.getCell(34, 6).value = 99; // the extra 31st row holds a figure
   assert.throws(() => receiptsFromWorkbook(stray), /outside the sheet's month/);
+});
+
+test("receiptsFromWorkbook sets aside a sheet dated in another month and still loads the rest", () => {
+  const wb = new ExcelJS.Workbook();
+  depositSheet(wb, "JANUARY", "2026-02", [[1, 1, 1]]);
+  depositSheet(wb, "FEBRUARY", "2026-02", [[2, 2, 2]]);
+  const { rows, issues } = receiptsFromWorkbook(wb);
+  assert.equal(rows.find((r) => r.date === "2026-02-01" && r.line === "Cash sales")?.value, 2);
+  assert.equal(issues.length, 1);
+  assert.equal(issues[0].sheet, "JANUARY");
+  assert.equal(issues[0].loaded, false);
+});
+
+test("receiptsFromWorkbook gives a date typed without a year its sheet's year, by row position", () => {
+  const wb = new ExcelJS.Workbook();
+  const ws = depositSheet(wb, "March 2026", "2026-03", [[5, 1, 5], [6, 1, 6]]);
+  ws.getCell(4, 2).value = new Date("1900-03-01T00:00:00Z");
+  ws.getCell(5, 2).value = new Date("1900-03-02T00:00:00Z");
+  assert.equal(receiptsFromWorkbook(wb).rows.find((r) => r.date === "2026-03-02" && r.line === "Cash sales")?.value, 6);
+});
+
+test("receiptsFromWorkbook flags a typed gross that disagrees, a figure with no heading, and refuses only the row with an error cell", () => {
+  const wb = new ExcelJS.Workbook();
+  const ws = depositSheet(wb, "April 2026", "2026-04", [[10, 5, 10], [20, 5, 20], [30, 5, 30]]);
+  ws.getCell(3, 9).value = "Keeta"; // column H stays without a heading, I is the last heading
+  ws.getCell(4, 5).value = 15; ws.getCell(5, 5).value = 99; ws.getCell(6, 5).value = 35;
+  ws.getCell(4, 8).value = 7;
+  ws.getCell(5, 9).value = { formula: "1/0", result: { error: "#DIV/0!" } } as ExcelJS.CellValue;
+  const { rows, issues, rowsRead, controlTotal } = receiptsFromWorkbook(wb);
+  assert.equal(rows.some((r) => r.date === "2026-04-02"), false, "the row with the error cell is left out");
+  assert.deepEqual(issues.map((x) => [x.row, x.loaded]).sort(), [[4, true], [5, false]]);
+  assert.match(issues.find((x) => x.loaded)!.reason, /column 8 holds 7/);
+  assert.ok(rowsRead >= 2);
+  assert.equal(controlTotal, 50);
+});
+
+test("receiptsFromWorkbook leaves out sheets older than fromYear", () => {
+  const wb = new ExcelJS.Workbook();
+  depositSheet(wb, "December 2025", "2025-12", [[1, 1, 1]]);
+  depositSheet(wb, "January 2026", "2026-01", [[2, 2, 2]]);
+  assert.equal(receiptsFromWorkbook(wb, 2026).rows.some((r) => r.date.startsWith("2025")), false);
+});
+
+test("cogsFromWorkbook reads the top block only, makes costs negative, skips working sheets and branches with no sales", () => {
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet("OCT-2026");
+  [["Description", "Bin Omran", "Asian Wok", "CK", "TOTAL"], ["Gross Sales", 100, null, null, 100], ["Disc Sales", 10, null, null, 10], ["Net Sales", 89, 0, 0, 89], ["CPU TRANSFER ( Purchase )", 30, null, -30, 0],
+    ["Stock TB ( GL Balance )", 5, null, 50, 55], ["Closing INVENTORY 31/10/26", 4, null, 40, 44], ["COGS", 31, 0, 0, 31], ["Cost %", { formula: "1/0", result: { error: "#DIV/0!" } }, 0, 0, 0], [], ["Cost of Goodsold", 999, 0, 0, 0]]
+    .forEach((r, i) => r.forEach((v, n) => { ws.getCell(4 + i, 2 + n).value = v as ExcelJS.CellValue; }));
+  const working = wb.addWorksheet("JAN-20 working");
+  working.getCell("B4").value = "Description";
+  const { rows, issues } = cogsFromWorkbook(wb, 2026);
+  assert.deepEqual([...new Set(rows.map((r) => r.branch))], ["Bin Omran"]);
+  const value = (line: string) => rows.find((r) => r.line === line)?.value;
+  assert.equal(value("Gross sales"), 100); assert.equal(value("Discount"), -10); assert.equal(value("CPU transfer"), -30); assert.equal(value("COGS"), -31); assert.equal(value("Closing inventory"), 4);
+  assert.equal(rows[0].month, 9);
+  assert.equal(issues.length, 1, "gross 100 less discount 10 is not the 89 in the sheet");
+  assert.equal(cogsFromWorkbook(wb, 2027).rows.length, 0);
 });
 
 test("receiptsFromWorkbook asks for a recalculated file when a date was never calculated", () => {

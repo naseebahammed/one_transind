@@ -85,7 +85,8 @@ export async function getCustomers() {
   for (const r of br) {
     const m = tmp.get(r.id) ?? new Map<string, { name: string; value: number; lastMonth: number }>();
     const b = m.get(r.b) ?? { name: r.b, value: 0, lastMonth: 0 };
-    if (r.k === cur) b.value += r.v; else b.lastMonth += r.v;
+    if (r.k === cur) b.value += r.v;
+    else { b.lastMonth += r.v; if (month === 0) idx.get(r.id)!.lastMonth += r.v; }
     m.set(r.b, b); tmp.set(r.id, m);
   }
   for (const [id, m] of tmp) idx.get(id)!.brands = [...m.values()].filter((b) => b.value || b.lastMonth).sort((a, b) => b.value - a.value);
@@ -208,7 +209,7 @@ export async function getMonthly(dept = "") {
   cacheLife("minutes");
   const { rows } = await pg.query<{ year: number; month: number; value: number }>(
     `SELECT EXTRACT(year FROM "DOC_DATE")::int AS year, EXTRACT(month FROM "DOC_DATE")::int AS month, SUM("NET_AMOUNT")::float8 AS value
-     FROM ${table} ${dept ? `WHERE "DEPT_CODE" = $1` : ""} GROUP BY 1,2 ORDER BY 1,2`, dept ? [dept] : []);
+     FROM ${table} ${dept ? `WHERE COALESCE("DEPT_CODE",'-') = $1` : ""} GROUP BY 1,2 ORDER BY 1,2`, dept ? [dept] : []);
   return rows;
 }
 
