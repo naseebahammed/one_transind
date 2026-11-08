@@ -8,13 +8,13 @@ import { parseGrid, sectionName } from "@/lib/company-data";
 import { deleteDailyYearRows, deleteFigureYear, importCogs, importDaily, importFigures, importReceipts, linesOf, recordRejected, setFigure, type Upload } from "@/lib/company-figures";
 import { gridFromWorkbook, MAX_UPLOAD_BYTES, readWorkbook } from "@/lib/company-template";
 import { addLog } from "@/lib/db";
-import { checkDaily, cogsForCompany, cogsFromWorkbook, dailyFromWorkbook, matchAccounts, pnlFromWorkbook, receiptsFromWorkbook, unitsFromWorkbook } from "@/lib/report-parsers";
+import { checkDaily, cogsForCompany, cogsFromWorkbook, dailyFromWorkbook, dukanFromWorkbook, matchAccounts, pnlFromWorkbook, receiptsFromWorkbook, unitsFromWorkbook } from "@/lib/report-parsers";
 import { MONTHS } from "@/lib/format";
 
 export type UploadState = { error?: string; ok?: string };
 type Company = NonNullable<Awaited<ReturnType<typeof getCompany>>>;
 
-const LABEL: Record<string, string> = { pnl: "P&L", daily: "Daily sales", units: "Unit types", sales: "Monthly sales", receipts: "Daily sales deposit", cogs: "COGS summary" };
+const LABEL: Record<string, string> = { pnl: "P&L", daily: "Daily sales", units: "Unit types", sales: "Monthly sales", receipts: "Daily sales deposit", cogs: "COGS summary", dukan: "Dukan Food monthly sales" };
 
 function refresh() {
   for (const p of ["/admin/finance", "/admin/data-status", "/admin/activity", "/real-estate", "/real-estate/overview", "/real-estate/details", "/restaurants", "/finance", "/dashboard", "/health-beauty", "/retail"]) revalidatePath(p);
@@ -50,6 +50,15 @@ async function loadFile(type: string, company: Company, u: Upload, formYear: num
     const days = [...new Set(rows.map((r) => r.date))].sort();
     const review = issues.length ? ` ${issues.length} to check, first: ${issues[0].sheet} row ${issues[0].row}: ${issues[0].reason}` : "";
     return { rows: rows.length, ok: `Loaded ${days.length} days for ${name}, ${days[0]} to ${days.at(-1)}.${review}` };
+  }
+  if (type === "dukan") {
+    if (!u.branchId) throw new Error("Pick the branch in the \"Data for\" row first.");
+    const { rows, issues, rowsRead, controlTotal } = dukanFromWorkbook(wb, LOAD_FROM_YEAR);
+    if (!rows.length) throw new Error(`No figures from ${LOAD_FROM_YEAR} onward. Upload DUKAN-TOTAL, not the summary copy with the old dates.`);
+    await importReceipts({ ...u, section: "receipts", branchId: u.branchId }, rows, { rowsRead, controlTotal, issues });
+    const days = [...new Set(rows.map((r) => r.date))].sort();
+    const review = issues.length ? ` ${issues.length} to check, first: ${issues[0].sheet} row ${issues[0].row}: ${issues[0].reason}` : "";
+    return { rows: rows.length, ok: `Loaded ${days.length} days, ${days[0]} to ${days.at(-1)}.${review}` };
   }
   if (type === "cogs") {
     const parsed = cogsFromWorkbook(wb, LOAD_FROM_YEAR);

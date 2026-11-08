@@ -290,6 +290,48 @@ export function receiptsFromWorkbook(wb: ExcelJS.Workbook, fromYear = 0) {
 const COGS_LINES = [["gross sales", "Gross sales", 1], ["disc sales", "Discount", -1], ["net sales", "Net sales", 1], ["cpu transfer", "CPU transfer", -1], ["stock tb", "Stock GL balance", 1], ["closing inventory", "Closing inventory", 1], ["cogs", "COGS", -1]] as const;
 export type CogsRow = { year: number; month: number; branch: string; line: string; value: number };
 
+const DUKAN_LINES = [["credit card", "Credit card sales"], ["credit", "Credit sales"], ["cash", "Cash sales"]] as const;
+
+/** Daily takings from the "TOTAL" sheet of the monthly Dukan Food workbook (one row per day: card, credit, cash, total). Stored like a restaurant's daily deposit.
+ *  The workbook also comes as a copy with old January 2022 dates over the current numbers: fromYear leaves those rows out, and a heading that disagrees with the dates refuses the file.
+ *  Days after the last day with a figure are the unfilled rest of the month, so they are skipped; every other zero is a real zero. */
+export function dukanFromWorkbook(wb: ExcelJS.Workbook, fromYear = 0) {
+  const ws = wb.worksheets.find((w) => /^total/i.test(w.name.trim()));
+  if (!ws) throw new Error("This file has no TOTAL sheet - is this the Dukan Food monthly workbook?");
+  const sheet = ws.name.trim(), col = new Map<string, number>();
+  let head = 0, title = "";
+  for (let i = 1; i <= 6 && !head; i++) {
+    ws.getRow(i).eachCell((c, n) => { const t = fold(String(c.value ?? "")); if (t === "date") head = i; if (t) col.set(t, n); });
+    if (!head) { title += ` ${[...col.keys()].join(" ")}`; col.clear(); }
+  }
+  if (!head || !title.includes("dukan") || !col.has("total")) throw new Error("This is not the Dukan Food sales layout (a Date column under a Dukan Food heading).");
+  const issues: ImportIssue[] = [], days: { date: string; row: number; total: number | null; values: [string, number][] }[] = [];
+  let ended = false;
+  ws.eachRow({ includeEmpty: false }, (row, i) => {
+    if (i <= head || ended) return;
+    const where = `${sheet}, row ${i}`, date = cellDate(row.getCell(col.get("date")!).value, where);
+    if (!date) { ended = days.length > 0; return; }
+    if (date < String(fromYear)) return;
+    try {
+      const values: [string, number][] = [];
+      for (const [key, line] of DUKAN_LINES) { const v = num(row.getCell(col.get(key) ?? 0).value, `${where}, ${line}`); if (v !== null) values.push([line, v]); }
+      days.push({ date, row: i, total: num(row.getCell(col.get("total")!).value, `${where}, Total`), values });
+    } catch (e) { issues.push({ sheet, row: i, reason: (e as Error).message, loaded: false }); }
+  });
+  const named = title.match(/month of ([a-z]{3})[a-z]*\s*-?\s*(\d{4})/), last = days.findLastIndex((d) => d.values.some(([, v]) => v !== 0));
+  const kept = days.slice(0, last + 1);
+  if (named && kept.some((d) => d.date.slice(0, 7) !== `${named[2]}-${String(MONTHS.findIndex((m) => m.toLowerCase() === named[1]) + 1).padStart(2, "0")}`)) throw new Error(`The sheet heading says ${named[1]} ${named[2]} but its dates are in another month. Correct the file.`);
+  const rows: ReceiptRow[] = [];
+  let controlTotal = 0;
+  for (const d of kept) {
+    for (const [line, value] of d.values) rows.push({ date: d.date, line, value });
+    controlTotal = round(controlTotal + (d.total ?? 0));
+    const sum = round(d.values.reduce((s, [, v]) => s + v, 0));
+    if (d.total !== null && Math.abs(sum - d.total) > 0.05) issues.push({ sheet, row: d.row, reason: `${d.date}: card, credit and cash add up to ${sum} but the sheet's Total says ${d.total}.`, loaded: true });
+  }
+  return { rows, issues, rowsRead: kept.length, controlTotal };
+}
+
 /** Who each COGS column belongs to. shortcut: hard-coded for the columns the workbook has today, a new column is reported and not loaded until it is added here.
  *  "Burger Stop" is the Burger Stop company as a whole, confirmed by the owner, even though its sales are about five times the company's two deposit books. */
 const COGS_COLUMNS: Record<string, { company: string; branch?: string[] }> = {

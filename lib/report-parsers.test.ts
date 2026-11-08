@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import ExcelJS from "exceljs";
-import { cellDate, checkDaily, cogsForCompany, cogsFromWorkbook, dailyFromWorkbook, matchAccounts, num, pnlFromWorkbook, receiptsFromWorkbook, unitsFromWorkbook } from "./report-parsers.ts";
+import { cellDate, checkDaily, cogsForCompany, cogsFromWorkbook, dailyFromWorkbook, dukanFromWorkbook, matchAccounts, num, pnlFromWorkbook, receiptsFromWorkbook, unitsFromWorkbook } from "./report-parsers.ts";
 import { readWorkbook } from "./company-template.ts";
 
 test("num reads numbers, formulas and CSV text, keeps blank as null, and refuses text", () => {
@@ -243,6 +243,34 @@ test("cogsForCompany keeps one company's columns, finds their branches and holds
   assert.deepEqual(cogsForCompany(rows, "Asian Wok", []).rows.map((r) => r.branchId), [null]);
   assert.deepEqual(cogsForCompany(rows, "Burger Stop", [{ id: 9, name: "Gharafa" }]).rows.map((r) => [r.branch, r.branchId]), [["Burger Stop", null]], "whole company, and another brand's Gharafa column never lands here");
   assert.throws(() => cogsForCompany(rows, "Mr. Shawarma", [{ id: 2, name: "Qatar Sports Club" }]), /no branch for the column "Mr.Shawarma Bin Omran"/);
+});
+
+const dukanBook = (heading: string, ym: string, days: (number | null)[][]) => {
+  const wb = new ExcelJS.Workbook();
+  wb.addWorksheet("JAN 01");
+  const ws = wb.addWorksheet("TOTAL ");
+  ws.getCell("B2").value = heading;
+  ws.getCell("B3").value = "SALES REPORT - DUKAN FOOD - UMMUSALAL";
+  ["Date", "Credit card", "Credit", "Cash", "TOTAL"].forEach((h, i) => { ws.getCell(4, 2 + i).value = h; });
+  days.forEach((d, i) => { ws.getCell(5 + i, 2).value = new Date(`${ym}-${String(i + 1).padStart(2, "0")}T00:00:00Z`); d.forEach((v, n) => { ws.getCell(5 + i, 3 + n).value = v; }); });
+  return wb;
+};
+
+test("dukanFromWorkbook keeps a real zero day, drops the unfilled end and flags a total that disagrees", () => {
+  const { rows, issues, rowsRead, controlTotal } = dukanFromWorkbook(dukanBook("MONTH OF NOVEMBER- 2026", "2026-11", [[10, 0, 5, 15], [0, 0, 0, 0], [20, 0, 5, 99], [0, 0, 0, 0], [null, null, null, null]]), 2026);
+  assert.equal(rowsRead, 3);
+  assert.equal(controlTotal, 114);
+  assert.equal(rows.find((r) => r.date === "2026-11-01" && r.line === "Credit card sales")?.value, 10);
+  assert.equal(rows.find((r) => r.date === "2026-11-03" && r.line === "Cash sales")?.value, 5);
+  assert.ok(rows.some((r) => r.date === "2026-11-02" && r.line === "Cash sales" && r.value === 0));
+  assert.equal(rows.some((r) => r.date >= "2026-11-04"), false);
+  assert.deepEqual(issues.map((x) => [x.row, x.loaded]), [[7, true]]);
+});
+
+test("dukanFromWorkbook loads nothing from the copy with old 2022 dates, and refuses a heading that disagrees with its dates", () => {
+  assert.equal(dukanFromWorkbook(dukanBook("MONTH OF JANUARY- 2022", "2022-01", [[10, 0, 5, 15]]), 2026).rows.length, 0);
+  assert.throws(() => dukanFromWorkbook(dukanBook("MONTH OF OCTOBER- 2026", "2026-11", [[10, 0, 5, 15]]), 2026), /heading says oct 2026/);
+  assert.throws(() => dukanFromWorkbook(new ExcelJS.Workbook()), /no TOTAL sheet/);
 });
 
 test("receiptsFromWorkbook asks for a recalculated file when a date was never calculated", () => {
