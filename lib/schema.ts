@@ -158,7 +158,53 @@ SELECT 1 / (CASE WHEN EXISTS (SELECT 1 FROM app.invoices) THEN 0 ELSE 1 END);
 DROP TABLE app.invoices;
 `;
 
-const MIGRATIONS: readonly (readonly [string, string])[] = [["001_baseline", BASELINE], ["002_standard_data", STANDARD_DATA], ["003_drop_report_files", DROP_REPORT_FILES], ["005_company_expenses", COMPANY_EXPENSES], ["006_company_branches", COMPANY_BRANCHES], ["007_company_has_branches", COMPANY_HAS_BRANCHES], ["008_daily_receipts", DAILY_RECEIPTS], ["009_drop_deals", DROP_DEALS], ["010_drop_invoices", DROP_INVOICES]];
+// Enterprise foundation, additive only (nothing existing is changed or dropped): staging + reporting schemas, shared lookup tables,
+// a calendar, import quality counters and the first plain-named views for Excel. The read-only login is NOT created here (see docs/report-reader-setup.sql).
+const ENTERPRISE_FOUNDATION = `
+CREATE SCHEMA IF NOT EXISTS stg;
+CREATE SCHEMA IF NOT EXISTS rpt;
+
+-- Days of the week and month for "days gone / days remaining" maths. Only Friday is off, as in the sales reports (November 2026 = 26 working days).
+-- shortcut: public holidays count as working days, add a holiday list when the reports need it.
+CREATE TABLE app.dim_calendar(date DATE PRIMARY KEY, year INTEGER NOT NULL, month INTEGER NOT NULL, day INTEGER NOT NULL,
+  month_start DATE NOT NULL, iso_week INTEGER NOT NULL, day_name TEXT NOT NULL, is_working_day BOOLEAN NOT NULL);
+INSERT INTO app.dim_calendar
+  SELECT d::date, EXTRACT(year FROM d), EXTRACT(month FROM d), EXTRACT(day FROM d), date_trunc('month', d)::date,
+    EXTRACT(week FROM d), trim(to_char(d, 'Day')), EXTRACT(isodow FROM d) <> 5
+  FROM generate_series('2018-01-01'::date, '2040-12-31'::date, interval '1 day') d;
+
+-- Shared lookups: one row per real thing, so "Rafeeq" and "RAFEEQ " stop being two lines.
+CREATE TABLE app.payment_channels(id SERIAL PRIMARY KEY, name TEXT NOT NULL, kind TEXT NOT NULL DEFAULT 'other' CHECK (kind IN ('cash','card','delivery_app','bank','discount','other')));
+CREATE UNIQUE INDEX payment_channels_name ON app.payment_channels(lower(name));
+INSERT INTO app.payment_channels(name) SELECT DISTINCT trim(line) FROM app.daily_receipts WHERE trim(line) <> '' ON CONFLICT DO NOTHING;
+CREATE TABLE app.locations(id SERIAL PRIMARY KEY, code TEXT NOT NULL UNIQUE, name TEXT NOT NULL, active INTEGER NOT NULL DEFAULT 1);
+CREATE TABLE app.departments(id SERIAL PRIMARY KEY, code TEXT NOT NULL UNIQUE, name TEXT NOT NULL, active INTEGER NOT NULL DEFAULT 1);
+CREATE TABLE app.brands(id SERIAL PRIMARY KEY, code TEXT NOT NULL UNIQUE, name TEXT NOT NULL, active INTEGER NOT NULL DEFAULT 1);
+CREATE TABLE app.channels(id SERIAL PRIMARY KEY, code TEXT NOT NULL UNIQUE, name TEXT NOT NULL, active INTEGER NOT NULL DEFAULT 1);
+
+-- Did the file load completely? control_total is the total printed in the sheet, to compare with what was loaded.
+ALTER TABLE app.imports ADD COLUMN rows_read INTEGER, ADD COLUMN rows_rejected INTEGER NOT NULL DEFAULT 0, ADD COLUMN control_total NUMERIC(18,2);
+
+-- Rows a parser refused (error cell, bad date, missing key), kept so nothing disappears silently.
+CREATE TABLE stg.rejected_rows(id SERIAL PRIMARY KEY, import_id INTEGER NOT NULL REFERENCES app.imports(id) ON DELETE CASCADE,
+  sheet TEXT NOT NULL DEFAULT '', row_no INTEGER NOT NULL, reason TEXT NOT NULL, raw JSONB NOT NULL DEFAULT '{}', created TIMESTAMPTZ NOT NULL DEFAULT now());
+CREATE INDEX rejected_rows_import ON stg.rejected_rows(import_id);
+
+-- Reporting views: stable names, real dates, no app internals. Excel and Power BI read only these.
+CREATE VIEW rpt.restaurant_daily AS
+  SELECT c.name AS company, b.name AS branch, r.date, r.line AS payment_channel, r.value AS amount_qar
+  FROM app.daily_receipts r JOIN app.companies c ON c.id = r.company_id JOIN app.branches b ON b.id = r.branch_id;
+CREATE VIEW rpt.stay_daily AS
+  SELECT c.name AS company, b.name AS branch, d.date, d.long_guests, d.long_rate, d.long_total, d.short_guests, d.short_rate, d.short_total,
+    d.rooms_occupied, d.rooms_available, d.room_revenue AS room_revenue_qar, d.other_revenue AS other_revenue_qar
+  FROM app.daily_sales d JOIN app.companies c ON c.id = d.company_id LEFT JOIN app.branches b ON b.id = d.branch_id;
+CREATE VIEW rpt.monthly_figures AS
+  SELECT c.name AS company, b.name AS branch, f.section, f.period, f.main AS category, f.line, f.unit_type, f.value AS amount
+  FROM app.company_figures f JOIN app.companies c ON c.id = f.company_id LEFT JOIN app.branches b ON b.id = f.branch_id;
+CREATE VIEW rpt.calendar AS SELECT date, year, month, day, month_start, iso_week, day_name, is_working_day FROM app.dim_calendar;
+`;
+
+const MIGRATIONS: readonly (readonly [string, string])[] = [["001_baseline", BASELINE], ["002_standard_data", STANDARD_DATA], ["003_drop_report_files", DROP_REPORT_FILES], ["005_company_expenses", COMPANY_EXPENSES], ["006_company_branches", COMPANY_BRANCHES], ["007_company_has_branches", COMPANY_HAS_BRANCHES], ["008_daily_receipts", DAILY_RECEIPTS], ["009_drop_deals", DROP_DEALS], ["010_drop_invoices", DROP_INVOICES], ["011_enterprise_foundation", ENTERPRISE_FOUNDATION]];
 
 /** Applies the migrations not yet recorded, optionally only up to and including one. Run it inside a transaction holding the init lock. */
 export async function migrate(c: { query: (text: string, params?: unknown[]) => Promise<{ rows: { id: string }[] }> }, upTo?: string) {
