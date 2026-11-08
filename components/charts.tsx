@@ -4,7 +4,7 @@ import { tip } from "@/lib/tip";
 
 /** "▲ 4.2% vs <ref>" tooltip footer; empty when there is nothing to compare. */
 const vs = (a: number | null | undefined, b: number | null | undefined, ref: string) =>
-  a == null || !b ? {} : { f: `${a >= b ? "▲" : "▼"} ${fmt(Math.abs((a / b - 1) * 100), 1)}% vs ${ref}`, fc: a >= b ? ("up" as const) : ("down" as const) };
+  a == null || !b ? {} : { f: `${a >= b ? "▲" : "▼"} ${fmt(Math.abs(((a - b) / Math.abs(b)) * 100), 1)}% vs ${ref}`, fc: a >= b ? ("up" as const) : ("down" as const) };
 
 export function Spark({ id, data }: { id: string; data: number[] }) {
   const W = 120, H = 30, mn = Math.min(...data), mx = Math.max(...data), r = mx - mn || 1;
@@ -63,14 +63,17 @@ export function LineChart({ actual: rawA, target: rawT }: { actual: number[]; ta
 const YEAR_FILLS = ["rgba(140,160,255,.28)", "#4a63ff", "url(#cmpg)"];
 const swatch = (i: number) => (i === 2 ? "linear-gradient(#3ad6ff,#4a63ff)" : YEAR_FILLS[i]);
 
-/** Three-year grouped bars per month, with the selected month highlighted. Values in QAR M. */
-export function CompareChart({ years, series: raw, sel, href }: { years: number[]; series: (number | null)[][]; sel: number; href?: (m: number) => string }) {
-  const { f, u } = autoUnit(raw.flat()), series = raw.map((a) => scale(a, f));
+/** Three-year grouped bars per month, with the selected month highlighted. Values in QAR M; negative bars hang below the zero line. */
+export function CompareChart({ years: rawYears, series: raw, sel, href }: { years: number[]; series: (number | null)[][]; sel: number; href?: (m: number) => string }) {
+  const years = rawYears.slice(-3), trimmed = raw.slice(-3);
+  const { f, u } = autoUnit(trimmed.flat()), series = trimmed.map((a) => scale(a, f));
   const W = 720, H = 250, pl = 38, pr = 10, pt = 14, pb = 28, iw = W - pl - pr, ih = H - pt - pb, gw = iw / 12, bw = gw / 4.2;
-  const mx = Math.max(1, ...series.flat().map((v) => v ?? 0)) * 1.12, yy = (v: number) => pt + ih - v / mx * ih;
+  const vals = series.flat().map((v) => v ?? 0);
+  const lo = Math.min(0, ...vals) * 1.12, hi = Math.max(lo ? 0 : 1, ...vals) * 1.12 || 1, span = hi - lo || 1;
+  const yy = (v: number) => pt + ih - ((v - lo) / span) * ih, y0 = yy(0);
   // ~5 gridlines on a 1/2/5 step, whatever the magnitude (thousands need far bigger steps than millions).
-  const p = 10 ** Math.floor(Math.log10(mx / 5)), step = [1, 2, 5, 10].find((m) => m * p >= mx / 5)! * p;
-  const grid: number[] = []; for (let v = 0; v <= mx; v += step) grid.push(v);
+  const p = 10 ** Math.floor(Math.log10(span / 5)), step = [1, 2, 5, 10].find((m) => m * p >= span / 5)! * p;
+  const grid: number[] = []; for (let v = Math.ceil(lo / step) * step; v <= hi; v += step) grid.push(Math.round(v * 1e6) / 1e6);
   const off = 3 - years.length;
   return (
     <ChartTip>
@@ -83,7 +86,7 @@ export function CompareChart({ years, series: raw, sel, href }: { years: number[
             return (
               <g key={mn}>
                 {m === sel && <rect x={x0 + 1} y={pt - 4} width={gw - 2} height={ih + 4} rx="6" fill="rgba(58,214,255,.08)" stroke="rgba(58,214,255,.35)" />}
-                {years.map((y, i) => { const v = series[i][m]; return v == null ? null : <rect key={y} x={x0 + gw * 0.1 + i * bw * 1.05} y={yy(v)} width={bw} height={Math.max(1, ih - (yy(v) - pt))} rx="3" fill={YEAR_FILLS[i + off]} />; })}
+                {years.map((y, i) => { const v = series[i][m]; return v == null ? null : <rect key={y} x={x0 + gw * 0.1 + i * bw * 1.05} y={yy(Math.max(v, 0))} width={bw} height={Math.max(1, Math.abs(yy(v) - y0))} rx="3" fill={YEAR_FILLS[i + off]} />; })}
                 {(() => {
                   const cell = <rect className="chit" tabIndex={href ? -1 : 0} x={x0} y={pt} width={gw} height={ih} data-tip={tip({
                     t: mn,

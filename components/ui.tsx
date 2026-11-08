@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { fmt, MONTHS } from "@/lib/format";
+import { fmt, MONTHS, pct } from "@/lib/format";
 import { Spark } from "@/components/charts";
 import { ChartTip } from "@/components/ChartTip";
 import { tip } from "@/lib/tip";
@@ -22,7 +22,7 @@ export const Kpi = ({ label, value, delta, up, spark }: { label: ReactNode; valu
 
 /** Year-over-year or month-over-month delta as in the legacy app. */
 export const Delta = ({ a, b, small }: { a: number; b: number; small?: boolean }) => {
-  const c = b ? (a / b - 1) * 100 : 0;
+  const c = pct(a, b);
   return <span className={c >= 0 ? "up" : "down"} style={{ fontSize: small ? 11 : 12.5 }}>{c >= 0 ? "▲" : "▼"} {fmt(Math.abs(c), 1)}%</span>;
 };
 
@@ -106,7 +106,7 @@ export function MonthBars({ series, labels, colors = ["var(--series)"] }: { seri
 /** Brand rows; each brand expands to its products. */
 export function BrandList({ brands }: { brands: { name: string; value: number; lastMonth: number; items?: { name: string; value: number; lastMonth: number; units?: number }[] }[] }) {
   const max = Math.max(1, ...brands.map((b) => b.value));
-  const change = (value: number, lastMonth: number) => (lastMonth ? (value / lastMonth - 1) * 100 : 0);
+  const change = (value: number, lastMonth: number) => pct(value, lastMonth);
   const row = (name: string, value: number, lastMonth: number, units?: number) => (
     <>
       <span className="lab">{name}{units ? <small>Units: <span className="num">{fmt(units)}</span></small> : null}</span>

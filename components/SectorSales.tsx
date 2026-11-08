@@ -33,20 +33,26 @@ async function Content({ searchParams, sector, path, title }: Props) {
   const keys = sel ? keyFor(sel) : all;
   const cur = year && ys.includes(+year) ? +year : ys[ys.length - 1];
   const grand = sales(cur, all);
+  const total = sel ? sales(cur, keys) : grand;
   // Compare against the same months last year: the current year is usually only partly loaded.
-  const upto = Math.max(1, ...grand.map((v, i) => (v ? i + 1 : 0)));
+  const upto = Math.max(1, ...total.map((v, i) => (v ? i + 1 : 0)));
+  const grandUpto = Math.max(1, ...grand.map((v, i) => (v ? i + 1 : 0)));
   const period = upto < 12 ? `Jan–${MONTHS[upto - 1]}` : "full year";
   const ytd = (a: number[]) => sum(a.slice(0, upto));
-  const total = sel ? sales(cur, keys) : grand;
-  const prev = ys.includes(cur - 1) ? sales(cur - 1, keys) : null;
+  const ownYears = years(keys, "sales");
+  const prev = ownYears.includes(cur - 1) ? sales(cur - 1, keys) : null;
   const best = total.indexOf(Math.max(...total));
-  const shown = ys.filter((y) => y <= cur).slice(-3);
-  const per = cos.map((c) => ({ c, s: ytd(sales(cur, keyFor(c))), p: ytd(sales(cur - 1, keyFor(c))) })).sort((a, b) => b.s - a.s);
-  const grandYtd = ytd(grand);
+  const shown = ownYears.filter((y) => y <= cur).slice(-3);
+  const per = cos.map((c) => ({ c, s: sum(sales(cur, keyFor(c)).slice(0, grandUpto)), p: sum(sales(cur - 1, keyFor(c)).slice(0, grandUpto)) })).sort((a, b) => b.s - a.s);
+  const grandYtd = sum(grand.slice(0, grandUpto));
   const diff = prev ? ytd(total) - ytd(prev) : 0;
-  // Gross profit only when every company in view has a COGS line in its P&L (Top Perfume does; Pavati reports sales only).
+  // Gross profit only when every company in view has COGS in its P&L for every month with sales up to upto.
   const cogsOf = (k: string | string[]) => plRows(cur, k).filter((x) => x.main === "COGS");
-  const cogs = (sel ? [sel] : cos).every((c) => cogsOf(keyFor(c)).length) ? -sum(cogsOf(keys).map((x) => ytd(x.m))) : null; // costs are stored negative
+  const hasCogs = (sel ? [sel] : cos).every((c) => {
+    const cSales = sales(cur, keyFor(c)), cCogs = cogsOf(keyFor(c));
+    return cCogs.length > 0 && cSales.slice(0, upto).every((s, m) => !s || cCogs.some((x) => x.m[m] !== 0));
+  });
+  const cogs = hasCogs ? -sum(cogsOf(keys).map((x) => ytd(x.m))) : null; // costs are stored negative
   const filled = total.slice(0, upto).filter(Boolean).length || 1; // months with sales entered, not empty gaps
 
   return (

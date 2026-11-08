@@ -92,7 +92,7 @@ export function occupancy(year: number, key: Key) {
     const d = days.filter((x) => +x.date.slice(5, 7) === m + 1);
     const total = (k: keyof Omit<Day, "date">) => sum(d.map((x) => x[k]));
     const lg = total("long_guests"), sg = total("short_guests"), sold = total("rooms_occupied"), avail = total("rooms_available"), room = total("room_revenue"), other = total("other_revenue");
-    return { days: d.length, sold, avail, occ: avail ? sold / avail : 0, adr: sold ? room / sold : 0, longShare: sold ? lg / (lg + sg) : 0, room, other };
+    return { days: d.length, sold, avail, occ: avail ? sold / avail : 0, adr: sold ? room / sold : 0, longShare: lg + sg ? lg / (lg + sg) : 0, room, other };
   });
 }
 

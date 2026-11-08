@@ -37,8 +37,8 @@ async function Content({ searchParams }: { searchParams: Params }) {
   const lowBrands = brands.filter((b) => b.value > 50000 && mPct(b.value, b.cost) < 15).map((b) => b.key);
   const worstDept = [...dept.rows].sort((a, b) => a.creditNotes - b.creditNotes)[0];
   const insights: [string, string][] = tot ? [
-    ["warn", `${brands[0].key} is ${fmt(brands[0].value / tot * 100, 1)}% of sales; the top 3 brands (${brands.slice(0, 3).map((b) => b.key).join(", ")}) make ${fmt(sum(brands.slice(0, 3).map((b) => b.value)) / tot * 100, 1)}%.`],
-    ["warn", `The top 10 customer groups make ${fmt(top10 / tot * 100, 1)}% of sales; the largest, ${groups[0].key}, is ${fmt(groups[0].value / tot * 100, 1)}% across ${groups[0].customers} branches.`],
+    ...(brands.length ? [["warn", `${brands[0].key} is ${fmt(brands[0].value / tot * 100, 1)}% of sales; the top 3 brands (${brands.slice(0, 3).map((b) => b.key).join(", ")}) make ${fmt(sum(brands.slice(0, 3).map((b) => b.value)) / tot * 100, 1)}%.`] as [string, string]] : []),
+    ...(groups.length ? [["warn", `The top 10 customer groups make ${fmt(top10 / tot * 100, 1)}% of sales; the largest, ${groups[0].key}, is ${fmt(groups[0].value / tot * 100, 1)}% across ${groups[0].customers} branches.`] as [string, string]] : []),
     ["good", `Delivery apps (Talabat, Snoonu) sold ${fmt(delivery / 1e6, 2)} M, ${fmt(delivery / tot * 100, 1)}% of sales.`],
     ["bad", `Credit notes total ${fmt(-ret / 1e6, 2)} M (${fmt(-ret / tot * 100, 1)}% of sales)${worstDept ? `, most in ${worstDept.key}` : ""}.`],
     ["plain", `Gross margin is ${fmt(mPct(tot, cost), 1)}%. Brands above 50k QAR under 15% margin: ${lowBrands.slice(0, 5).join(", ") || "none"}.`],
@@ -51,7 +51,7 @@ async function Content({ searchParams }: { searchParams: Params }) {
         <h2 style={{ marginInlineEnd: "auto" }}>Trading sales (actual) · {mn}</h2>
         <MonthSelect value={month} max={o.month} names={MONTHS} year={o.year} base="/trading" />
         <span className="live"><i></i>Actual</span>
-        <form action="/trading"><input type="hidden" name="m" value={month + 1} /><input className="search" name="q" type="search" defaultValue={q ?? ""} placeholder="Search brand, product or customer" aria-label="Search" /></form>
+        <form action="/trading"><input type="hidden" name="m" value={month + 1} />{p && <input type="hidden" name="p" value={p} />}{c && <input type="hidden" name="c" value={c} />}{all && <input type="hidden" name="all" value={all} />}<input className="search" name="q" type="search" defaultValue={q ?? ""} placeholder="Search brand, product or customer" aria-label="Search" /></form>
       </div>
       <div className="kpis">
         <Kpi label={`Sales ${mn}`} value={`${fmt(tot / 1e6, 2)} M`} delta={fmt(tot)} up />

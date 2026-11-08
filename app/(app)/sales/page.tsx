@@ -48,10 +48,12 @@ async function Content({ searchParams }: { searchParams: Params }) {
   out.push(["plain", `Year to date ${fmt(ytd, 1)} M, ${fmt(pct(ytd, ytdL), 1)}% vs the same months of ${years[1]}.`]);
   if (g25[peak]) out.push(["plain", `${MONTHS[peak]} was the strongest month of ${years[1]} with ${fmt(g25[peak], 1)} M.`]);
 
-  const credit = sum(dep.rows.map((r) => r.creditNotes));
+  const deptRow = dept ? top.find((r) => r.key === dept) : undefined;
+  const credit = dept ? (dep.rows.find((r) => r.key === (deptRow?.label ?? dept))?.creditNotes ?? 0) : sum(dep.rows.map((r) => r.creditNotes));
+  const sectorSales = dept ? (deptRow?.value ?? 0) : sum(top.map((r) => r.value));
   const sectorKpis: [string, string?][] = [
     ["Van sales"], ["Key accounts"], ["HORECA"], ["Wholesale"],
-    ["Returns rate", `${fmt(sum(top.map((r) => r.value)) ? -credit / sum(top.map((r) => r.value)) * 100 : 0, 1)}%`],
+    ["Returns rate", `${fmt(sectorSales ? -credit / sectorSales * 100 : 0, 1)}%`],
     ["Out-of-stock loss"], ["Price realisation"], ["Promo uplift"],
   ];
 
@@ -80,7 +82,7 @@ async function Content({ searchParams }: { searchParams: Params }) {
           href={(pp, a) => link("/sales", { m: String(month + 1), p: pp.join("|"), all: a ? "1" : undefined })}
         />
         <Insights title="Analysis" items={out} />
-        <Panel span={6} title={`Sector indicators · ${dept ? sectors.find((s) => s.key === dept)?.label : "All"}`}>
+        <Panel span={6} title={`Sector indicators · ${dept ? (sectors.find((s) => s.key === dept)?.label ?? dept) : "All"}`}>
           <div className="kpis" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))" }}>
             {sectorKpis.map(([l, v]) => <div className="kpi" key={l} style={{ padding: "10px 12px" }}><span className="l">{l}</span><span className="v" style={{ fontSize: 20 }}>{v ?? <NotConnected />}</span></div>)}
           </div>

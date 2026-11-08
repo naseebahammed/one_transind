@@ -49,7 +49,7 @@ async function Content({ searchParams }: { searchParams: Params }) {
   const cur = ys[idx], prev = idx > 0 ? ys[idx - 1] : undefined;
   const R = ys.map((y) => report(y, key!)), c = R[idx], p = idx > 0 ? R[idx - 1] : undefined;
   const O = ys.map((y) => occupancy(y, key!)), oc = O[idx];
-  const avg = (o: typeof oc) => ({ occ: sum(o.map((m) => m.occ * m.days)) / (sum(o.map((m) => m.days)) || 1), adr: sum(o.map((m) => m.room)) / (sum(o.map((m) => m.sold)) || 1) });
+  const avg = (o: typeof oc) => ({ occ: sum(o.map((m) => m.sold)) / (sum(o.map((m) => m.avail)) || 1), adr: sum(o.map((m) => m.room)) / (sum(o.map((m) => m.sold)) || 1) });
   const revpar = (o: typeof oc) => sum(o.map((m) => m.room)) / (sum(o.map((m) => m.avail)) || 1);
   const rev = sum(c.revenue), cost = sum(c.totalCost), net = sum(c.net);
   // Cost and net need every company in view to have costs that year: with none, "net" would just repeat revenue.
@@ -88,16 +88,16 @@ async function Content({ searchParams }: { searchParams: Params }) {
             <Kpi label={`Revenue ${cur}`} value={`${fmt(rev / 1e6, 2)} M`} delta={delta(rev, p && ytd(p.revenue))} spark={c.revenue.map((v) => v / 1e6)} up={!p || rev >= ytd(p.revenue)} />
             {costed ? <>
               <Kpi label={`Total cost ${cur}`} value={`${fmt(cost / 1e6, 2)} M`} delta={delta(cost, p && ytd(p.totalCost))} spark={c.totalCost.map((v) => v / 1e6)} up={!p || cost <= ytd(p.totalCost)} />
-              <Kpi label={`Net profit ${cur}`} value={`${fmt(net / 1e6, 2)} M`} delta={delta(net, p && ytd(p.net))} spark={c.net.map((v) => v / 1e6)} up={net >= 0} />
+              <Kpi label={`Net profit ${cur}`} value={`${fmt(net / 1e6, 2)} M`} delta={delta(net, p && ytd(p.net))} spark={c.net.map((v) => v / 1e6)} up={!p || net >= ytd(p.net)} />
               <Kpi label="Net margin" value={`${fmt(rev ? (net / rev) * 100 : 0, 1)}%`} />
             </> : <Kpi label="Cost, net profit and margin" value="–" delta="Not every company in view has cost data this year" />}
           </div>
           <div className="grid">
             <Panel span={12} title="Revenue by month">
-              <CompareChart years={ys} series={R.map((r) => r.revenue.map((v) => v / 1e6))} sel={idx} />
+              <CompareChart years={ys} series={R.map((r) => r.revenue.map((v) => v / 1e6))} sel={upto - 1} />
             </Panel>
             {costed && <Panel span={12} title="Net profit / loss by month">
-              <CompareChart years={ys} series={R.map((r) => r.net.map((v) => v / 1e6))} sel={idx} />
+              <CompareChart years={ys} series={R.map((r) => r.net.map((v) => v / 1e6))} sel={upto - 1} />
             </Panel>}
             <Panel span={6} title={`Revenue by source - ${cur}`}>
               <HBars rows={revenueLines(cur, key!).map(([l, v]) => ({ l, v: v / 1e6 }))} unit=" M" />

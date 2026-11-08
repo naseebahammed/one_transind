@@ -62,7 +62,7 @@ async function Content({ searchParams }: { searchParams: Params }) {
   // Cost, net and margin need every property's costs: a partial total would read as the whole portfolio's result.
   const complete = !missing.length && !revenueOnly.length;
   // Compare against the same months last year: the current year is usually only partly loaded.
-  const upto = Math.max(0, ...per.flatMap((x) => x.r.revenue.map((v, i) => (v ? i + 1 : 0))));
+  const upto = Math.max(1, ...per.flatMap((x) => x.r.revenue.map((v, i) => (v ? i + 1 : 0))));
   const ytd = (a: number[]) => sum(a.slice(0, upto));
   const vsLabel = upto < 12 ? `${MONTHS[0]}–${MONTHS[upto - 1]} ${prevYear}` : String(prevYear);
   const groups = new Map<string, typeof per>();
