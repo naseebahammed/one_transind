@@ -52,8 +52,11 @@ async function Content({ searchParams }: { searchParams: Params }) {
   const avg = (o: typeof oc) => ({ occ: sum(o.map((m) => m.sold)) / (sum(o.map((m) => m.avail)) || 1), adr: sum(o.map((m) => m.room)) / (sum(o.map((m) => m.sold)) || 1) });
   const revpar = (o: typeof oc) => sum(o.map((m) => m.room)) / (sum(o.map((m) => m.avail)) || 1);
   const rev = sum(c.revenue), cost = sum(c.totalCost), net = sum(c.net);
-  // Cost and net need every company in view to have costs that year: with none, "net" would just repeat revenue.
-  const costedIn = (y: number) => [key!].flat().every((k) => sum(report(y, k).totalCost) !== 0);
+  // Cost and net need every company with a P&L that year to have costs: with none, "net" would just repeat revenue.
+  const costedIn = (y: number) => {
+    const activeKeys = [key!].flat().filter((k) => years(k).includes(y));
+    return activeKeys.length > 0 && activeKeys.every((k) => sum(report(y, k).totalCost) !== 0);
+  };
   const costed = costedIn(cur);
   // Compare against the same months last year: the current year is usually only partly loaded.
   const upto = Math.max(1, ...c.revenue.map((v, i) => (v ? i + 1 : 0)));

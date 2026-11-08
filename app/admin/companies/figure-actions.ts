@@ -11,6 +11,10 @@ export type FigureUploadState = { error?: string; ok?: string };
 
 const sectionName = (s: string) => SECTIONS.find(([k]) => k === s)?.[1] ?? s;
 
+function refreshFigurePaths(companyId: number) {
+  for (const p of [`/admin/companies/${companyId}`, "/admin/companies", "/admin/finance", "/admin/data-status", "/admin/activity"]) revalidatePath(p);
+}
+
 /** Validates a section's filled template, then saves it. Any problem saves nothing except the record of the attempt. */
 export async function uploadFigures(_: FigureUploadState, f: FormData): Promise<FigureUploadState> {
   const section = String(f.get("section")), year = Number(f.get("year")), file = f.get("file");
@@ -29,7 +33,7 @@ export async function uploadFigures(_: FigureUploadState, f: FormData): Promise<
     await importFigures(u, parsed.figures.map((x) => ({ ...x, main: groups.get(x.line)! })));
     const months = new Set(parsed.figures.map((x) => x.month));
     await addLog(`${company.name}: ${sectionName(section)} ${year} uploaded`, true, months.size);
-    revalidatePath(`/admin/companies/${company.id}`); revalidatePath("/admin/data-status"); revalidatePath("/admin/activity");
+    refreshFigurePaths(company.id);
     return { ok: `Saved ${months.size} month${months.size > 1 ? "s" : ""}: ${[...months].map((m) => MONTHS[m]).join(", ")}.` };
   } catch (e) {
     const error = (e as Error).message;
@@ -47,7 +51,7 @@ export async function saveFigureCell(section: FigureSection, year: number, compa
   if (!company || (await branchOf(company.id, branchId)) === undefined) return;
   await setFigure(company.id, section, year, month, main, sub, "", value, branchId);
   await addLog(`${company.name}: ${sectionName(section)} ${sub} ${MONTHS[month]} ${year} set to ${value}`);
-  revalidatePath(`/admin/companies/${company.id}`); revalidatePath("/admin/data-status"); revalidatePath("/admin/activity");
+  refreshFigurePaths(company.id);
 }
 
 export async function removeFigureMonth(f: FormData) {
@@ -59,5 +63,5 @@ export async function removeFigureMonth(f: FormData) {
   if (branchId === undefined) return;
   await deleteFigureMonth(company.id, section, year, month, branchId);
   await addLog(`${company.name}: ${sectionName(section)} ${MONTHS[month]} ${year} removed`);
-  revalidatePath(`/admin/companies/${company.id}`);
+  refreshFigurePaths(company.id);
 }

@@ -36,15 +36,15 @@ export function EditPnlFigure({ year, months, accounts, onSave }: { year: number
       </NativeSelect>
       {row && month !== "" && (
         <>
-          <span className="text-sm text-muted-foreground">Current: {current}</span>
+          <span className="text-sm text-muted-foreground">Current: {current ?? "—"}</span>
           <Input
             type="number" step="0.01" placeholder="New value" value={value}
             onChange={(e) => setValue(e.target.value)} className="w-28" aria-label="New value"
           />
           <Button
-            type="button" size="sm" disabled={pending || value === ""}
+            type="button" size="sm" disabled={pending || value.trim() === "" || !Number.isFinite(Number(value))}
             onClick={async () => {
-              if (!confirm(`Save ${row.main} · ${row.sub} for ${months[+month]} ${year}: ${current} → ${value}?`)) return;
+              if (!confirm(`Save ${row.main} · ${row.sub} for ${months[+month]} ${year}: ${current ?? "—"} → ${value}?`)) return;
               setPending(true);
               await onSave(row.main, row.sub, +month, Number(value));
               router.refresh();

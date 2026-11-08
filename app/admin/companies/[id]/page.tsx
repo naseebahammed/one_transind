@@ -35,6 +35,7 @@ export default function EditCompany({ params, searchParams }: { params: Params; 
 async function Edit({ params, searchParams }: { params: Params; searchParams: Search }) {
   await loadReports();
   const id = Number((await params).id);
+  if (!Number.isInteger(id)) notFound();
   const { section: rawSection, year: rawYear, branch: rawBranch, month: rawMonth } = await searchParams;
   const [company, ids, sectors, propertyTypes, branches] = await Promise.all([getCompany(id), listCompanyIds(), listSectors(), listPropertyTypes(), listBranches(id)]);
   if (!company) notFound();

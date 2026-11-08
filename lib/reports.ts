@@ -71,7 +71,7 @@ export function report(year: number, key: Key, rows = load(key)) {
   const costGroups = [...by].filter(([, v]) => sum(v) !== 0).map(([k, v]) => [label[k] ?? k, v] as [string, number[]]);
   const revenue = r.filter((x) => x.main === "REVENUE").reduce((a, x) => add(a, x.m), zero());
   const totalCost = costGroups.reduce((a, [, v]) => add(a, v), zero());
-  const roomRent = r.find((x) => x.sub === "Room Rent")?.m ?? zero();
+  const roomRent = r.filter((x) => x.sub === "Room Rent").reduce((a, x) => add(a, x.m), zero());
   return { revenue, roomRent, totalCost, net: add(revenue, totalCost, -1), costGroups };
 }
 
@@ -82,8 +82,11 @@ const label: Record<string, string> = {
 };
 
 /** Revenue by account line (room rent, space rental, ...) for one year, non-zero lines only. */
-export const revenueLines = (year: number, key: Key) =>
-  load(key).filter((x) => x.year === year && x.main === "REVENUE").map((x) => [x.sub, sum(x.m)] as [string, number]).filter(([, v]) => v).sort((a, b) => b[1] - a[1]);
+export function revenueLines(year: number, key: Key) {
+  const by = new Map<string, number>();
+  for (const x of load(key)) if (x.year === year && x.main === "REVENUE") by.set(x.sub, (by.get(x.sub) ?? 0) + sum(x.m));
+  return [...by].filter(([, v]) => v).sort((a, b) => b[1] - a[1]);
+}
 
 /** Per month for one year from the daily long/short stay sales report: occupancy %, average daily rate, rooms sold, long/short guests, other revenue. */
 export function occupancy(year: number, key: Key) {

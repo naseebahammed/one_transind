@@ -56,9 +56,12 @@ async function Summary({ searchParams }: { searchParams: Search }) {
   const rows = (await listCompanies()).filter((c) => !company || String(c.id) === company).flatMap((c) => { const reports = reportsFor(c); return (reports.length ? reports : [undefined]).map((r) => ({ c, r })); });
   const withData = rows.filter((x) => x.r);
   const companies = new Set(rows.map((x) => x.c.id)).size, withReport = new Set(withData.map((x) => x.c.id)).size;
-  const byYear = years(alManzilKey()).map((year) => {
-    const yearReports = withData.filter((x) => !x.c.hidden && x.r!.year === year).map((x) => x.r!);
-    const top = yearReports.flatMap((r) => r.costGroups).map(([name, d]) => [name, sum(d)] as [string, number]).sort((a, b) => b[1] - a[1]); // all lines, so the percentages are shares of total cost
+  const visibleWithData = withData.filter((x) => !x.c.hidden);
+  const byYear = [...new Set(visibleWithData.map((x) => x.r!.year))].sort().map((year) => {
+    const totals = new Map<string, number>();
+    for (const { r } of visibleWithData.filter((x) => x.r!.year === year))
+      for (const [name, d] of r!.costGroups) totals.set(name, (totals.get(name) ?? 0) + sum(d));
+    const top = [...totals].sort((a, b) => b[1] - a[1]); // all lines, so the percentages are shares of total cost
     return { year, top };
   });
   const one = company ? rows[0]?.c : undefined;
