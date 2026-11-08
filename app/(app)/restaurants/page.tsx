@@ -7,12 +7,13 @@ import { fmt, MONTHS, pct, sum } from "@/lib/format";
 import { SECTOR } from "@/lib/org";
 import { branchSummary, receiptTable } from "@/lib/receipts";
 import { link } from "@/lib/url";
+import { CompanySelect } from "@/components/CompanySelect";
 import { MonthSelect } from "@/components/MonthSelect";
 import { YearSelect } from "@/components/YearSelect";
 import { HBars, Kpi, Panel } from "@/components/ui";
 
 export const metadata = { title: "Restaurants · One Transind" };
-type Params = Promise<{ m?: string; year?: string }>;
+type Params = Promise<{ m?: string; year?: string; company?: string }>;
 
 export default function Page({ searchParams }: { searchParams: Params }) {
   return <Suspense fallback={<p className="empty">Loading…</p>}><Content searchParams={searchParams} /></Suspense>;
@@ -22,11 +23,15 @@ const share = (part: number, whole: number) => (whole ? `${fmt((part / whole) * 
 
 async function Content({ searchParams }: { searchParams: Params }) {
   await connection();
-  const { m, year: rawYear } = await searchParams;
-  // shortcut: shows the first restaurant company that has branches, add a company picker when a second one has data.
-  const company = (await listCompanies("", SECTOR.foodBeverage)).find((c) => c.active && !c.hidden && c.has_branches);
-  if (!company) return <Panel span={12} title="Restaurants"><p className="empty">No restaurant company with branches is set up.</p></Panel>;
-  const [branches, latest] = await Promise.all([listBranches(company.id), latestReceiptMonth(company.id)]);
+  const { m, year: rawYear, company: rawCompany } = await searchParams;
+  const companies = (await listCompanies("", SECTOR.foodBeverage)).filter((c) => c.active && !c.hidden && c.has_branches);
+  if (!companies.length) return <Panel span={12} title="Restaurants"><p className="empty">No restaurant company with branches is set up.</p></Panel>;
+  const branchLists = await Promise.all(companies.map((c) => listBranches(c.id)));
+  const chosen = companies.findIndex((c) => String(c.id) === rawCompany);
+  // With no choice in the link, open on the company with the most branches, so adding a smaller restaurant company does not change the opening view.
+  const pick = chosen >= 0 ? chosen : branchLists.reduce((best, list, i) => (list.length > branchLists[best].length ? i : best), 0);
+  const company = companies[pick], branches = branchLists[pick];
+  const latest = await latestReceiptMonth(company.id);
   const now = new Date(), thisYear = now.getFullYear();
   const years = [thisYear - 2, thisYear - 1, thisYear];
   const year = years.includes(Number(rawYear)) ? Number(rawYear) : (latest?.year ?? thisYear);
@@ -49,9 +54,10 @@ async function Content({ searchParams }: { searchParams: Params }) {
   return (
     <>
       <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-        <MonthSelect value={month} max={11} names={MONTHS} year={year} base={link("/restaurants", { year: String(year) })} />
-        <YearSelect years={years} value={year} base={link("/restaurants", { m: String(month + 1) })} />
-        <span className="note">{company.name}</span>
+        {companies.length > 1 && <CompanySelect companies={companies.map((c) => ({ id: c.id, name: c.name }))} value={company.id} base={link("/restaurants", { year: rawYear, m })} />}
+        <MonthSelect value={month} max={11} names={MONTHS} year={year} base={link("/restaurants", { year: String(year), company: rawCompany })} />
+        <YearSelect years={years} value={year} base={link("/restaurants", { m: String(month + 1), company: rawCompany })} />
+        {companies.length === 1 && <span className="note">{company.name}</span>}
       </div>
       <div className="kpis">
         <Kpi label={`Gross sales ${mn}`} value={hasData ? `${fmt(gross)} QAR` : "-"} delta={hasData && lastMonthGross ? <>{gross >= lastMonthGross ? "▲" : "▼"} {fmt(Math.abs(pct(gross, lastMonthGross)), 1)}% vs {MONTHS[previous.month]} {previous.year}</> : undefined} up={gross >= lastMonthGross} />

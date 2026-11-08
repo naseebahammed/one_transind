@@ -14,6 +14,7 @@ const figures = [
   { id: 7, section: "pnl", y: 2026, mo: 0, main: "REVENUE", line: "Room Rent", unit_type: "", v: 900 },
   { id: 7, section: "units", y: 2025, mo: 2, main: "UNITS", line: "Long stay", unit_type: "1 BHK", v: 4 },
   { id: 8, section: "pnl", y: 2024, mo: 5, main: "REVENUE", line: "Room Rent", unit_type: "", v: 50 },
+  { id: 8, section: "pnl", y: 2025, mo: 0, main: "REVENUE", line: "Room Rent", unit_type: "", v: 400 },
 ];
 const derived = [{ id: 7, y: 2025, mo: 0, main: "REVENUE", line: "Room revenue", v: 1000 }];
 const day = (date: string, long_guests: number, short_guests: number, rooms_occupied: number, room_revenue: number, other_revenue: number) =>
@@ -31,6 +32,8 @@ test("loadReports + readers: years, Al Manzil key, revenue lines and P&L totals"
   assert.deepEqual(years("7", "units"), [2025]);
   assert.deepEqual(years(["7", "8"]), [2024, 2025, 2026]);
   assert.deepEqual(revenueLines(2025, "7"), [["Room Rent", 3000], ["Space Rental", 500]]);
+  assert.deepEqual(revenueLines(2025, ["7", "8"]), [["Room Rent", 3400], ["Space Rental", 500]]);
+  assert.deepEqual(report(2025, ["7", "8"]).roomRent, m(1400, 2000));
 
   const r = report(2025, "7");
   assert.deepEqual(r.revenue, m(1500, 2000));
