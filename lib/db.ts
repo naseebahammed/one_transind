@@ -38,13 +38,13 @@ export async function q<T = Record<string, unknown>>(text: string, params: unkno
   await ready();
   return (await pg.query(text, params)).rows as T[];
 }
-/** Run fn in one transaction under an app-wide lock, so "max + 1" numbers cannot collide between concurrent requests. */
-export async function numbering<T>(fn: (c: PoolClient) => Promise<T>) {
+/** Run fn in one transaction under an advisory lock (scoped to key when passed), so concurrent imports/edits do not collide. */
+export async function numbering<T>(fn: (c: PoolClient) => Promise<T>, key = 0) {
   await ready();
   const c = await pg.connect();
   try {
     await c.query("BEGIN");
-    await c.query("SELECT pg_advisory_xact_lock(7452)");
+    await c.query("SELECT pg_advisory_xact_lock(7452, $1)", [key]);
     const r = await fn(c);
     await c.query("COMMIT");
     return r;

@@ -367,7 +367,25 @@ CREATE VIEW rpt.stock_expiry AS SELECT as_of, report, item_code, item, size, pac
   CASE WHEN expiry_date - as_of <= 30 THEN '0-30' WHEN expiry_date - as_of <= 60 THEN '31-60' WHEN expiry_date - as_of <= 90 THEN '61-90' ELSE 'Over 90' END AS age_bucket, remarks FROM app.stock_expiry;
 `;
 
-const MIGRATIONS: readonly (readonly [string, string])[] = [["001_baseline", BASELINE], ["002_standard_data", STANDARD_DATA], ["003_drop_report_files", DROP_REPORT_FILES], ["005_company_expenses", COMPANY_EXPENSES], ["006_company_branches", COMPANY_BRANCHES], ["007_company_has_branches", COMPANY_HAS_BRANCHES], ["008_daily_receipts", DAILY_RECEIPTS], ["009_drop_deals", DROP_DEALS], ["010_drop_invoices", DROP_INVOICES], ["011_enterprise_foundation", ENTERPRISE_FOUNDATION], ["012_rejected_rows_loaded", REJECTED_ROWS_LOADED], ["013_restaurant_cogs", RESTAURANT_COGS], ["014_drop_ownership_pct", DROP_OWNERSHIP_PCT], ["015_fmcg_masters", FMCG_MASTERS], ["016_data_standardization", DATA_STANDARDIZATION], ["017_fmcg_sales_views", FMCG_SALES_VIEWS], ["018_fmcg_balances", FMCG_BALANCES], ["019_fmcg_control", FMCG_CONTROL]];
+// Plain-column NULLS NOT DISTINCT keys (so IS NOT DISTINCT FROM uses the index), section/account/company indexes, and deduplicated upload blobs.
+const APP_OPTIMIZATIONS = `
+DROP INDEX app.company_figures_key;
+ALTER TABLE app.company_figures ADD CONSTRAINT company_figures_key UNIQUE NULLS NOT DISTINCT (company_id, branch_id, section, period, main, line, unit_type);
+DROP INDEX app.daily_sales_key;
+ALTER TABLE app.daily_sales ADD CONSTRAINT daily_sales_key UNIQUE NULLS NOT DISTINCT (company_id, branch_id, date);
+CREATE INDEX company_figures_section_period ON app.company_figures(section, company_id, period);
+CREATE INDEX company_figures_account ON app.company_figures(section, main, line);
+CREATE INDEX daily_receipts_company_date ON app.daily_receipts(company_id, date DESC);
+CREATE TABLE app.import_files(sha256 TEXT PRIMARY KEY, file BYTEA NOT NULL);
+UPDATE app.imports SET sha256 = encode(sha256(file), 'hex') WHERE file IS NOT NULL AND sha256 = '';
+INSERT INTO app.import_files(sha256, file)
+  SELECT DISTINCT ON (sha256) sha256, file FROM app.imports WHERE file IS NOT NULL
+  ON CONFLICT (sha256) DO NOTHING;
+ALTER TABLE app.imports DROP COLUMN file;
+DO 'BEGIN IF to_regclass(''app.sector_expenses'') IS NOT NULL THEN PERFORM 1 / (CASE WHEN EXISTS (SELECT 1 FROM app.sector_expenses) THEN 0 ELSE 1 END); DROP TABLE app.sector_expenses; END IF; END';
+`;
+
+const MIGRATIONS: readonly (readonly [string, string])[] = [["001_baseline", BASELINE], ["002_standard_data", STANDARD_DATA], ["003_drop_report_files", DROP_REPORT_FILES], ["005_company_expenses", COMPANY_EXPENSES], ["006_company_branches", COMPANY_BRANCHES], ["007_company_has_branches", COMPANY_HAS_BRANCHES], ["008_daily_receipts", DAILY_RECEIPTS], ["009_drop_deals", DROP_DEALS], ["010_drop_invoices", DROP_INVOICES], ["011_enterprise_foundation", ENTERPRISE_FOUNDATION], ["012_rejected_rows_loaded", REJECTED_ROWS_LOADED], ["013_restaurant_cogs", RESTAURANT_COGS], ["014_drop_ownership_pct", DROP_OWNERSHIP_PCT], ["015_fmcg_masters", FMCG_MASTERS], ["016_data_standardization", DATA_STANDARDIZATION], ["017_fmcg_sales_views", FMCG_SALES_VIEWS], ["018_fmcg_balances", FMCG_BALANCES], ["019_fmcg_control", FMCG_CONTROL], ["020_app_optimizations", APP_OPTIMIZATIONS]];
 
 /** Applies the migrations not yet recorded, optionally only up to and including one. Run it inside a transaction holding the init lock. */
 export async function migrate(c: { query: (text: string, params?: unknown[]) => Promise<{ rows: { id: string }[] }> }, upTo?: string) {

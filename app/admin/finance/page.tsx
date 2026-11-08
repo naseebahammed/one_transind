@@ -194,7 +194,7 @@ const GridSection = ({ title, children }: { title: string; children: React.React
 );
 
 /** Read-only monthly grid for one year, grouped by main account. Figures are edited one at a time via EditPnlFigure. Shared by P&L and monthly sales. */
-function AccountGrid({ year, rows, onSave }: { year: number; rows: ReportRow[]; onSave?: (main: string, sub: string, month: number, value: number) => Promise<void> }) {
+function AccountGrid({ year, rows, onSave }: { year: number; rows: ReportRow[]; onSave?: (main: string, sub: string, month: number, value: number) => Promise<string | null | void> }) {
   const groups = new Map<string, ReportRow[]>();
   for (const r of rows) groups.set(r.main, [...(groups.get(r.main) ?? []), r]);
   return (

@@ -49,7 +49,8 @@ export async function saveFigureCell(section: FigureSection, year: number, compa
   if (!isFigureSection(section) || !LINES[section].includes(sub) || checkFigureCell(sub, value)) return;
   const company = await getCompany(companyId);
   if (!company || (await branchOf(company.id, branchId)) === undefined) return;
-  await setFigure(company.id, section, year, month, main, sub, "", value, branchId);
+  const refused = await setFigure(company.id, section, year, month, main, sub, "", value, branchId);
+  if (refused) return refused;
   await addLog(`${company.name}: ${sectionName(section)} ${sub} ${MONTHS[month]} ${year} set to ${value}`);
   refreshFigurePaths(company.id);
 }

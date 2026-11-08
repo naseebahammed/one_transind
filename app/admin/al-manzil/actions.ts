@@ -150,24 +150,25 @@ async function companyFrom(key: string) {
 
 async function saveCell(section: string, year: number, key: string, main: string, sub: string, month: number, value: number, unitType = "") {
   const company = await companyFrom(key);
-  await setFigure(company.id, section, year, month, main, sub, unitType, value);
+  const refused = await setFigure(company.id, section, year, month, main, sub, unitType, value);
+  if (refused) return refused;
   await addLog(`${company.name}: ${LABEL[section]} ${unitType || main} / ${sub} ${MONTHS[month]} ${year} set to ${value}`);
   refresh();
 }
 
 /** Save one edited figure: year + key bind first so the client component gets a plain (main, sub, month, value) action. */
 export async function savePnlCell(year: number, key: string, main: string, sub: string, month: number, value: number) {
-  await saveCell("pnl", year, key, main, sub, month, value);
+  return saveCell("pnl", year, key, main, sub, month, value);
 }
 
 /** One edited monthly sales figure, for companies with no daily report. A hotel's monthly sales are calculated from its daily rows. */
 export async function saveSalesCell(year: number, key: string, main: string, sub: string, month: number, value: number) {
-  await saveCell("sales", year, key, main, sub, month, value);
+  return saveCell("sales", year, key, main, sub, month, value);
 }
 
 /** One edited unit-type figure. In the grid the unit type shows as the group, so "main" here is the unit type. */
 export async function saveUnitsCell(year: number, key: string, main: string, sub: string, month: number, value: number) {
-  await saveCell("units", year, key, (await linesOf("units")).get(sub) ?? "UNITS", sub, month, value, main);
+  return saveCell("units", year, key, (await linesOf("units")).get(sub) ?? "UNITS", sub, month, value, main);
 }
 
 /** Delete one year's P&L statement for a company. */

@@ -8,7 +8,7 @@ import { Card } from "@/components/admin/ui/card";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/admin/ui/table";
 import { listCompanies, type Company } from "@/lib/companies";
 import { monthStatuses, type FigureSection } from "@/lib/company-data";
-import { listFilledMonths } from "@/lib/company-figures";
+import { listAllFilledMonths } from "@/lib/company-figures";
 import { link } from "@/lib/url";
 
 type Search = Promise<{ year?: string }>;
@@ -42,11 +42,12 @@ export default function DataStatus({ searchParams }: { searchParams: Search }) {
 async function Matrix({ searchParams }: { searchParams: Search }) {
   const today = new Date(), thisYear = today.getFullYear(), years = [thisYear - 2, thisYear - 1, thisYear];
   const raw = Number((await searchParams).year), year = years.includes(raw) ? raw : thisYear;
-  const companies = (await listCompanies()).filter((c) => c.active && !c.hidden);
-  const filled = await Promise.all(companies.map((c) => listFilledMonths(c.id, year)));
-  const rows = companies.map((c, i) => {
+  const [allCompanies, filledFor] = await Promise.all([listCompanies(), listAllFilledMonths(year)]);
+  const companies = allCompanies.filter((c) => c.active && !c.hidden);
+  const rows = companies.map((c) => {
+    const filled = filledFor(c.id);
     const monthly = MONTHLY.map(([k]): Cell => {
-      const s = monthStatuses(k as "pnl" | FigureSection, year, filled[i][k as FigureSection | "pnl"], today);
+      const s = monthStatuses(k as "pnl" | FigureSection, year, filled[k as FigureSection | "pnl"], today);
       const due = s.filter((x) => x !== "Not due").length, done = s.filter((x) => x === "Submitted").length;
       if (!due) return na;
       return { state: done === due ? "ok" : done ? "part" : "none", text: `${done}/${due}` };

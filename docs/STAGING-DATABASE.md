@@ -7,9 +7,9 @@ You need the PostgreSQL command-line tools (`pg_dump`, `pg_restore`, `createdb`,
 ## 1. Back up the live database (read-only, safe)
 Create the `backups/` folder first if it is missing (`mkdir backups`). It is git-ignored.
 ```bash
-pg_dump -h [live-host] -U [user] -d [live-db] -n app -Fc -f backups/app-before-branches-2026-11-07.dump
+pg_dump -h [live-host] -U [user] -d [live-db] -n app -n stg -n rpt -Fc -f backups/app-before-branches-2026-11-07.dump
 ```
-`-n app` saves only the app schema. The ERP view in `public` is not copied.
+`-n app -n stg -n rpt` saves the app's own data, the refused-rows list and the Excel views. The ERP view in `public` is not copied.
 
 ## 2. Create an empty staging database on the SAME server or a local one
 ```bash
@@ -21,7 +21,7 @@ Prefer a local Postgres on your PC, so it can never touch the live server.
 ```bash
 pg_restore -h [staging-host] -U [user] -d transind_staging --no-owner backups/app-before-branches-2026-11-07.dump
 ```
-Staging has no ERP sales view. The sales pages will be empty or error; the company, branch and receipts pages work. If you need sales too, create a small table or view with the same name as `SALES_TABLE`.
+Staging has no ERP sales view, so `pg_restore` reports errors for `rpt.sales_lines` and `rpt.sales_vs_target`, which depend on it. Those two are expected; read any other error. The sales pages will be empty or error; the company, branch and receipts pages work. If you need sales too, create a small table or view with the same name as `SALES_TABLE`.
 
 ## 4. Point the app at staging WITHOUT editing `.env.local`
 Values set in the terminal win over `.env.local`. In PowerShell, in the same window where you start the app:

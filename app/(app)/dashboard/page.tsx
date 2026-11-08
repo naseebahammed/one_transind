@@ -23,10 +23,11 @@ export default function Page({ searchParams }: { searchParams: Params }) {
 
 async function Content({ searchParams }: { searchParams: Params }) {
   await connection();
-  const [reports, { p, all }, o, depts, adminSectors, fileSectorCompanies, realEstateCompanies] = await Promise.all([
-    loadReports(), searchParams, getOverview(), getSalesSectors(true), listSectors(),
-    Promise.all(FILE_SECTORS.map(([k]) => listCompanies("", k))), listCompanies("", SECTOR.realEstate),
+  const [reports, { p, all }, o, depts, adminSectors, allCompanies] = await Promise.all([
+    loadReports(), searchParams, getOverview(), getSalesSectors(true), listSectors(), listCompanies(),
   ]);
+  const fileSectorCompanies = FILE_SECTORS.map(([k]) => allCompanies.filter((c) => c.sector === k));
+  const realEstateCompanies = allCompanies.filter((c) => c.sector === SECTOR.realEstate);
   const path = parsePath(p);
   const [rows, labels] = await Promise.all([getDrill(o.month, "p", path), getDrillLabels(o.month, "p", path)]);
   // Revenue by admin sector: departments are mapped to one under Admin → Sales sectors; the rest fall under "Unassigned".

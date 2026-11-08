@@ -28,10 +28,12 @@ async function buildReports(query?: <T>(text: string) => Promise<T[]>): Promise<
        FROM app.company_figures f JOIN app.accounts a ON a.section=f.section AND a.main=f.main AND a.sub=f.line
        WHERE f.section IN ('pnl','sales','units') ORDER BY a.main_order, a.id`),
     q<{ id: number; y: number; mo: number; main: string; line: string; v: number }>(
-      // shortcut: a retail company's monthly sales come from its daily takings via rpt.company_monthly_revenue. A monthly figure typed for the same company adds on top, so keep such a company on daily uploads only.
+      // A retail company's monthly sales come from its daily takings. figure-rules.ts refuses a monthly figure for a month that has takings, and the reverse, so they cannot add on top.
       `SELECT company_id AS id, EXTRACT(year FROM period)::int AS y, EXTRACT(month FROM period)::int - 1 AS mo, main, line, value::float8 AS v
        FROM (SELECT company_id, period, main, line, value FROM app.daily_sales_monthly
-             UNION ALL SELECT company_id, period, 'REVENUE', line, SUM(amount_qar) FROM rpt.company_monthly_revenue WHERE source = 'daily_receipts' AND sector = '${SECTOR.retail}' GROUP BY 1, 2, 4) monthly
+             UNION ALL SELECT r.company_id, date_trunc('month', r.date)::date AS period, 'REVENUE', 'Sales' AS line, SUM(r.value) AS value
+             FROM app.daily_receipts r JOIN app.companies c ON c.id = r.company_id
+             WHERE r.line <> 'Bank deposits' AND c.sector = '${SECTOR.retail}' GROUP BY 1, 2) monthly
        ORDER BY array_position(ARRAY['Long stay','Short stay','Room revenue','Other revenue','Occupied','Available'], line)`),
     q<Day & { id: number }>(`SELECT company_id AS id, to_char(date,'YYYY-MM-DD') AS date, ${NUMS.split(",").map((c) => `${c}::float8 AS ${c}`).join(",")} FROM app.daily_sales ORDER BY date`),
     // shortcut: the Al Manzil panels on /finance, /admin/finance and Ask find it by name; give them a company picker to drop this.

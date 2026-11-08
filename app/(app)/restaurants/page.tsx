@@ -1,8 +1,8 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
-import { listBranches } from "@/lib/branches";
+import { listBranchesForCompanies } from "@/lib/branches";
 import { listCompanies } from "@/lib/companies";
-import { latestReceiptMonth, listReceipts } from "@/lib/company-figures";
+import { latestReceiptMonth, listBranchesReceipts } from "@/lib/company-figures";
 import { fmt, MONTHS, pct, sum } from "@/lib/format";
 import { SECTOR } from "@/lib/org";
 import { branchSummary, receiptTable } from "@/lib/receipts";
@@ -26,7 +26,8 @@ async function Content({ searchParams }: { searchParams: Params }) {
   const { m, year: rawYear, company: rawCompany } = await searchParams;
   const companies = (await listCompanies("", SECTOR.foodBeverage)).filter((c) => c.active && !c.hidden);
   if (!companies.length) return <Panel span={12} title="Restaurants"><p className="empty">No restaurant company is set up.</p></Panel>;
-  const branchLists = await Promise.all(companies.map((c) => listBranches(c.id)));
+  const allBranches = await listBranchesForCompanies(companies.map((c) => c.id));
+  const branchLists = companies.map((c) => allBranches.filter((b) => b.company_id === c.id));
   const chosen = companies.findIndex((c) => String(c.id) === rawCompany);
   // With no choice in the link, open on the company with the most branches, so adding a smaller restaurant company does not change the opening view.
   const pick = chosen >= 0 ? chosen : branchLists.reduce((best, list, i) => (list.length > branchLists[best].length ? i : best), 0);
@@ -39,10 +40,13 @@ async function Content({ searchParams }: { searchParams: Params }) {
   const month = m && Number.isInteger(rawM) && rawM >= 1 && rawM <= 12 ? rawM - 1 : latest && latest.year === year ? latest.month : latest ? 11 : now.getMonth();
   const active = branches.filter((b) => b.active);
   const previous = month === 0 ? { year: year - 1, month: 11 } : { year, month: month - 1 };
-  const load = (y: number, mo: number) => Promise.all(active.map(async (b) => {
-    const table = receiptTable(await listReceipts(b.id, y, mo), y, mo);
-    return { name: b.name, table, summary: branchSummary(table) };
-  }));
+  const load = async (y: number, mo: number) => {
+    const byBranch = await listBranchesReceipts(active.map((b) => b.id), y, mo);
+    return active.map((b) => {
+      const table = receiptTable(byBranch.get(b.id) ?? [], y, mo);
+      return { name: b.name, table, summary: branchSummary(table) };
+    });
+  };
   const [current, before] = await Promise.all([load(year, month), load(previous.year, previous.month)]);
   const gross = sum(current.map((b) => b.summary.gross)), cash = sum(current.map((b) => b.summary.cash)), card = sum(current.map((b) => b.summary.card)), apps = sum(current.map((b) => b.summary.deliveryApps));
   const lastMonthGross = sum(before.map((b) => b.summary.gross));

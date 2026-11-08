@@ -8,18 +8,19 @@ import { NativeSelect } from "@/components/admin/ui/native-select";
 type Account = { main: string; sub: string; m: (number | undefined)[] };
 
 /** Step-wise editor for one figure (P&L or sales): pick year (fixed to the page), month, account, then edit and confirm. */
-export function EditPnlFigure({ year, months, accounts, onSave }: { year: number; months: string[]; accounts: Account[]; onSave: (main: string, sub: string, month: number, value: number) => Promise<void> }) {
+export function EditPnlFigure({ year, months, accounts, onSave }: { year: number; months: string[]; accounts: Account[]; onSave: (main: string, sub: string, month: number, value: number) => Promise<string | null | void> }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [month, setMonth] = useState("");
   const [account, setAccount] = useState("");
   const [value, setValue] = useState("");
   const [pending, setPending] = useState(false);
+  const [refused, setRefused] = useState("");
 
   const row = accounts.find((a) => `${a.main}|${a.sub}` === account);
   const current = row && month !== "" ? row.m[+month] : undefined;
 
-  const reset = () => { setOpen(false); setMonth(""); setAccount(""); setValue(""); };
+  const reset = () => { setOpen(false); setMonth(""); setAccount(""); setValue(""); setRefused(""); };
 
   if (!open) return <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)}>Edit data</Button>;
 
@@ -46,15 +47,17 @@ export function EditPnlFigure({ year, months, accounts, onSave }: { year: number
             onClick={async () => {
               if (!confirm(`Save ${row.main} · ${row.sub} for ${months[+month]} ${year}: ${current ?? "—"} → ${value}?`)) return;
               setPending(true);
-              await onSave(row.main, row.sub, +month, Number(value));
-              router.refresh();
+              const reason = await onSave(row.main, row.sub, +month, Number(value));
               setPending(false);
+              if (reason) { setRefused(reason); return; }
+              router.refresh();
               reset();
             }}
           >{pending ? "Saving…" : "Save"}</Button>
         </>
       )}
       <Button type="button" variant="ghost" size="sm" onClick={reset}>Cancel</Button>
+      {refused && <p role="alert" className="w-full text-sm text-destructive">{refused}</p>}
     </div>
   );
 }
