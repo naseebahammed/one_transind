@@ -9,7 +9,9 @@ import { listPropertyTypes } from "@/lib/property-types";
 export type FormState = { error?: string };
 
 export async function saveCompany(_: FormState, f: FormData): Promise<FormState> {
-  const id = Number(f.get("id")) || 0;
+  const rawId = f.get("id");
+  const id = rawId ? Number(rawId) : 0;
+  if (!Number.isInteger(id) || id < 0) return { error: "Invalid company ID." };
   const [sectors, propertyTypes] = await Promise.all([listSectors(), listPropertyTypes()]);
   const parsed = parseCompany(f, sectors.map(([k]) => k), propertyTypes.map(([k]) => k));
   if ("error" in parsed) return parsed;
@@ -38,7 +40,7 @@ export async function saveCompany(_: FormState, f: FormData): Promise<FormState>
 /** Sets whether a company's data is hidden on the finance page ("hidden" = 1 or 0); the company record itself is untouched. Absolute, not a flip, so a double submit is harmless. */
 export async function toggleCompanyHidden(f: FormData) {
   const id = Number(f.get("id"));
-  if (!id) return;
+  if (!Number.isInteger(id) || id <= 0) return;
   await q("UPDATE app.companies SET hidden=$1 WHERE id=$2", [f.get("hidden") === "1" ? 1 : 0, id]);
   revalidatePath("/", "layout");
 }

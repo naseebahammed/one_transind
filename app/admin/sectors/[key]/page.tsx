@@ -3,6 +3,7 @@ import { CompanyRow } from "@/components/admin/CompanyRow";
 import { Page } from "@/components/admin/Page";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/admin/ui/table";
 import { listCompanies } from "@/lib/companies";
+import { listPropertyTypes } from "@/lib/property-types";
 import { listSectors } from "@/lib/sectors";
 
 type Params = Promise<{ key: string }>;
@@ -17,7 +18,8 @@ export default function SectorDetails({ params }: { params: Params }) {
 
 async function List({ params }: { params: Params }) {
   const key = decodeURIComponent((await params).key);
-  const [sectors, rows] = await Promise.all([listSectors(), listCompanies("", key)]);
+  const [sectors, propertyTypes, rows] = await Promise.all([listSectors(), listPropertyTypes(), listCompanies("", key)]);
+  const typeNames = new Map(propertyTypes);
   const name = sectors.find(([k]) => k === key)?.[1];
   if (!name) notFound();
   return (
@@ -28,7 +30,7 @@ async function List({ params }: { params: Params }) {
           <TableRow><TableHead>Name</TableHead><TableHead>Sector</TableHead><TableHead>Type</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead></TableRow>
         </TableHeader>
         <TableBody>
-          {rows.map((c) => <CompanyRow key={c.id} company={c} sectorLabel={name} />)}
+          {rows.map((c) => <CompanyRow key={c.id} company={c} sectorLabel={name} propertyTypeLabel={typeNames.get(c.property_type)} />)}
           {!rows.length && <TableRow><TableCell colSpan={5} className="h-24 text-center text-muted-foreground">No companies in this sector yet.</TableCell></TableRow>}
         </TableBody>
       </Table>

@@ -6,7 +6,7 @@ import { countCompaniesByPropertyType } from "@/lib/property-types";
 export type PropertyTypeState = { error?: string };
 
 const name = (f: FormData) => String(f.get("name") ?? "").trim().slice(0, 60);
-const done = () => revalidatePath("/admin", "layout");
+const done = () => revalidatePath("/", "layout");
 
 export async function addPropertyType(_: PropertyTypeState, f: FormData): Promise<PropertyTypeState> {
   const n = name(f);

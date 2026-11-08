@@ -7,7 +7,7 @@ import { TableCell, TableRow } from "@/components/admin/ui/table";
 import type { Company } from "@/lib/companies";
 import { fmt } from "@/lib/format";
 
-export function CompanyRow({ company: c, sectorLabel, expenses = [] }: { company: Company; sectorLabel: string; expenses?: (number | null)[] }) {
+export function CompanyRow({ company: c, sectorLabel, propertyTypeLabel, expenses = [] }: { company: Company; sectorLabel: string; propertyTypeLabel?: string; expenses?: (number | null)[] }) {
   const router = useRouter();
   return (
     <TableRow onClick={() => router.push(`/admin/companies/${c.id}`)} className="cursor-pointer">
@@ -18,7 +18,7 @@ export function CompanyRow({ company: c, sectorLabel, expenses = [] }: { company
         </span>
       </TableCell>
       <TableCell><Badge variant="outline">{sectorLabel}</Badge></TableCell>
-      <TableCell className="text-muted-foreground">{c.property_type ? c.property_type[0].toUpperCase() + c.property_type.slice(1) : "—"}</TableCell>
+      <TableCell className="text-muted-foreground">{propertyTypeLabel ?? (c.property_type ? c.property_type[0].toUpperCase() + c.property_type.slice(1) : "—")}</TableCell>
       <TableCell><Badge variant={c.active ? "success" : "neutral"}>{c.active ? "Active" : "Inactive"}</Badge></TableCell>
       {expenses.map((v, i) => <TableCell key={i} className="text-right tabular-nums">{v === null ? "—" : fmt(Math.abs(v), 2)}</TableCell>)}
       <TableCell className="text-right">

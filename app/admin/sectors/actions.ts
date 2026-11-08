@@ -6,7 +6,7 @@ import { countCompanies, PROTECTED_SECTOR_KEYS } from "@/lib/sectors";
 export type SectorState = { error?: string; success?: boolean };
 
 const name = (f: FormData) => String(f.get("name") ?? "").trim().slice(0, 60);
-const done = () => revalidatePath("/admin", "layout");
+const done = () => revalidatePath("/", "layout");
 
 export async function addSector(_: SectorState, f: FormData): Promise<SectorState> {
   const n = name(f);

@@ -8,6 +8,7 @@ import { NativeSelect } from "@/components/admin/ui/native-select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/admin/ui/table";
 import { listCompanies } from "@/lib/companies";
 import { listExpenseTotals } from "@/lib/company-figures";
+import { listPropertyTypes } from "@/lib/property-types";
 import { listSectors } from "@/lib/sectors";
 
 type Search = Promise<{ q?: string; sector?: string }>;
@@ -22,7 +23,8 @@ export default function Companies({ searchParams }: { searchParams: Search }) {
 
 async function List({ searchParams }: { searchParams: Search }) {
   const { q = "", sector = "" } = await searchParams;
-  const [rows, SECTORS, totals] = await Promise.all([listCompanies(q, sector), listSectors(), listExpenseTotals()]);
+  const [rows, SECTORS, propertyTypes, totals] = await Promise.all([listCompanies(q, sector), listSectors(), listPropertyTypes(), listExpenseTotals()]);
+  const typeNames = new Map(propertyTypes);
   const filtered = !!(q || sector);
   const years = [...new Set(totals.map((t) => t.year))].sort();
   const expensesOf = (id: number) => years.map((y) => totals.find((t) => t.company_id === id && t.year === y)?.value ?? null);
@@ -47,7 +49,7 @@ async function List({ searchParams }: { searchParams: Search }) {
         </TableHeader>
         <TableBody>
           {rows.map((c) => (
-            <CompanyRow key={c.id} company={c} sectorLabel={SECTORS.find(([k]) => k === c.sector)?.[1] ?? c.sector} expenses={expensesOf(c.id)} />
+            <CompanyRow key={c.id} company={c} sectorLabel={SECTORS.find(([k]) => k === c.sector)?.[1] ?? c.sector} propertyTypeLabel={typeNames.get(c.property_type)} expenses={expensesOf(c.id)} />
           ))}
           {!rows.length && (
             <TableRow>

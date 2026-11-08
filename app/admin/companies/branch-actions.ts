@@ -16,12 +16,16 @@ export async function addBranch(companyId: number, _: BranchState, f: FormData):
 
 /** The company-page checkbox. Unchecking only hides the box; the branches and their figures stay on file. */
 export async function setHasBranches(f: FormData) {
-  await q("UPDATE app.companies SET has_branches=$1 WHERE id=$2", [f.get("enabled") === "on" ? 1 : 0, Number(f.get("id"))]);
+  const id = Number(f.get("id"));
+  if (!Number.isInteger(id) || id <= 0) return;
+  await q("UPDATE app.companies SET has_branches=$1 WHERE id=$2", [f.get("enabled") === "on" ? 1 : 0, id]);
   revalidatePath("/", "layout");
 }
 
 /** Branches are switched off, never deleted: their figures stay on file. */
 export async function toggleBranch(f: FormData) {
-  await q("UPDATE app.branches SET active=1-active WHERE id=$1", [Number(f.get("id"))]);
+  const id = Number(f.get("id"));
+  if (!Number.isInteger(id) || id <= 0) return;
+  await q("UPDATE app.branches SET active=1-active WHERE id=$1", [id]);
   revalidatePath("/", "layout");
 }

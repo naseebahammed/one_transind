@@ -24,8 +24,8 @@ const share = (part: number, whole: number) => (whole ? `${fmt((part / whole) * 
 async function Content({ searchParams }: { searchParams: Params }) {
   await connection();
   const { m, year: rawYear, company: rawCompany } = await searchParams;
-  const companies = (await listCompanies("", SECTOR.foodBeverage)).filter((c) => c.active && !c.hidden && c.has_branches);
-  if (!companies.length) return <Panel span={12} title="Restaurants"><p className="empty">No restaurant company with branches is set up.</p></Panel>;
+  const companies = (await listCompanies("", SECTOR.foodBeverage)).filter((c) => c.active && !c.hidden);
+  if (!companies.length) return <Panel span={12} title="Restaurants"><p className="empty">No restaurant company is set up.</p></Panel>;
   const branchLists = await Promise.all(companies.map((c) => listBranches(c.id)));
   const chosen = companies.findIndex((c) => String(c.id) === rawCompany);
   // With no choice in the link, open on the company with the most branches, so adding a smaller restaurant company does not change the opening view.
@@ -54,10 +54,9 @@ async function Content({ searchParams }: { searchParams: Params }) {
   return (
     <>
       <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-        {companies.length > 1 && <CompanySelect companies={companies.map((c) => ({ id: c.id, name: c.name }))} value={company.id} base={link("/restaurants", { year: rawYear, m })} />}
         <MonthSelect value={month} max={11} names={MONTHS} year={year} base={link("/restaurants", { year: String(year), company: rawCompany })} />
         <YearSelect years={years} value={year} base={link("/restaurants", { m: String(month + 1), company: rawCompany })} />
-        {companies.length === 1 && <span className="note">{company.name}</span>}
+        <CompanySelect companies={companies.map((c) => ({ id: c.id, name: c.name }))} value={company.id} base={link("/restaurants", { year: rawYear, m })} />
       </div>
       <div className="kpis">
         <Kpi label={`Gross sales ${mn}`} value={hasData ? `${fmt(gross)} QAR` : "-"} delta={hasData && lastMonthGross ? <>{gross >= lastMonthGross ? "▲" : "▼"} {fmt(Math.abs(pct(gross, lastMonthGross)), 1)}% vs {MONTHS[previous.month]} {previous.year}</> : undefined} up={gross >= lastMonthGross} />
