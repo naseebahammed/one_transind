@@ -318,7 +318,56 @@ CREATE OR REPLACE VIEW rpt.company_monthly_revenue AS
   GROUP BY c.id, c.name, c.sector, b.id, b.name, src.period, src.source, src.line;
 `;
 
-const MIGRATIONS: readonly (readonly [string, string])[] = [["001_baseline", BASELINE], ["002_standard_data", STANDARD_DATA], ["003_drop_report_files", DROP_REPORT_FILES], ["005_company_expenses", COMPANY_EXPENSES], ["006_company_branches", COMPANY_BRANCHES], ["007_company_has_branches", COMPANY_HAS_BRANCHES], ["008_daily_receipts", DAILY_RECEIPTS], ["009_drop_deals", DROP_DEALS], ["010_drop_invoices", DROP_INVOICES], ["011_enterprise_foundation", ENTERPRISE_FOUNDATION], ["012_rejected_rows_loaded", REJECTED_ROWS_LOADED], ["013_restaurant_cogs", RESTAURANT_COGS], ["014_drop_ownership_pct", DROP_OWNERSHIP_PCT], ["015_fmcg_masters", FMCG_MASTERS], ["016_data_standardization", DATA_STANDARDIZATION]];
+const SALES_LINES_VIEW = `CREATE VIEW rpt.sales_lines AS SELECT "DOC_DATE" AS date, "DOC_NO" AS document_no, "DOC_TYPE" AS document_type, "DEPT_CODE" AS department_code,
+  "SMAN_CODE" AS salesman_code, "SMAN_NAME" AS salesman, "CUST_NO" AS customer_code, "CUST_NAME" AS customer, "GROUP_NAME" AS customer_group, "CUST_CATEGORY" AS customer_category,
+  upper(trim("BRAND")) AS brand, "ITEM_CODE" AS item_code, "ITEM_NAME" AS item, "SUPPLIER_NAME" AS supplier, "QTY_PCS" AS qty_pcs, "NET_AMOUNT" AS net_sales_qar, "NET_COST" AS net_cost_qar
+  FROM public.invs_daily_sales_v`;
+// Every month that has targets: target and actual per salesman and brand, including sales nobody set a target for. data_through shows how far the ERP view has been refreshed.
+const SALES_VS_TARGET_VIEW = `CREATE VIEW rpt.sales_vs_target AS
+  WITH actual AS (SELECT date_trunc('month', date)::date AS period, salesman_code, max(salesman) AS salesman, brand, SUM(net_sales_qar) AS sales FROM rpt.sales_lines GROUP BY 1, 2, 4)
+  SELECT COALESCE(t.period, a.period) AS period, COALESCE(t.salesman_code, a.salesman_code) AS salesman_code, COALESCE(s.name, a.salesman) AS salesman, COALESCE(t.brand, a.brand) AS brand,
+    t.supervisor, t.channel, t.department, t.target AS target_qar, COALESCE(a.sales, 0) AS sales_qar, round(a.sales / NULLIF(t.target, 0) * 100, 2) AS achieved_pct,
+    (SELECT max(date) FROM rpt.sales_lines) AS data_through
+  FROM app.sales_assignments t FULL JOIN actual a ON a.period = t.period AND a.salesman_code = t.salesman_code AND a.brand = t.brand
+  LEFT JOIN app.salesmen s ON s.code = COALESCE(t.salesman_code, a.salesman_code)
+  WHERE COALESCE(t.period, a.period) IN (SELECT period FROM app.sales_assignments)`;
+// Only the live server has the ERP view (staging has none), so these views are created only where it exists. Read-only on the ERP side.
+// shortcut: a database that gets the ERP view later won't have these views, add a new migration if staging ever gets it.
+const ifErpView = (sql: string) => `DO 'BEGIN IF to_regclass(''public.invs_daily_sales_v'') IS NOT NULL THEN EXECUTE ''${sql.replaceAll("'", "''''")}''; END IF; END';`;
+const FMCG_SALES_VIEWS = `${ifErpView(SALES_LINES_VIEW)}\n${ifErpView(SALES_VS_TARGET_VIEW)}`;
+
+// Point-in-time balances: one set of rows per day the file was run, so yesterday's stock is still there tomorrow.
+const FMCG_BALANCES = `
+ALTER TABLE app.imports DROP CONSTRAINT imports_section_check;
+ALTER TABLE app.imports ADD CONSTRAINT imports_section_check CHECK (section IN ('pnl','sales','units','daily','balance','budget','people','expenses','receipts','cogs','masters','balances'));
+CREATE TABLE app.stock_snapshots(as_of DATE NOT NULL, item_code TEXT NOT NULL REFERENCES app.items(code), location TEXT NOT NULL, qty_current NUMERIC(18,2) NOT NULL, qty_allocated NUMERIC(18,2) NOT NULL,
+  qty_balance NUMERIC(18,2) NOT NULL, value NUMERIC(18,2) NOT NULL, import_id INTEGER REFERENCES app.imports(id) ON DELETE SET NULL, PRIMARY KEY(as_of, item_code, location));
+CREATE TABLE app.salesman_outstanding(as_of DATE NOT NULL, account_code TEXT NOT NULL REFERENCES app.customers(code), posted_date DATE NOT NULL, doc_code TEXT, doc_no TEXT NOT NULL, party_ref TEXT NOT NULL DEFAULT '',
+  department TEXT, balance NUMERIC(18,2) NOT NULL, import_id INTEGER REFERENCES app.imports(id) ON DELETE SET NULL, PRIMARY KEY(as_of, account_code, doc_no, party_ref));
+CREATE VIEW rpt.stock_daily AS SELECT s.as_of, s.as_of = (SELECT max(as_of) FROM app.stock_snapshots) AS is_latest, s.item_code, i.name AS item, i.brand, s.location, s.qty_current, s.qty_allocated, s.qty_balance, s.value AS value_qar
+  FROM app.stock_snapshots s JOIN app.items i ON i.code = s.item_code;
+CREATE VIEW rpt.salesman_outstanding AS SELECT o.as_of, o.as_of = (SELECT max(as_of) FROM app.salesman_outstanding) AS is_latest, o.account_code, c.name AS account, o.posted_date, o.doc_code, o.doc_no, o.party_ref, o.department, o.balance AS balance_qar, o.as_of - o.posted_date AS age_days,
+  CASE WHEN o.as_of - o.posted_date <= 30 THEN '0-30' WHEN o.as_of - o.posted_date <= 60 THEN '31-60' WHEN o.as_of - o.posted_date <= 90 THEN '61-90' ELSE 'Over 90' END AS age_bucket
+  FROM app.salesman_outstanding o JOIN app.customers c ON c.code = o.account_code;
+`;
+
+// Control reports, each kept as printed. Variances and shortages are calculated in the views, never stored. The Market Audit carries customer balances with no date, so the balance shows when it was last loaded.
+const FMCG_CONTROL = `
+ALTER TABLE app.customers ADD COLUMN balance NUMERIC(18,2);
+CREATE OR REPLACE VIEW rpt.customers AS SELECT code, name, group_name, credit_days, accountant, status, balance AS balance_qar, updated AS balance_updated FROM app.customers;
+CREATE TABLE app.delivery_variances(do_date DATE NOT NULL, do_no TEXT NOT NULL, item_code TEXT NOT NULL, location TEXT NOT NULL, customer_code TEXT, customer TEXT, salesman TEXT, store_in_charge TEXT, driver TEXT, item TEXT, brand TEXT, manager TEXT, supervisor TEXT,
+  qty_rv NUMERIC(18,2) NOT NULL, qty_do NUMERIC(18,2) NOT NULL, value_rv NUMERIC(18,2) NOT NULL, value_do NUMERIC(18,2) NOT NULL, import_id INTEGER REFERENCES app.imports(id) ON DELETE SET NULL, PRIMARY KEY(do_no, item_code, location));
+CREATE TABLE app.consignment_receipts(received_date DATE NOT NULL, line_no INTEGER NOT NULL, consignment_no TEXT NOT NULL, order_no TEXT, invoice_no TEXT, invoice_date DATE, supplier TEXT, location TEXT, item_code TEXT NOT NULL, item TEXT, expiry_date DATE, excise TEXT,
+  billed_qty NUMERIC(18,2) NOT NULL, received_qty NUMERIC(18,2) NOT NULL, import_id INTEGER REFERENCES app.imports(id) ON DELETE SET NULL, PRIMARY KEY(received_date, line_no));
+CREATE TABLE app.stock_expiry(as_of DATE NOT NULL, report TEXT NOT NULL, line_no INTEGER NOT NULL, item_code TEXT NOT NULL, item TEXT, size TEXT, packing TEXT, brand TEXT, category TEXT, location TEXT, cartons NUMERIC(18,2), outers NUMERIC(18,2), pieces NUMERIC(18,2),
+  total_cost NUMERIC(18,2) NOT NULL, expiry_date DATE NOT NULL, remarks TEXT, import_id INTEGER REFERENCES app.imports(id) ON DELETE SET NULL, PRIMARY KEY(as_of, report, line_no));
+CREATE VIEW rpt.delivery_variances AS SELECT do_date, do_no, item_code, item, brand, location, customer_code, customer, salesman, store_in_charge, driver, manager, supervisor, qty_rv, qty_do, qty_rv - qty_do AS qty_variance, value_rv AS value_rv_qar, value_do AS value_do_qar, value_rv - value_do AS value_variance_qar FROM app.delivery_variances;
+CREATE VIEW rpt.consignment_receipts AS SELECT received_date, consignment_no, order_no, invoice_no, invoice_date, supplier, location, item_code, item, expiry_date, excise, billed_qty, received_qty, billed_qty - received_qty AS short_qty FROM app.consignment_receipts;
+CREATE VIEW rpt.stock_expiry AS SELECT as_of, report, item_code, item, size, packing, brand, category, location, cartons, outers, pieces, total_cost AS total_cost_qar, expiry_date, expiry_date - as_of AS days_left,
+  CASE WHEN expiry_date - as_of <= 30 THEN '0-30' WHEN expiry_date - as_of <= 60 THEN '31-60' WHEN expiry_date - as_of <= 90 THEN '61-90' ELSE 'Over 90' END AS age_bucket, remarks FROM app.stock_expiry;
+`;
+
+const MIGRATIONS: readonly (readonly [string, string])[] = [["001_baseline", BASELINE], ["002_standard_data", STANDARD_DATA], ["003_drop_report_files", DROP_REPORT_FILES], ["005_company_expenses", COMPANY_EXPENSES], ["006_company_branches", COMPANY_BRANCHES], ["007_company_has_branches", COMPANY_HAS_BRANCHES], ["008_daily_receipts", DAILY_RECEIPTS], ["009_drop_deals", DROP_DEALS], ["010_drop_invoices", DROP_INVOICES], ["011_enterprise_foundation", ENTERPRISE_FOUNDATION], ["012_rejected_rows_loaded", REJECTED_ROWS_LOADED], ["013_restaurant_cogs", RESTAURANT_COGS], ["014_drop_ownership_pct", DROP_OWNERSHIP_PCT], ["015_fmcg_masters", FMCG_MASTERS], ["016_data_standardization", DATA_STANDARDIZATION], ["017_fmcg_sales_views", FMCG_SALES_VIEWS], ["018_fmcg_balances", FMCG_BALANCES], ["019_fmcg_control", FMCG_CONTROL]];
 
 /** Applies the migrations not yet recorded, optionally only up to and including one. Run it inside a transaction holding the init lock. */
 export async function migrate(c: { query: (text: string, params?: unknown[]) => Promise<{ rows: { id: string }[] }> }, upTo?: string) {

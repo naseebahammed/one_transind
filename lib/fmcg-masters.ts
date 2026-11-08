@@ -6,7 +6,7 @@ import { MONTHS } from "./format.ts";
 import { num, type ImportIssue } from "./report-parsers.ts";
 
 export type Salesman = { code: string; name: string; status: string; teamLead: string | null; manager: string | null; salesCategory: string | null; route: string | null };
-export type Customer = { code: string; name: string; groupName: string | null; creditDays: number | null; accountant: string | null; status: string };
+export type Customer = { code: string; name: string; groupName: string | null; creditDays: number | null; accountant: string | null; status: string; balance: number | null };
 export type Item = { code: string; name: string; brand: string; packing: string | null; size: string | null; itemType: string | null; department: string | null; manager: string | null };
 export type Brand = { code: string; name: string; department: string | null; manager: string | null; category: string | null };
 export type Assignment = { salesmanCode: string; salesmanName: string; brand: string; supervisor: string | null; channel: string | null; department: string | null; target: number | null };
@@ -16,7 +16,7 @@ const round = (v: number) => Math.round(v * 100) / 100;
 const fold = (v: string) => v.replace(/\s+/g, " ").trim().toLowerCase();
 
 /** Text of a cell. "(blank)" is how a pivot table prints an empty value. */
-function text(v: ExcelJS.CellValue) {
+export function text(v: ExcelJS.CellValue) {
   const x: unknown = typeof v === "object" && v && "result" in v ? v.result : v;
   const t = typeof x === "object" && x ? ("richText" in x ? (x as ExcelJS.CellRichTextValue).richText.map((r) => r.text).join("") : "") : String(x ?? "");
   const clean = t.replace(/\s+/g, " ").trim();
@@ -24,10 +24,10 @@ function text(v: ExcelJS.CellValue) {
 }
 const orNull = (v: string) => v || null;
 
-type Table = { ws: ExcelJS.Worksheet; head: number; sheet: string; column: (heading: string) => number };
+export type Table = { ws: ExcelJS.Worksheet; head: number; sheet: string; column: (heading: string) => number };
 
 /** Finds a sheet and its heading row by name, because these are pivot exports whose headings sit a few rows down. Null when the workbook has no such sheet. */
-function findTable(wb: ExcelJS.Workbook, sheetName: string, firstHeading: string, required: string[]): Table | null {
+export function findTable(wb: ExcelJS.Workbook, sheetName: string, firstHeading: string, required: string[]): Table | null {
   const ws = wb.worksheets.find((w) => fold(w.name) === fold(sheetName));
   if (!ws) return null;
   for (let head = 1; head <= 12; head++) {
@@ -41,11 +41,11 @@ function findTable(wb: ExcelJS.Workbook, sheetName: string, firstHeading: string
   throw new Error(`${sheetName}: no "${firstHeading}" heading in the first rows. The layout has changed.`);
 }
 
-function eachRow(t: Table, visit: (cell: (heading: string) => string, row: ExcelJS.Row, i: number) => void) {
+export function eachRow(t: Table, visit: (cell: (heading: string) => string, row: ExcelJS.Row, i: number) => void) {
   t.ws.eachRow({ includeEmpty: false }, (row, i) => { if (i > t.head) visit((h) => text(row.getCell(t.column(h)).value), row, i); });
 }
 
-const ERP_CODE = /^[A-Z0-9]+$/i; // the ERP has letter-prefixed codes as well (V364, CS00022, E0E0000)
+export const ERP_CODE = /^[A-Z0-9]+$/i; // the ERP has letter-prefixed codes as well (V364, CS00022, E0E0000)
 const salesmanCode = (v: string) => (/^\d+$/.test(v) ? v.padStart(3, "0") : v); // the sheets mix 28 and 028 for the same salesman
 const brandCode = (v: string) => v.toUpperCase();
 const activeOrNot = (v: string) => (fold(v).replace(/ /g, "") === "active" ? "Active" : "Inactive");
@@ -65,13 +65,15 @@ export function mastersFromWorkbook(wb: ExcelJS.Workbook) {
     salesmen.push({ code: salesmanCode(code), name: cell("Salesman Name"), status: activeOrNot(cell("STATUS.")), teamLead: orNull(cell("TEAM_LEAD")), manager: orNull(cell("MANAGER_NAME")), salesCategory: orNull(cell("SALES_CATEGORY")), route: orNull(cell("ROUTE")) });
   });
 
-  const customerTable = findTable(wb, "CUSTOMER MASTER", "SLMA_ACNO", ["COAD_PTY_FULL_NAME", "CREDIT_DAYS", "ACCOUNTANT", "COAD_GROUP_DESC", "SLMA_STATUS"]);
-  if (customerTable) eachRow(customerTable, (cell, _, i) => {
+  const customerTable = findTable(wb, "CUSTOMER MASTER", "SLMA_ACNO", ["COAD_PTY_FULL_NAME", "CREDIT_DAYS", "ACCOUNTANT", "COAD_GROUP_DESC", "SLMA_STATUS", "Sum of BALANCE"]);
+  if (customerTable) eachRow(customerTable, (cell, row, i) => {
     const code = cell("SLMA_ACNO");
     if (!code || fold(code) === "grand total") return;
     if (!ERP_CODE.test(code) || !cell("COAD_PTY_FULL_NAME")) return skip(customerTable, i, `"${code}" is not a customer code with a name.`);
     const credit = cell("CREDIT_DAYS");
-    customers.push({ code, name: cell("COAD_PTY_FULL_NAME"), groupName: orNull(cell("COAD_GROUP_DESC")), creditDays: /^\d+$/.test(credit) ? Number(credit) : null, accountant: orNull(cell("ACCOUNTANT")), status: activeOrNot(cell("SLMA_STATUS")) });
+    let balance: number | null;
+    try { balance = num(row.getCell(customerTable.column("Sum of BALANCE")).value, `CUSTOMER MASTER, row ${i}`); } catch (e) { return skip(customerTable, i, (e as Error).message); }
+    customers.push({ code, name: cell("COAD_PTY_FULL_NAME"), groupName: orNull(cell("COAD_GROUP_DESC")), creditDays: /^\d+$/.test(credit) ? Number(credit) : null, accountant: orNull(cell("ACCOUNTANT")), status: activeOrNot(cell("SLMA_STATUS")), balance });
   });
 
   const brandTable = findTable(wb, "MANAGERS WITH BRAND", "BRAND NAME", ["DEPT.", "MANAGER NAME", "CATEGORY"]);

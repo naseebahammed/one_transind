@@ -18,8 +18,7 @@ const mPct = (s: number, c: number) => (s ? (s - c) / s * 100 : 0);
 
 async function Content({ searchParams }: { searchParams: Params }) {
   await connection();
-  const { m, p, c, q, all } = await searchParams;
-  const o = await getOverview();
+  const [{ m, p, c, q, all }, o] = await Promise.all([searchParams, getOverview()]);
   const rawM = Number(m);
   const month = Math.min(o.month, Math.max(0, m && Number.isInteger(rawM) && rawM >= 1 ? rawM - 1 : o.month));
   const pp = parsePath(p), cp = parsePath(c);

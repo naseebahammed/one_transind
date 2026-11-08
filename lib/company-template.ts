@@ -24,7 +24,7 @@ export function buildPnlTemplate(year: number, month: number, accounts: { main: 
   return wb;
 }
 
-export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+export const MAX_UPLOAD_BYTES = 7 * 1024 * 1024;
 
 /** A workbook from .xlsx or .csv bytes, told apart by content rather than the file name. Throws a readable message. */
 export async function readWorkbook(buf: Buffer) {

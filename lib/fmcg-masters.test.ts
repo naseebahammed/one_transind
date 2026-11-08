@@ -35,10 +35,10 @@ test("targets: a total that disagrees is flagged, and a target column for anothe
 test("salesmen and customers: pivot blanks become empty, totals are ignored, bad codes are reported", () => {
   const wb = new ExcelJS.Workbook();
   sheet(wb, "SALESMAN MASTER", [["DEPT", "(All)"], [], ["Salesman Code", "Salesman Name", "STATUS.", "TEAM_LEAD", "MANAGER_NAME", "SALES_CATEGORY", "ROUTE"], ["002", "MIN", "IN ACTIVE", "NOUSHAD", "SALEEM", "3--DTS", "(blank)"], [606, "ADAM", "ACTIVE", "(blank)", "(blank)", "1", "R1"], ["Grand Total"], ["BAD CODE", "BAD", "ACTIVE", "", "", "", ""]]);
-  sheet(wb, "CUSTOMER MASTER", [["SLMA_ACNO", "COAD_PTY_FULL_NAME", "CREDIT_DAYS", "ACCOUNTANT", "COAD_GROUP_DESC", "SLMA_STATUS"], ["C210001", "CARREFOUR", 60, "(blank)", "CARREFOUR_", "Active"], ["A110001", "TEST", "(blank)", "(blank)", "GENERAL", "Inactive"], ["Grand Total"]]);
+  sheet(wb, "CUSTOMER MASTER", [["SLMA_ACNO", "COAD_PTY_FULL_NAME", "CREDIT_DAYS", "ACCOUNTANT", "COAD_GROUP_DESC", "SLMA_STATUS", "Sum of BALANCE"], ["C210001", "CARREFOUR", 60, "(blank)", "CARREFOUR_", "Active", 1250.5], ["A110001", "TEST", "(blank)", "(blank)", "GENERAL", "Inactive", 0], ["Grand Total"]]);
   const m = mastersFromWorkbook(wb);
   assert.deepEqual(m.salesmen.map((s) => [s.code, s.status, s.teamLead, s.route]), [["002", "Inactive", "NOUSHAD", null], ["606", "Active", null, "R1"]]);
-  assert.deepEqual(m.customers.map((c) => [c.code, c.creditDays, c.accountant, c.status]), [["C210001", 60, null, "Active"], ["A110001", null, null, "Inactive"]]);
+  assert.deepEqual(m.customers.map((c) => [c.code, c.creditDays, c.accountant, c.status, c.balance]), [["C210001", 60, null, "Active", 1250.5], ["A110001", null, null, "Inactive", 0]]);
   assert.equal(m.issues.length, 1);
   assert.equal(m.period, null, "no target sheets, so no month");
 });

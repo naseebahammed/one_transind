@@ -5,17 +5,19 @@ import { listAccounts } from "@/lib/accounts";
 import { branchName, branchOf, listBranches } from "@/lib/branches";
 import { getCompany } from "@/lib/companies";
 import { parseGrid, sectionName } from "@/lib/company-data";
-import { deleteDailyYearRows, deleteFigureYear, importCogs, importDaily, importFigures, importMasters, importReceipts, linesOf, recordRejected, setFigure, type Upload } from "@/lib/company-figures";
+import { deleteDailyYearRows, deleteFigureYear, importBalances, importCogs, importControl, importDaily, importFigures, importMasters, importReceipts, linesOf, recordRejected, setFigure, type Upload } from "@/lib/company-figures";
 import { gridFromWorkbook, MAX_UPLOAD_BYTES, readWorkbook } from "@/lib/company-template";
 import { addLog } from "@/lib/db";
 import { checkDaily, cogsForCompany, cogsFromWorkbook, dailyFromWorkbook, dukanFromWorkbook, matchAccounts, pnlFromWorkbook, receiptsFromWorkbook, unitsFromWorkbook } from "@/lib/report-parsers";
+import { balancesFromWorkbook } from "@/lib/fmcg-balances";
+import { controlFromWorkbook } from "@/lib/fmcg-control";
 import { mastersFromWorkbook } from "@/lib/fmcg-masters";
 import { MONTHS } from "@/lib/format";
 
 export type UploadState = { error?: string; ok?: string };
 type Company = NonNullable<Awaited<ReturnType<typeof getCompany>>>;
 
-const LABEL: Record<string, string> = { pnl: "P&L", daily: "Daily sales", units: "Unit types", sales: "Monthly sales", receipts: "Daily sales deposit", cogs: "COGS summary", dukan: "Dukan Food monthly sales", masters: "FMCG reference data" };
+const LABEL: Record<string, string> = { pnl: "P&L", daily: "Daily sales", units: "Unit types", sales: "Monthly sales", receipts: "Daily sales deposit", cogs: "COGS summary", dukan: "Dukan Food monthly sales", masters: "FMCG reference data", balances: "FMCG stock and control reports" };
 
 function refresh() {
   for (const p of ["/admin/finance", "/admin/data-status", "/admin/activity", "/real-estate", "/real-estate/overview", "/real-estate/details", "/restaurants", "/finance", "/dashboard", "/health-beauty", "/retail"]) revalidatePath(p);
@@ -61,6 +63,19 @@ async function loadFile(type: string, company: Company, u: Upload, formYear: num
     const days = [...new Set(rows.map((r) => r.date))].sort();
     const review = issues.length ? ` ${issues.length} to check, first: ${issues[0].sheet} row ${issues[0].row}: ${issues[0].reason}` : "";
     return { rows: rows.length, ok: `Loaded ${days.length} days, ${days[0]} to ${days.at(-1)}.${review}` };
+  }
+  if (type === "balances") {
+    const control = controlFromWorkbook(wb);
+    if (control.rowsRead) {
+      await importControl(u, control);
+      const what = [control.variances.length && `${control.variances.length} delivery variances`, control.consignments.length && `${control.consignments.length} consignment lines`, control.expiry.length && `${control.expiry.length} expiry rows for ${control.expiryReport}, ${control.expiryDate}`].filter(Boolean).join(", ");
+      return { rows: control.rowsRead, ok: `Loaded ${what}.${control.issues.length ? ` ${control.issues.length} to check, first: ${control.issues[0].reason}` : ""}` };
+    }
+    const b = balancesFromWorkbook(wb, u.name);
+    if (!b.rowsRead) throw new Error("No stock or outstanding rows found. Upload the Stock Report or TC Outstanding workbook.");
+    await importBalances(u, b);
+    const parts = [b.stock.length ? `${b.stock.length} stock rows for ${b.stockDate}` : "", b.outstanding.length ? `${b.outstanding.length} outstanding invoices as of ${b.outstandingDate}` : ""].filter(Boolean);
+    return { rows: b.rowsRead, ok: `Loaded ${parts.join(", ")}.${b.issues.length ? ` ${b.issues.length} to check, first: ${b.issues[0].reason}` : ""}` };
   }
   if (type === "masters") {
     const m = mastersFromWorkbook(wb);
@@ -111,7 +126,7 @@ export async function uploadReport(_: UploadState, f: FormData): Promise<UploadS
   const branchId = await branchOf(company.id, f.get("branchId"));
   if (branchId === undefined) return { error: "Branch not found." };
   if (!(file instanceof File) || !file.size) return { error: "Choose an .xlsx or .csv file." };
-  if (file.size > MAX_UPLOAD_BYTES) return { error: "The file must be under 5 MB." };
+  if (file.size > MAX_UPLOAD_BYTES) return { error: "The file must be under 7 MB." };
   const u: Upload = { companyId: company.id, section: type, name: file.name, type: file.type, buf: Buffer.from(await file.arrayBuffer()), branchId };
   try {
     const { rows, ok } = await loadFile(type, company, u, Number(f.get("year")));

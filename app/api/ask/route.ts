@@ -1,12 +1,12 @@
 import { connection } from "next/server";
-import { getOverview, getCustomers } from "@/lib/data";
+import { getOverview, getOverviewBrands, getCustomers } from "@/lib/data";
 import { alManzilKey, dailyYears, occupancy, report, revenueLines, years, loadReports } from "@/lib/reports";
 import { sum } from "@/lib/format";
 
 const MAX_Q = 1000;
 
 async function context() {
-  const [reports, o, c] = await Promise.all([loadReports(), getOverview(), getCustomers()]);
+  const [reports, o, brands, c] = await Promise.all([loadReports(), getOverview(), getOverviewBrands(), getCustomers()]);
   const alManzil = alManzilKey(reports), ys = years(reports, alManzil), cur = ys.at(-1), stayYear = dailyYears(reports, alManzil).at(-1);
   const occ = stayYear ? occupancy(reports, stayYear, alManzil) : [];
   const avail = sum(occ.map((m) => m.avail)) || 1, sold = sum(occ.map((m) => m.sold)) || 1;
@@ -14,7 +14,7 @@ async function context() {
     year: o.year,
     latestCompleteMonth: o.month + 1,
     monthly: o.months.map(({ month, value, cost }) => ({ month, sales: Math.round(value), cost: Math.round(cost) })),
-    brands: o.brands.map(({ name, value, lastMonth }) => ({ brand: name, thisMonth: Math.round(value), lastMonth: Math.round(lastMonth) })),
+    brands: brands.map(({ name, value, lastMonth }) => ({ brand: name, thisMonth: Math.round(value), lastMonth: Math.round(lastMonth) })),
     topCustomers: c.customers.slice(0, 20).map((x) => ({ name: x.name, group: x.group, ytd: Math.round(x.ytd), thisMonth: Math.round(x.mtd), lastMonth: Math.round(x.lastMonth) })),
     realEstate: {
       source: "Al Manzil (Transind Real Estate)",

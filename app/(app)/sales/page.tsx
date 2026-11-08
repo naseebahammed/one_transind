@@ -21,12 +21,18 @@ const M = (x: number) => x / 1e6;
 
 async function Content({ searchParams }: { searchParams: Params }) {
   await connection();
-  const { m, p, all } = await searchParams;
-  const o = await getOverview();
+  const [{ m, p, all }, o, sectors] = await Promise.all([searchParams, getOverview(), getSalesSectors()]);
   const rawM = Number(m);
   const month = Math.min(o.month, Math.max(0, m && Number.isInteger(rawM) && rawM >= 1 ? rawM - 1 : o.month));
   const path = parsePath(p), dept = path[0] ?? "";
-  const [hist, rows, labels, sectors, top, dep] = await Promise.all([getMonthly(dept), getDrill(month, "p", path), getDrillLabels(month, "p", path), getSalesSectors(), getDrill(month, "p", []), getBreakdown(month, "dept")]);
+  const [hist, top, subRows, labels, dep] = await Promise.all([
+    getMonthly(dept),
+    getDrill(month, "p", []),
+    path.length ? getDrill(month, "p", path) : Promise.resolve(null),
+    getDrillLabels(month, "p", path),
+    getBreakdown(month, "dept"),
+  ]);
+  const rows = subRows ?? top;
   const years = [o.year - 2, o.year - 1, o.year];
   const val = (y: number, i: number) => (y === o.year && i > o.month ? null : (hist.find((h) => h.year === y && h.month === i + 1)?.value ?? 0));
   const series = years.map((y) => Array.from({ length: 12 }, (_, i) => { const v = val(y, i); return v == null ? null : M(v); }));

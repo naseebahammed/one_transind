@@ -24,7 +24,7 @@ export async function uploadFigures(_: FigureUploadState, f: FormData): Promise<
   const branchId = await branchOf(company.id, f.get("branchId"));
   if (branchId === undefined) return { error: "Branch not found." };
   if (!(file instanceof File) || !file.size) return { error: "Choose the filled .xlsx or .csv template." };
-  if (file.size > MAX_UPLOAD_BYTES) return { error: "The file must be under 5 MB." };
+  if (file.size > MAX_UPLOAD_BYTES) return { error: "The file must be under 7 MB." };
   const u: Upload = { companyId: company.id, section, name: file.name, type: file.type, buf: Buffer.from(await file.arrayBuffer()), branchId };
   try {
     const parsed = parseGrid(section, gridFromWorkbook(await readWorkbook(u.buf)), { company: company.name, year }, new Date());

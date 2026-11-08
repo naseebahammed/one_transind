@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
 import type { PoolClient } from "pg";
 import { numbering, q, q1 } from "@/lib/db";
+import type { Balances } from "@/lib/fmcg-balances";
+import type { Control } from "@/lib/fmcg-control";
 import type { Masters } from "@/lib/fmcg-masters";
 import type { CogsRow, DailyRow, ImportIssue, ReceiptRow } from "@/lib/report-parsers";
 import { LINES, type Figure, type FigureSection } from "@/lib/company-data";
@@ -82,8 +84,8 @@ export const importMasters = (u: Upload, m: Masters) =>
       ON CONFLICT (code) DO UPDATE SET department=COALESCE(EXCLUDED.department,app.brands.department), manager=COALESCE(EXCLUDED.manager,app.brands.manager), category=COALESCE(EXCLUDED.category,app.brands.category)`, pick(m.brands, "code", "name", "department", "manager", "category"));
     if (m.salesmen.length) await c.query(`INSERT INTO app.salesmen(code,name,status,team_lead,manager,sales_category,route,import_id) SELECT a,b,d,e,f,g,h,$8 FROM unnest($1::text[],$2::text[],$3::text[],$4::text[],$5::text[],$6::text[],$7::text[]) AS t(a,b,d,e,f,g,h)
       ON CONFLICT (code) DO UPDATE SET name=EXCLUDED.name,status=EXCLUDED.status,team_lead=EXCLUDED.team_lead,manager=EXCLUDED.manager,sales_category=EXCLUDED.sales_category,route=EXCLUDED.route,import_id=EXCLUDED.import_id,updated=now()`, [...pick(m.salesmen, "code", "name", "status", "teamLead", "manager", "salesCategory", "route"), id]);
-    if (m.customers.length) await c.query(`INSERT INTO app.customers(code,name,group_name,credit_days,accountant,status,import_id) SELECT a,b,d,e,f,g,$7 FROM unnest($1::text[],$2::text[],$3::text[],$4::int[],$5::text[],$6::text[]) AS t(a,b,d,e,f,g)
-      ON CONFLICT (code) DO UPDATE SET name=EXCLUDED.name,group_name=EXCLUDED.group_name,credit_days=EXCLUDED.credit_days,accountant=EXCLUDED.accountant,status=EXCLUDED.status,import_id=EXCLUDED.import_id,updated=now()`, [...pick(m.customers, "code", "name", "groupName", "creditDays", "accountant", "status"), id]);
+    if (m.customers.length) await c.query(`INSERT INTO app.customers(code,name,group_name,credit_days,accountant,status,balance,import_id) SELECT a,b,d,e,f,g,h,$8 FROM unnest($1::text[],$2::text[],$3::text[],$4::int[],$5::text[],$6::text[],$7::numeric[]) AS t(a,b,d,e,f,g,h)
+      ON CONFLICT (code) DO UPDATE SET name=EXCLUDED.name,group_name=EXCLUDED.group_name,credit_days=EXCLUDED.credit_days,accountant=EXCLUDED.accountant,status=EXCLUDED.status,balance=EXCLUDED.balance,import_id=EXCLUDED.import_id,updated=now()`, [...pick(m.customers, "code", "name", "groupName", "creditDays", "accountant", "status", "balance"), id]);
     if (m.items.length) await c.query(`INSERT INTO app.items(code,name,brand,packing,size,item_type,department,manager,import_id) SELECT a,b,d,e,f,g,h,i,$9 FROM unnest($1::text[],$2::text[],$3::text[],$4::text[],$5::text[],$6::text[],$7::text[],$8::text[]) AS t(a,b,d,e,f,g,h,i)
       ON CONFLICT (code) DO UPDATE SET name=EXCLUDED.name,brand=EXCLUDED.brand,packing=EXCLUDED.packing,size=EXCLUDED.size,item_type=EXCLUDED.item_type,department=EXCLUDED.department,manager=EXCLUDED.manager,import_id=EXCLUDED.import_id,updated=now()`, [...pick(m.items, "code", "name", "brand", "packing", "size", "itemType", "department", "manager"), id]);
     if (!m.period) return;
@@ -93,6 +95,48 @@ export const importMasters = (u: Upload, m: Masters) =>
     await c.query("DELETE FROM app.manager_targets WHERE period=$1", [m.period]);
     await c.query("INSERT INTO app.sales_assignments(period,salesman_code,brand,supervisor,channel,department,target,import_id) SELECT $1::date,a,b,d,e,f,g,$8 FROM unnest($2::text[],$3::text[],$4::text[],$5::text[],$6::text[],$7::numeric[]) AS t(a,b,d,e,f,g)", [m.period, ...pick(m.assignments, "salesmanCode", "brand", "supervisor", "channel", "department", "target"), id]);
     await c.query("INSERT INTO app.manager_targets(period,manager,target,import_id) SELECT $1::date,a,b,$4 FROM unnest($2::text[],$3::numeric[]) AS t(a,b)", [m.period, ...pick(m.managerTargets, "manager", "target"), id]);
+  });
+
+/** All or nothing, as one import. A day's stock or outstanding replaces that day only, so earlier days stay on file. An item or account the masters don't have yet is added, so a new product never rejects the file. */
+export const importBalances = (u: Upload, b: Balances) =>
+  numbering(async (c) => {
+    const periods = [...new Set([b.stockDate, b.outstandingDate].filter((d): d is string => !!d).map((d) => `${d.slice(0, 7)}-01`))];
+    const id = await addImport(c, u, b.rowsRead, periods, { rowsRead: b.rowsRead, controlTotal: b.stockTotal ?? b.outstandingTotal, issues: b.issues });
+    const pick = <T,>(rows: T[], ...keys: (keyof T)[]) => keys.map((k) => rows.map((r) => r[k]));
+    if (b.stockDate) {
+      await c.query("INSERT INTO app.brands(code,name) SELECT DISTINCT a,a FROM unnest($1::text[]) AS t(a) WHERE a <> '' ON CONFLICT (code) DO NOTHING", [b.items.map((i) => i.brand)]);
+      await c.query(`INSERT INTO app.items(code,name,brand,packing,size,item_type,department,manager,import_id) SELECT a,b,d,e,f,g,h,i,$9 FROM unnest($1::text[],$2::text[],$3::text[],$4::text[],$5::text[],$6::text[],$7::text[],$8::text[]) AS t(a,b,d,e,f,g,h,i) ON CONFLICT (code) DO NOTHING`, [...pick(b.items, "code", "name", "brand", "packing", "size", "itemType", "department", "manager"), id]);
+      await c.query("DELETE FROM app.stock_snapshots WHERE as_of=$1", [b.stockDate]);
+      await c.query("INSERT INTO app.stock_snapshots(as_of,item_code,location,qty_current,qty_allocated,qty_balance,value,import_id) SELECT $1::date,a,b,d,e,f,g,$8 FROM unnest($2::text[],$3::text[],$4::numeric[],$5::numeric[],$6::numeric[],$7::numeric[]) AS t(a,b,d,e,f,g)", [b.stockDate, ...pick(b.stock, "itemCode", "location", "qtyCurrent", "qtyAllocated", "qtyBalance", "value"), id]);
+    }
+    if (b.outstandingDate) {
+      await c.query("INSERT INTO app.customers(code,name,status,import_id) SELECT DISTINCT ON (a) a,b,'Active',$3::int FROM unnest($1::text[],$2::text[]) AS t(a,b) ON CONFLICT (code) DO NOTHING", [...pick(b.outstanding, "accountCode", "accountName"), id]);
+      await c.query("DELETE FROM app.salesman_outstanding WHERE as_of=$1", [b.outstandingDate]);
+      await c.query("INSERT INTO app.salesman_outstanding(as_of,account_code,posted_date,doc_code,doc_no,party_ref,department,balance,import_id) SELECT $1::date,a,b,d,e,f,g,h,$9 FROM unnest($2::text[],$3::date[],$4::text[],$5::text[],$6::text[],$7::text[],$8::numeric[]) AS t(a,b,d,e,f,g,h)", [b.outstandingDate, ...pick(b.outstanding, "accountCode", "postedDate", "docCode", "docNo", "partyRef", "department", "balance"), id]);
+    }
+  });
+
+/** All or nothing, as one import. Each report replaces only the dates (or the report and date) it covers. */
+export const importControl = (u: Upload, r: Control) =>
+  numbering(async (c) => {
+    const periods = [...new Set([...r.variances.map((x) => x.doDate), ...r.consignments.map((x) => x.receivedDate), ...(r.expiryDate ? [r.expiryDate] : [])].map((d) => `${d.slice(0, 7)}-01`))];
+    const id = await addImport(c, u, r.rowsRead, periods, { rowsRead: r.rowsRead, controlTotal: r.controlTotal, issues: r.issues });
+    const pick = <T,>(rows: T[], ...keys: (keyof T)[]) => keys.map((k) => rows.map((x) => x[k]));
+    if (r.variances.length) {
+      await c.query("DELETE FROM app.delivery_variances WHERE do_date = ANY($1::date[])", [r.variances.map((x) => x.doDate)]);
+      await c.query("INSERT INTO app.delivery_variances(do_date,do_no,item_code,location,customer_code,customer,salesman,store_in_charge,driver,item,brand,manager,supervisor,qty_rv,qty_do,value_rv,value_do,import_id) SELECT *, $18::int FROM unnest($1::date[],$2::text[],$3::text[],$4::text[],$5::text[],$6::text[],$7::text[],$8::text[],$9::text[],$10::text[],$11::text[],$12::text[],$13::text[],$14::numeric[],$15::numeric[],$16::numeric[],$17::numeric[])",
+        [...pick(r.variances, "doDate", "doNo", "itemCode", "location", "customerCode", "customer", "salesman", "storeInCharge", "driver", "item", "brand", "manager", "supervisor", "qtyRv", "qtyDo", "valueRv", "valueDo"), id]);
+    }
+    if (r.consignments.length) {
+      await c.query("DELETE FROM app.consignment_receipts WHERE received_date = ANY($1::date[])", [r.consignments.map((x) => x.receivedDate)]);
+      await c.query("INSERT INTO app.consignment_receipts(received_date,line_no,consignment_no,order_no,invoice_no,invoice_date,supplier,location,item_code,item,expiry_date,excise,billed_qty,received_qty,import_id) SELECT *, $15::int FROM unnest($1::date[],$2::int[],$3::text[],$4::text[],$5::text[],$6::date[],$7::text[],$8::text[],$9::text[],$10::text[],$11::date[],$12::text[],$13::numeric[],$14::numeric[])",
+        [...pick(r.consignments, "receivedDate", "lineNo", "consignmentNo", "orderNo", "invoiceNo", "invoiceDate", "supplier", "location", "itemCode", "item", "expiryDate", "excise", "billedQty", "receivedQty"), id]);
+    }
+    if (r.expiryDate) {
+      await c.query("DELETE FROM app.stock_expiry WHERE as_of=$1 AND report=$2", [r.expiryDate, r.expiryReport]);
+      await c.query("INSERT INTO app.stock_expiry(as_of,report,line_no,item_code,item,size,packing,brand,category,location,cartons,outers,pieces,total_cost,expiry_date,remarks,import_id) SELECT $1::date,$2::text,a.*,$17::int FROM unnest($3::int[],$4::text[],$5::text[],$6::text[],$7::text[],$8::text[],$9::text[],$10::text[],$11::numeric[],$12::numeric[],$13::numeric[],$14::numeric[],$15::date[],$16::text[]) AS a",
+        [r.expiryDate, r.expiryReport, ...pick(r.expiry, "lineNo", "itemCode", "item", "size", "packing", "brand", "category", "location", "cartons", "outers", "pieces", "totalCost", "expiryDate", "remarks"), id]);
+    }
   });
 
 const DAILY = ["long_guests", "long_rate", "long_total", "short_guests", "short_rate", "short_total", "rooms_occupied", "room_revenue", "other_revenue", "rooms_available"] as const;
