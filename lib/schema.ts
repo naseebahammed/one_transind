@@ -236,7 +236,89 @@ const DROP_OWNERSHIP_PCT = `
 ALTER TABLE app.companies DROP COLUMN IF EXISTS ownership_pct;
 `;
 
-const MIGRATIONS: readonly (readonly [string, string])[] = [["001_baseline", BASELINE], ["002_standard_data", STANDARD_DATA], ["003_drop_report_files", DROP_REPORT_FILES], ["005_company_expenses", COMPANY_EXPENSES], ["006_company_branches", COMPANY_BRANCHES], ["007_company_has_branches", COMPANY_HAS_BRANCHES], ["008_daily_receipts", DAILY_RECEIPTS], ["009_drop_deals", DROP_DEALS], ["010_drop_invoices", DROP_INVOICES], ["011_enterprise_foundation", ENTERPRISE_FOUNDATION], ["012_rejected_rows_loaded", REJECTED_ROWS_LOADED], ["013_restaurant_cogs", RESTAURANT_COGS], ["014_drop_ownership_pct", DROP_OWNERSHIP_PCT]];
+// FMCG reference data, keyed by the ERP's own codes. Salesman assignments are one snapshot per month, so last month's reporting lines never change when someone moves team.
+const FMCG_MASTERS = `
+ALTER TABLE app.imports DROP CONSTRAINT imports_section_check;
+ALTER TABLE app.imports ADD CONSTRAINT imports_section_check CHECK (section IN ('pnl','sales','units','daily','balance','budget','people','expenses','receipts','cogs','masters'));
+ALTER TABLE app.brands ADD COLUMN department TEXT, ADD COLUMN manager TEXT, ADD COLUMN category TEXT;
+CREATE TABLE app.salesmen(code TEXT PRIMARY KEY, name TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'Active', team_lead TEXT, manager TEXT, sales_category TEXT, route TEXT,
+  import_id INTEGER REFERENCES app.imports(id) ON DELETE SET NULL, updated TIMESTAMPTZ NOT NULL DEFAULT now());
+CREATE TABLE app.customers(code TEXT PRIMARY KEY, name TEXT NOT NULL, group_name TEXT, credit_days INTEGER, accountant TEXT, status TEXT NOT NULL,
+  import_id INTEGER REFERENCES app.imports(id) ON DELETE SET NULL, updated TIMESTAMPTZ NOT NULL DEFAULT now());
+CREATE TABLE app.items(code TEXT PRIMARY KEY, name TEXT NOT NULL, brand TEXT NOT NULL REFERENCES app.brands(code) ON UPDATE CASCADE, packing TEXT, size TEXT, item_type TEXT, department TEXT, manager TEXT,
+  import_id INTEGER REFERENCES app.imports(id) ON DELETE SET NULL, updated TIMESTAMPTZ NOT NULL DEFAULT now());
+CREATE TABLE app.sales_assignments(period DATE NOT NULL CHECK (EXTRACT(day FROM period) = 1), salesman_code TEXT NOT NULL REFERENCES app.salesmen(code), brand TEXT NOT NULL REFERENCES app.brands(code) ON UPDATE CASCADE,
+  supervisor TEXT, channel TEXT, department TEXT, target NUMERIC(18,2), import_id INTEGER REFERENCES app.imports(id) ON DELETE SET NULL, PRIMARY KEY(period, salesman_code, brand));
+CREATE TABLE app.manager_targets(period DATE NOT NULL CHECK (EXTRACT(day FROM period) = 1), manager TEXT NOT NULL, target NUMERIC(18,2) NOT NULL,
+  import_id INTEGER REFERENCES app.imports(id) ON DELETE SET NULL, PRIMARY KEY(period, manager));
+CREATE VIEW rpt.salesmen AS SELECT code, name, status, team_lead, manager, sales_category, route FROM app.salesmen;
+CREATE VIEW rpt.customers AS SELECT code, name, group_name, credit_days, accountant, status FROM app.customers;
+CREATE VIEW rpt.items AS SELECT i.code, i.name, i.brand, b.manager AS brand_manager, i.packing, i.size, i.item_type, i.department FROM app.items i JOIN app.brands b ON b.code = i.brand;
+CREATE VIEW rpt.brands AS SELECT code, name, department, manager, category FROM app.brands;
+CREATE VIEW rpt.sales_targets AS SELECT a.period, a.salesman_code, s.name AS salesman, a.brand, a.supervisor, a.channel, a.department, a.target AS target_qar, s.status AS salesman_status FROM app.sales_assignments a JOIN app.salesmen s ON s.code = a.salesman_code;
+CREATE VIEW rpt.manager_targets AS SELECT period, manager, target AS target_qar FROM app.manager_targets;
+`;
+
+// Workbook aliases on companies and branches, account kind/sign metadata on the chart, and one monthly revenue view across all sources.
+const DATA_STANDARDIZATION = `
+ALTER TABLE app.companies ADD COLUMN IF NOT EXISTS aliases TEXT[] NOT NULL DEFAULT '{}';
+ALTER TABLE app.branches ADD COLUMN IF NOT EXISTS aliases TEXT[] NOT NULL DEFAULT '{}';
+UPDATE app.companies SET aliases = ARRAY['burger stop'] WHERE lower(name) LIKE '%burger stop%' AND aliases = '{}';
+UPDATE app.companies SET aliases = ARRAY['asian wok old airport', 'asian wok'] WHERE lower(name) LIKE '%asian wok%' AND aliases = '{}';
+UPDATE app.branches SET aliases = ARRAY['West Bay', 'Westbay'] WHERE lower(name) = 'qatar sports club' AND aliases = '{}';
+UPDATE app.branches SET aliases = ARRAY['Mr.Shawarma Bin Omran'] WHERE lower(name) = 'bin omran' AND aliases = '{}';
+UPDATE app.branches SET aliases = ARRAY['Mr.Shawarma Gharafa'] WHERE lower(name) = 'gharafa' AND aliases = '{}';
+UPDATE app.branches SET aliases = ARRAY['Abu Hamour'] WHERE lower(name) = 'abu hamour' AND aliases = '{}';
+
+ALTER TABLE app.accounts
+  ADD COLUMN IF NOT EXISTS kind TEXT NOT NULL DEFAULT 'expense'
+    CHECK (kind IN ('revenue','expense','asset','liability','equity','metric')),
+  ADD COLUMN IF NOT EXISTS normal_sign SMALLINT NOT NULL DEFAULT -1
+    CHECK (normal_sign IN (-1, 1));
+UPDATE app.accounts SET
+  kind = CASE
+    WHEN section IN ('pnl', 'sales') AND upper(main) = 'REVENUE' THEN 'revenue'
+    WHEN section = 'budget' AND sub = 'Revenue' THEN 'revenue'
+    WHEN section = 'units' AND sub = 'Room revenue' THEN 'revenue'
+    WHEN section = 'cogs' AND sub IN ('Gross sales', 'Net sales') THEN 'revenue'
+    WHEN section = 'balance' AND main = 'ASSETS' THEN 'asset'
+    WHEN section = 'cogs' AND sub IN ('Stock GL balance', 'Closing inventory') THEN 'asset'
+    WHEN section = 'balance' AND main = 'FUNDING' AND sub = 'Equity' THEN 'equity'
+    WHEN section = 'balance' AND main = 'FUNDING' THEN 'liability'
+    WHEN section IN ('people', 'units') OR (section = 'balance' AND main = 'MEMO') THEN 'metric'
+    ELSE 'expense'
+  END,
+  normal_sign = CASE
+    WHEN section = 'pnl' AND upper(main) <> 'REVENUE' THEN -1
+    WHEN section = 'expenses' THEN -1
+    WHEN section = 'budget' AND sub <> 'Revenue' THEN -1
+    WHEN section = 'cogs' AND sub IN ('Discount', 'CPU transfer', 'COGS') THEN -1
+    ELSE 1
+  END;
+
+CREATE OR REPLACE VIEW rpt.company_monthly_revenue AS
+  SELECT c.id AS company_id, c.name AS company, c.sector, b.id AS branch_id, b.name AS branch,
+    src.period, src.source, src.line, SUM(src.value) AS amount_qar
+  FROM (
+    SELECT f.company_id, f.branch_id, f.period, f.section AS source, f.line, f.value
+    FROM app.company_figures f
+    JOIN app.accounts a ON a.section = f.section AND a.main = f.main AND a.sub = f.line
+    WHERE f.section IN ('pnl', 'sales') AND a.kind = 'revenue'
+    UNION ALL
+    SELECT d.company_id, d.branch_id, date_trunc('month', d.date)::date AS period, 'daily_sales' AS source, v.line, v.value
+    FROM app.daily_sales d
+    CROSS JOIN LATERAL (VALUES ('Room revenue', d.room_revenue), ('Other revenue', d.other_revenue)) v(line, value)
+    UNION ALL
+    SELECT r.company_id, r.branch_id, date_trunc('month', r.date)::date AS period, 'daily_receipts' AS source, 'Sales' AS line, r.value
+    FROM app.daily_receipts r
+    WHERE r.line <> 'Bank deposits'
+  ) src
+  JOIN app.companies c ON c.id = src.company_id
+  LEFT JOIN app.branches b ON b.id = src.branch_id
+  GROUP BY c.id, c.name, c.sector, b.id, b.name, src.period, src.source, src.line;
+`;
+
+const MIGRATIONS: readonly (readonly [string, string])[] = [["001_baseline", BASELINE], ["002_standard_data", STANDARD_DATA], ["003_drop_report_files", DROP_REPORT_FILES], ["005_company_expenses", COMPANY_EXPENSES], ["006_company_branches", COMPANY_BRANCHES], ["007_company_has_branches", COMPANY_HAS_BRANCHES], ["008_daily_receipts", DAILY_RECEIPTS], ["009_drop_deals", DROP_DEALS], ["010_drop_invoices", DROP_INVOICES], ["011_enterprise_foundation", ENTERPRISE_FOUNDATION], ["012_rejected_rows_loaded", REJECTED_ROWS_LOADED], ["013_restaurant_cogs", RESTAURANT_COGS], ["014_drop_ownership_pct", DROP_OWNERSHIP_PCT], ["015_fmcg_masters", FMCG_MASTERS], ["016_data_standardization", DATA_STANDARDIZATION]];
 
 /** Applies the migrations not yet recorded, optionally only up to and including one. Run it inside a transaction holding the init lock. */
 export async function migrate(c: { query: (text: string, params?: unknown[]) => Promise<{ rows: { id: string }[] }> }, upTo?: string) {

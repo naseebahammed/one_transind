@@ -13,7 +13,7 @@ export const AL_MANZIL_NAME = "al manzil";
 
 const db = () => import("@/lib/db"); // lazy so this file stays loadable by `node --test` without the Next alias
 
-export type ReportRow = { year: number; main: string; sub: string; m: number[] };
+export type ReportRow = { year: number; main: string; sub: string; m: number[]; sign?: 1 | -1 };
 type Day = Omit<DailyRow, "date"> & { date: string };
 type Kind = "pnl" | "sales" | "units";
 type Key = string | string[];
@@ -23,32 +23,32 @@ async function buildReports(query?: <T>(text: string) => Promise<T[]>): Promise<
   const q = query ?? (await db()).q;
   const NUMS = "long_guests,long_rate,long_total,short_guests,short_rate,short_total,rooms_occupied,room_revenue,other_revenue,rooms_available";
   const [figures, derived, days, co] = await Promise.all([
-    q<{ id: number; section: Kind; y: number; mo: number; main: string; line: string; unit_type: string; v: number }>(
-      `SELECT f.company_id AS id, f.section, EXTRACT(year FROM f.period)::int AS y, EXTRACT(month FROM f.period)::int - 1 AS mo, f.main, f.line, f.unit_type, f.value::float8 AS v
+    q<{ id: number; section: Kind; y: number; mo: number; main: string; line: string; unit_type: string; v: number; sign?: 1 | -1 }>(
+      `SELECT f.company_id AS id, f.section, EXTRACT(year FROM f.period)::int AS y, EXTRACT(month FROM f.period)::int - 1 AS mo, f.main, f.line, f.unit_type, f.value::float8 AS v, a.normal_sign AS sign
        FROM app.company_figures f JOIN app.accounts a ON a.section=f.section AND a.main=f.main AND a.sub=f.line
        WHERE f.section IN ('pnl','sales','units') ORDER BY a.main_order, a.id`),
     q<{ id: number; y: number; mo: number; main: string; line: string; v: number }>(
-      // shortcut: a retail company's monthly sales come from its daily takings. Bank deposits repeat cash sales. A monthly figure typed for the same company adds on top, so keep such a company on daily uploads only.
+      // shortcut: a retail company's monthly sales come from its daily takings via rpt.company_monthly_revenue. A monthly figure typed for the same company adds on top, so keep such a company on daily uploads only.
       `SELECT company_id AS id, EXTRACT(year FROM period)::int AS y, EXTRACT(month FROM period)::int - 1 AS mo, main, line, value::float8 AS v
        FROM (SELECT company_id, period, main, line, value FROM app.daily_sales_monthly
-             UNION ALL SELECT r.company_id, date_trunc('month', r.date)::date, 'REVENUE', 'Sales', SUM(r.value) FROM app.daily_receipts r JOIN app.companies c ON c.id = r.company_id WHERE c.sector = '${SECTOR.retail}' AND r.line <> 'Bank deposits' GROUP BY 1, 2) monthly
+             UNION ALL SELECT company_id, period, 'REVENUE', line, SUM(amount_qar) FROM rpt.company_monthly_revenue WHERE source = 'daily_receipts' AND sector = '${SECTOR.retail}' GROUP BY 1, 2, 4) monthly
        ORDER BY array_position(ARRAY['Long stay','Short stay','Room revenue','Other revenue','Occupied','Available'], line)`),
     q<Day & { id: number }>(`SELECT company_id AS id, to_char(date,'YYYY-MM-DD') AS date, ${NUMS.split(",").map((c) => `${c}::float8 AS ${c}`).join(",")} FROM app.daily_sales ORDER BY date`),
     // shortcut: the Al Manzil panels on /finance, /admin/finance and Ask find it by name; give them a company picker to drop this.
     q<{ id: number }>(`SELECT id FROM app.companies WHERE lower(name) LIKE '${AL_MANZIL_NAME}%' ORDER BY id LIMIT 1`),
   ]);
   const rows = new Map<string, ReportRow[]>(), index = new Map<string, ReportRow>();
-  const put = (id: number, kind: Kind, y: number, main: string, sub: string, mo: number, v: number) => {
+  const put = (id: number, kind: Kind, y: number, main: string, sub: string, mo: number, v: number, sign?: 1 | -1) => {
     const k = `${id}|${kind}|${y}|${main}|${sub}`;
     let r = index.get(k);
     if (!r) {
-      index.set(k, r = { year: y, main, sub, m: Array<number>(12).fill(0) });
+      index.set(k, r = { year: y, main, sub, m: Array<number>(12).fill(0), ...(sign !== undefined && { sign }) });
       const list = `${id}|${kind}`;
       rows.set(list, [...(rows.get(list) ?? []), r]);
     }
     r.m[mo] += v; // a company with branches has one row per branch: the company figure is their sum
   };
-  for (const f of figures) put(f.id, f.section, f.y, f.section === "units" ? f.unit_type : f.main, f.line, f.mo, f.v);
+  for (const f of figures) put(f.id, f.section, f.y, f.section === "units" ? f.unit_type : f.main, f.line, f.mo, f.v, f.sign);
   for (const d of derived) put(d.id, "sales", d.y, d.main, d.line, d.mo, d.v);
   const daily = new Map<string, Day[]>();
   for (const { id, ...d } of days) daily.set(String(id), [...(daily.get(String(id)) ?? []), d]);
@@ -69,12 +69,14 @@ export const years = (reports: Reports, key: Key, kind: Kind = "pnl") => [...new
 const add = (a: number[], b: number[], s = 1) => a.map((v, i) => v + s * b[i]);
 const zero = () => Array<number>(12).fill(0);
 
+const isRevenue = (x: ReportRow) => (x.sign ?? (x.main === "REVENUE" ? 1 : -1)) > 0;
+
 export function report(reports: Reports, year: number, key: Key, rows = load(reports, key)) {
   const r = rows.filter((x) => x.year === year);
   const by = new Map<string, number[]>();
-  for (const x of r) if (x.main !== "REVENUE") by.set(x.main, add(by.get(x.main) ?? zero(), x.m, -1));
+  for (const x of r) if (!isRevenue(x)) by.set(x.main, add(by.get(x.main) ?? zero(), x.m, -1));
   const costGroups = [...by].filter(([, v]) => sum(v) !== 0).map(([k, v]) => [label[k] ?? k, v] as [string, number[]]);
-  const revenue = r.filter((x) => x.main === "REVENUE").reduce((a, x) => add(a, x.m), zero());
+  const revenue = r.filter(isRevenue).reduce((a, x) => add(a, x.m), zero());
   const totalCost = costGroups.reduce((a, [, v]) => add(a, v), zero());
   const roomRent = r.filter((x) => x.sub === "Room Rent").reduce((a, x) => add(a, x.m), zero());
   return { revenue, roomRent, totalCost, net: add(revenue, totalCost, -1), costGroups };
@@ -89,7 +91,7 @@ const label: Record<string, string> = {
 /** Revenue by account line (room rent, space rental, ...) for one year, non-zero lines only. */
 export function revenueLines(reports: Reports, year: number, key: Key) {
   const by = new Map<string, number>();
-  for (const x of load(reports, key)) if (x.year === year && x.main === "REVENUE") by.set(x.sub, (by.get(x.sub) ?? 0) + sum(x.m));
+  for (const x of load(reports, key)) if (x.year === year && isRevenue(x)) by.set(x.sub, (by.get(x.sub) ?? 0) + sum(x.m));
   return [...by].filter(([, v]) => v).sort((a, b) => b[1] - a[1]);
 }
 

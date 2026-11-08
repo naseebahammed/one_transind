@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import type { PoolClient } from "pg";
 import { numbering, q, q1 } from "@/lib/db";
+import type { Masters } from "@/lib/fmcg-masters";
 import type { CogsRow, DailyRow, ImportIssue, ReceiptRow } from "@/lib/report-parsers";
 import { LINES, type Figure, type FigureSection } from "@/lib/company-data";
 
@@ -70,6 +71,28 @@ export const importCogs = (u: Upload, rows: (CogsRow & { branchId: number | null
       await c.query("DELETE FROM app.company_figures WHERE company_id=$1 AND section='cogs' AND period = ANY($2::date[]) AND branch_id IS NOT DISTINCT FROM $3", [u.companyId, periods, branchId]);
     for (const r of rows)
       await c.query("INSERT INTO app.company_figures(company_id,section,period,main,line,value,import_id,branch_id) VALUES($1,'cogs',$2,'COGS',$3,$4,$5,$6)", [u.companyId, period(r.year, r.month), r.line, r.value, id, r.branchId]);
+  });
+
+/** All or nothing, as one import. Reference rows are updated in place and never removed, because old sales will point at them; a month's targets replace that month. */
+export const importMasters = (u: Upload, m: Masters) =>
+  numbering(async (c) => {
+    const id = await addImport(c, u, m.rowsRead, m.period ? [m.period] : [], { rowsRead: m.rowsRead, controlTotal: m.controlTotal, issues: m.issues });
+    const pick = <T,>(rows: T[], ...keys: (keyof T)[]) => keys.map((k) => rows.map((r) => r[k]));
+    if (m.brands.length) await c.query(`INSERT INTO app.brands(code,name,department,manager,category) SELECT * FROM unnest($1::text[],$2::text[],$3::text[],$4::text[],$5::text[])
+      ON CONFLICT (code) DO UPDATE SET department=COALESCE(EXCLUDED.department,app.brands.department), manager=COALESCE(EXCLUDED.manager,app.brands.manager), category=COALESCE(EXCLUDED.category,app.brands.category)`, pick(m.brands, "code", "name", "department", "manager", "category"));
+    if (m.salesmen.length) await c.query(`INSERT INTO app.salesmen(code,name,status,team_lead,manager,sales_category,route,import_id) SELECT a,b,d,e,f,g,h,$8 FROM unnest($1::text[],$2::text[],$3::text[],$4::text[],$5::text[],$6::text[],$7::text[]) AS t(a,b,d,e,f,g,h)
+      ON CONFLICT (code) DO UPDATE SET name=EXCLUDED.name,status=EXCLUDED.status,team_lead=EXCLUDED.team_lead,manager=EXCLUDED.manager,sales_category=EXCLUDED.sales_category,route=EXCLUDED.route,import_id=EXCLUDED.import_id,updated=now()`, [...pick(m.salesmen, "code", "name", "status", "teamLead", "manager", "salesCategory", "route"), id]);
+    if (m.customers.length) await c.query(`INSERT INTO app.customers(code,name,group_name,credit_days,accountant,status,import_id) SELECT a,b,d,e,f,g,$7 FROM unnest($1::text[],$2::text[],$3::text[],$4::int[],$5::text[],$6::text[]) AS t(a,b,d,e,f,g)
+      ON CONFLICT (code) DO UPDATE SET name=EXCLUDED.name,group_name=EXCLUDED.group_name,credit_days=EXCLUDED.credit_days,accountant=EXCLUDED.accountant,status=EXCLUDED.status,import_id=EXCLUDED.import_id,updated=now()`, [...pick(m.customers, "code", "name", "groupName", "creditDays", "accountant", "status"), id]);
+    if (m.items.length) await c.query(`INSERT INTO app.items(code,name,brand,packing,size,item_type,department,manager,import_id) SELECT a,b,d,e,f,g,h,i,$9 FROM unnest($1::text[],$2::text[],$3::text[],$4::text[],$5::text[],$6::text[],$7::text[],$8::text[]) AS t(a,b,d,e,f,g,h,i)
+      ON CONFLICT (code) DO UPDATE SET name=EXCLUDED.name,brand=EXCLUDED.brand,packing=EXCLUDED.packing,size=EXCLUDED.size,item_type=EXCLUDED.item_type,department=EXCLUDED.department,manager=EXCLUDED.manager,import_id=EXCLUDED.import_id,updated=now()`, [...pick(m.items, "code", "name", "brand", "packing", "size", "itemType", "department", "manager"), id]);
+    if (!m.period) return;
+    // A target file can name a salesman the Market Audit has not listed yet; keep the row and let the next audit fill in the details.
+    await c.query("INSERT INTO app.salesmen(code,name,import_id) SELECT DISTINCT ON (a) a,b,$3::int FROM unnest($1::text[],$2::text[]) AS t(a,b) ON CONFLICT (code) DO NOTHING", [...pick(m.assignments, "salesmanCode", "salesmanName"), id]);
+    await c.query("DELETE FROM app.sales_assignments WHERE period=$1", [m.period]);
+    await c.query("DELETE FROM app.manager_targets WHERE period=$1", [m.period]);
+    await c.query("INSERT INTO app.sales_assignments(period,salesman_code,brand,supervisor,channel,department,target,import_id) SELECT $1::date,a,b,d,e,f,g,$8 FROM unnest($2::text[],$3::text[],$4::text[],$5::text[],$6::text[],$7::numeric[]) AS t(a,b,d,e,f,g)", [m.period, ...pick(m.assignments, "salesmanCode", "brand", "supervisor", "channel", "department", "target"), id]);
+    await c.query("INSERT INTO app.manager_targets(period,manager,target,import_id) SELECT $1::date,a,b,$4 FROM unnest($2::text[],$3::numeric[]) AS t(a,b)", [m.period, ...pick(m.managerTargets, "manager", "target"), id]);
   });
 
 const DAILY = ["long_guests", "long_rate", "long_total", "short_guests", "short_rate", "short_total", "rooms_occupied", "room_revenue", "other_revenue", "rooms_available"] as const;

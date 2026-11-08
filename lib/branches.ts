@@ -1,9 +1,9 @@
 import { q, q1 } from "@/lib/db";
 
-export type Branch = { id: number; name: string; active: number };
+export type Branch = { id: number; name: string; active: number; aliases?: string[] };
 
 export const listBranches = (companyId: number) =>
-  q<Branch>("SELECT id, name, active FROM app.branches WHERE company_id=$1 ORDER BY lower(name)", [companyId]);
+  q<Branch>("SELECT id, name, active, aliases FROM app.branches WHERE company_id=$1 ORDER BY lower(name)", [companyId]);
 
 /** Branch id from a form or URL: null = the whole company, undefined = not a branch of this company (refuse the request). */
 export async function branchOf(companyId: number, raw: unknown) {

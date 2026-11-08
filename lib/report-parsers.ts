@@ -344,16 +344,22 @@ const COGS_COLUMNS: Record<string, { company: string; branch?: string[] }> = {
 };
 
 /** The COGS rows of one company, each with its branch id (null = the whole company). The workbook covers several companies, so it is uploaded once on each. Columns of other companies are skipped. */
-export function cogsForCompany(rows: CogsRow[], companyName: string, branches: { id: number; name: string }[]) {
-  const company = fold(companyName), mine: (CogsRow & { branchId: number | null })[] = [], issues: ImportIssue[] = [], resolved = new Map<string, number | null | undefined>();
+export function cogsForCompany(rows: CogsRow[], companyName: string, branches: { id: number; name: string; aliases?: string[] }[], companyAliases: string[] = []) {
+  const company = fold(companyName), ownAliases = companyAliases.map(fold), mine: (CogsRow & { branchId: number | null })[] = [], issues: ImportIssue[] = [], resolved = new Map<string, number | null | undefined>();
   for (const r of rows) {
     if (!resolved.has(r.branch)) {
-      const owner = COGS_COLUMNS[fold(r.branch)];
-      if (!owner) { issues.push({ sheet: "", row: 0, reason: `The column "${r.branch}" has no confirmed owner, so it was not loaded.`, loaded: false }); resolved.set(r.branch, undefined); continue; }
-      if (!company.includes(owner.company)) { resolved.set(r.branch, undefined); continue; }
-      const branch = owner.branch ? branches.find((b) => owner.branch!.some((n) => fold(b.name).includes(n))) : null;
-      if (branch === undefined) throw new Error(`${companyName} has no branch for the column "${r.branch}". Add the branch first.`);
-      resolved.set(r.branch, branch?.id ?? null);
+      const col = fold(r.branch);
+      const byAlias = branches.find((b) => (b.aliases ?? []).some((a) => fold(a) === col));
+      if (byAlias) resolved.set(r.branch, byAlias.id);
+      else if (ownAliases.includes(col)) resolved.set(r.branch, null);
+      else {
+        const owner = COGS_COLUMNS[col];
+        if (!owner) { issues.push({ sheet: "", row: 0, reason: `The column "${r.branch}" has no confirmed owner, so it was not loaded.`, loaded: false }); resolved.set(r.branch, undefined); continue; }
+        if (!company.includes(owner.company)) { resolved.set(r.branch, undefined); continue; }
+        const branch = owner.branch ? branches.find((b) => [b.name, ...(b.aliases ?? [])].some((t) => owner.branch!.some((n) => fold(t).includes(n)))) : null;
+        if (branch === undefined) throw new Error(`${companyName} has no branch for the column "${r.branch}". Add the branch first.`);
+        resolved.set(r.branch, branch?.id ?? null);
+      }
     }
     const branchId = resolved.get(r.branch);
     if (branchId !== undefined) mine.push({ ...r, branchId });

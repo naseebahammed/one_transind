@@ -242,6 +242,8 @@ test("cogsForCompany keeps one company's columns, finds their branches and holds
   assert.equal(shawarma.issues.length, 1, "reported once, however many rows the column has");
   assert.deepEqual(cogsForCompany(rows, "Asian Wok", []).rows.map((r) => r.branchId), [null]);
   assert.deepEqual(cogsForCompany(rows, "Burger Stop", [{ id: 9, name: "Gharafa" }]).rows.map((r) => [r.branch, r.branchId]), [["Burger Stop", null]], "whole company, and another brand's Gharafa column never lands here");
+  assert.deepEqual(cogsForCompany([row("Lusail Marina")], "Mr. Shawarma", [{ id: 4, name: "Lusail", aliases: ["Lusail Marina"] }]).rows.map((r) => r.branchId), [4], "branch aliases from app.branches resolve new columns without code edits");
+  assert.deepEqual(cogsForCompany([row("Wok Express")], "Asian Wok", [], ["Wok Express"]).rows.map((r) => r.branchId), [null], "company aliases from app.companies resolve whole-company columns");
   assert.throws(() => cogsForCompany(rows, "Mr. Shawarma", [{ id: 2, name: "Qatar Sports Club" }]), /no branch for the column "Mr.Shawarma Bin Omran"/);
 });
 

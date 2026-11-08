@@ -14,9 +14,10 @@ const TYPES = {
   receipts: { label: "Daily sales deposit", accept: ".xlsx", hint: "The branch's Daily Sales Deposit workbook, all months. Pick the branch first. Days in the file replace the same days; days after the last figure are ignored." },
   cogs: { label: "COGS summary", accept: ".xlsx", hint: "The group Restaurants COGS Summary workbook. Only this company's columns are loaded, so upload it once on each company. Months in the file replace the same months on file." },
   dukan: { label: "Dukan Food monthly sales", accept: ".xlsx", hint: "DUKAN-TOTAL for the month, re-saved from .xls as .xlsx. Pick the branch first. The month in the file replaces the same month on file." },
+  masters: { label: "FMCG reference data", accept: ".xlsx", hint: "The Market Audit (salesmen, customers), Stock Report (items, brands) or Daily Sales Report (monthly targets) workbook. Existing records are updated, never removed. A month's targets replace that month." },
   sales: { label: "Monthly sales", accept: ".xlsx,.csv", hint: "The downloaded template, as Excel or CSV, one sales figure per month. Months you fill in replace the same months on file." },
 } as const;
-const FOR_REAL_ESTATE = ["pnl", "daily", "units"], FOR_FOOD_BEVERAGE = ["pnl", "receipts", "cogs"], FOR_RETAIL = ["pnl", "sales", "dukan"], NO_TEMPLATE: string[] = ["receipts", "cogs", "dukan"], FOR_OTHERS = ["pnl", "sales"];
+const FOR_REAL_ESTATE = ["pnl", "daily", "units"], FOR_FOOD_BEVERAGE = ["pnl", "receipts", "cogs"], FOR_RETAIL = ["pnl", "sales", "dukan"], FOR_FMCG = ["pnl", "sales", "masters"], NO_TEMPLATE: string[] = ["receipts", "cogs", "dukan", "masters"], FOR_OTHERS = ["pnl", "sales"];
 
 export function UploadReport({ companyId, sector, branchId, initialType = "pnl" }: { companyId: number; sector: string; branchId?: number | null; initialType?: keyof typeof TYPES }) {
   const [s, act, pending] = useActionState<UploadState, FormData>(uploadReport, {});
@@ -31,7 +32,7 @@ export function UploadReport({ companyId, sector, branchId, initialType = "pnl" 
         <input type="hidden" name="companyId" value={companyId} />
         <input type="hidden" name="branchId" value={branchId ?? ""} />
         <NativeSelect name="type" value={type} onChange={(e) => setType(e.target.value as keyof typeof TYPES)}>
-          {Object.entries(TYPES).filter(([k]) => (sector === SECTOR.realEstate ? FOR_REAL_ESTATE : sector === SECTOR.foodBeverage ? FOR_FOOD_BEVERAGE : sector === SECTOR.retail ? FOR_RETAIL : FOR_OTHERS).includes(k)).map(([k, t]) => <option key={k} value={k}>{t.label}</option>)}
+          {Object.entries(TYPES).filter(([k]) => (sector === SECTOR.realEstate ? FOR_REAL_ESTATE : sector === SECTOR.foodBeverage ? FOR_FOOD_BEVERAGE : sector === SECTOR.retail ? FOR_RETAIL : sector === SECTOR.fmcg ? FOR_FMCG : FOR_OTHERS).includes(k)).map(([k, t]) => <option key={k} value={k}>{t.label}</option>)}
         </NativeSelect>
         {type !== "sales" && !NO_TEMPLATE.includes(type) && <NativeSelect aria-label="Template month" value={month} onChange={(e) => setMonth(e.target.value)}>
           <option value="">Last month</option>

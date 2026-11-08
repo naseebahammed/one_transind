@@ -66,3 +66,15 @@ test("a year without a Room Rent row still reports", async () => {
   assert.equal(r.revenue[0], 10);
   assert.deepEqual(r.roomRent, Array(12).fill(0));
 });
+
+test("report classifies revenue vs cost using normal_sign from app.accounts when present", async () => {
+  const reports = await loadReports(fakeQuery);
+  const custom = [
+    { year: 2025, main: "OTHER INCOME", sub: "Grant", m: m(250), sign: 1 as const },
+    { year: 2025, main: "ADMIN", sub: "Office", m: m(-80), sign: -1 as const },
+  ];
+  const r = report(reports, 2025, "4", custom);
+  assert.deepEqual(r.revenue, m(250));
+  assert.deepEqual(r.totalCost, m(80));
+  assert.deepEqual(r.net, m(170));
+});

@@ -2,10 +2,10 @@ import { q, q1 } from "@/lib/db";
 import { type RoomType } from "@/lib/companies.shared";
 import { type CompanyInput } from "@/lib/company-input";
 
-export type Company = { id: number; name: string; sector: string; active: number; total_rooms: number; room_types: RoomType[]; hidden: number; property_type: string; has_logo: boolean; erp_code: string; has_branches: number };
+export type Company = { id: number; name: string; sector: string; active: number; total_rooms: number; room_types: RoomType[]; hidden: number; property_type: string; has_logo: boolean; erp_code: string; has_branches: number; aliases?: string[] };
 
 // Excludes the logo bytes themselves - listing/editing a company shouldn't pull its image blob along.
-const COLS = "id,name,sector,active,total_rooms,room_types,hidden,property_type,(logo IS NOT NULL) AS has_logo,erp_code,has_branches";
+const COLS = "id,name,sector,active,total_rooms,room_types,hidden,property_type,(logo IS NOT NULL) AS has_logo,erp_code,has_branches,aliases";
 
 export const listCompanies = (query = "", sector = "") =>
   q<Company>(`SELECT ${COLS} FROM app.companies WHERE name ILIKE $1 AND ($2::text='' OR sector=$2) ORDER BY lower(name)`, [`%${query}%`, sector]);
