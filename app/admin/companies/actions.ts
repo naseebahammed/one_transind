@@ -1,4 +1,5 @@
 "use server";
+import { requireUser } from "@/lib/guard";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { saveCompanyRecord, setCompanyHidden } from "@/lib/companies";
@@ -9,6 +10,7 @@ import { listPropertyTypes } from "@/lib/property-types";
 export type FormState = { error?: string };
 
 export async function saveCompany(_: FormState, f: FormData): Promise<FormState> {
+  await requireUser();
   const rawId = f.get("id");
   const id = rawId ? Number(rawId) : 0;
   if (!Number.isInteger(id) || id < 0) return { error: "Invalid company ID." };
@@ -28,6 +30,7 @@ export async function saveCompany(_: FormState, f: FormData): Promise<FormState>
 
 /** Sets whether a company's data is hidden on the finance page ("hidden" = 1 or 0); the company record itself is untouched. Absolute, not a flip, so a double submit is harmless. */
 export async function toggleCompanyHidden(f: FormData) {
+  await requireUser();
   const id = Number(f.get("id"));
   if (!Number.isInteger(id) || id <= 0) return;
   await setCompanyHidden(id, f.get("hidden") === "1" ? 1 : 0);

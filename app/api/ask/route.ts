@@ -1,3 +1,4 @@
+import { apiGuard } from "@/lib/guard";
 import { connection } from "next/server";
 import { getOverview, getOverviewBrands, getCustomers } from "@/lib/data";
 import { alManzilKey, dailyYears, occupancy, report, revenueLines, years, loadReports } from "@/lib/reports";
@@ -28,6 +29,8 @@ async function context() {
 }
 
 export async function POST(req: Request) {
+  const denied = await apiGuard();
+  if (denied) return denied;
   await connection();
   const key = process.env.OPENAI_API_KEY;
   if (!key) return Response.json({ error: "OPENAI_API_KEY is not set" }, { status: 503 });

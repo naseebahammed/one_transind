@@ -1,6 +1,9 @@
+import { apiGuard } from "@/lib/guard";
 import { getCompanyLogo } from "@/lib/companies";
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
+  const denied = await apiGuard();
+  if (denied) return denied;
   const id = Number((await params).id);
   if (!Number.isInteger(id)) return new Response(null, { status: 404 });
   const row = await getCompanyLogo(id);

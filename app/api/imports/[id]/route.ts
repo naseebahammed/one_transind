@@ -1,8 +1,11 @@
+import { apiGuard } from "@/lib/guard";
 import { connection } from "next/server";
 import { getImportFile } from "@/lib/company-figures";
 
 /** Downloads the original file of an upload. Sent as an attachment with a fixed safe type, so an uploaded file can never run in the browser. */
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
+  const denied = await apiGuard();
+  if (denied) return denied;
   await connection();
   const id = Number((await params).id);
   if (!Number.isInteger(id)) return new Response("Unknown upload.", { status: 404 });

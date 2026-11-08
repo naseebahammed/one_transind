@@ -1,3 +1,4 @@
+import { apiGuard } from "@/lib/guard";
 import { connection } from "next/server";
 import type ExcelJS from "exceljs";
 import { listAccounts } from "@/lib/accounts";
@@ -11,6 +12,8 @@ const MONTHLY: Record<string, string> = { pnl: "P&L", daily: "Monthly sales repo
 
 /** Downloads an upload's Excel template: ?section=balance|budget|people&year=, ?section=sales with optional year=, or ?section=pnl|daily|units with optional year= and month= (0-11, default last month). */
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const denied = await apiGuard();
+  if (denied) return denied;
   await connection();
   const q = new URL(req.url).searchParams;
   const section = q.get("section") ?? "";

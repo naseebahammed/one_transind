@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { requireUser } from "@/lib/guard";
 import { getSalesSectors } from "@/lib/sales-sectors";
 import { SalesToolbar } from "@/components/SalesToolbar";
 import { Nav, Title } from "@/components/Shell";
@@ -8,7 +9,8 @@ async function Toolbar() {
   return <SalesToolbar sectors={await getSalesSectors()} />;
 }
 
-export default function AppLayout({ children }: { children: React.ReactNode }) {
+export default async function AppLayout({ children }: { children: React.ReactNode }) {
+  await requireUser();
   return (
     <div className="app">
       <aside className="rail">
