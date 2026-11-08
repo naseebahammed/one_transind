@@ -112,6 +112,9 @@ export const listImports = () =>
       to_char(i.period_from,'Mon YYYY') AS period_from, to_char(i.period_to,'Mon YYYY') AS period_to, to_char(i.created AT TIME ZONE 'Asia/Qatar','YYYY-MM-DD HH24:MI') AS created
     FROM app.imports i JOIN app.companies c ON c.id=i.company_id ORDER BY i.id DESC LIMIT 100`);
 
+export const getImportFile = (id: number) =>
+  q1<{ file: Buffer | null; file_name: string }>("SELECT file, file_name FROM app.imports WHERE id=$1", [id]);
+
 /** Latest month with takings for any branch of the company, as { year, month 0-11 }; null when nothing is uploaded. */
 export const latestReceiptMonth = async (companyId: number) => {
   const row = await q1<{ year: number; month: number }>(`SELECT EXTRACT(year FROM max(date))::int AS year, EXTRACT(month FROM max(date))::int - 1 AS month FROM app.daily_receipts WHERE company_id=$1`, [companyId]);

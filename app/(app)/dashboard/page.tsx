@@ -23,7 +23,7 @@ export default function Page({ searchParams }: { searchParams: Params }) {
 
 async function Content({ searchParams }: { searchParams: Params }) {
   await connection();
-  await loadReports();
+  const reports = await loadReports();
   const { p, all } = await searchParams;
   const path = parsePath(p);
   const o = await getOverview();
@@ -36,14 +36,14 @@ async function Content({ searchParams }: { searchParams: Params }) {
   // Health & Beauty (Pavati) and Retail (Top Perfume) companies report monthly sales through Admin → Finance, not the sales table.
   const fileSales = FILE_SECTORS.map(([k, name], i) => {
     const cos = fileSectorCompanies[i].filter((c) => c.active && !c.hidden), keys = cos.map(keyFor);
-    const rev = (y: number) => report(y, keys, plRows(y, keys, "sales")).revenue;
+    const rev = (y: number) => report(reports, y, keys, plRows(reports, y, keys, "sales")).revenue;
     bySector.set(k, (bySector.get(k) ?? 0) + sum(rev(o.year).slice(0, o.month + 1)));
-    return { k, name, cos, rev, ys: years(keys, "sales").slice(-3) };
+    return { k, name, cos, rev, ys: years(reports, keys, "sales").slice(-3) };
   });
   // Real Estate, same months as the other sectors: each property's P&L, or its monthly sales grid when that year's P&L is not uploaded yet (Al Manzil 2026).
   bySector.set(SECTOR.realEstate, (bySector.get(SECTOR.realEstate) ?? 0) + sum(realEstateCompanies.filter((c) => c.active && !c.hidden).map((c) => {
     const key = keyFor(c);
-    return sum(report(o.year, key, years(key).includes(o.year) ? undefined : plRows(o.year, key, "sales")).revenue.slice(0, o.month + 1));
+    return sum(report(reports, o.year, key, years(reports, key).includes(o.year) ? undefined : plRows(reports, o.year, key, "sales")).revenue.slice(0, o.month + 1));
   })));
   const sectors = [...adminSectors.map(([k, name]) => ({ label: name, v: bySector.get(k) ?? 0 })), ...(bySector.get("") ? [{ label: "Unassigned", v: bySector.get("")! }] : [])];
   const cur = o.months[o.month], ytd = sum(o.months.map((m) => m.value));
@@ -73,7 +73,7 @@ async function Content({ searchParams }: { searchParams: Params }) {
           <HBars rows={sectors.map((s) => ({ l: s.label, v: s.v / 1e6 }))} unit=" M" />
         </Panel>
         {fileSales.filter((s) => s.ys.length).map((s) => (
-          <Panel key={s.k} span={12} title={`${s.name} sales by month (${s.cos.filter((c) => years(keyFor(c), "sales").length).map((c) => c.name).join(", ")})`}>
+          <Panel key={s.k} span={12} title={`${s.name} sales by month (${s.cos.filter((c) => years(reports, keyFor(c), "sales").length).map((c) => c.name).join(", ")})`}>
             <CompareChart years={s.ys} series={s.ys.map((y) => s.rev(y).map((v) => v / 1e6 || null))} sel={s.ys.at(-1) === o.year ? o.month : -1} />
           </Panel>
         ))}

@@ -9,3 +9,24 @@ export const countCompanies = async (key: string) =>
 
 /** Keys hardcoded elsewhere (HR org data, Real Estate pages, dashboard cards) — never deletable from the admin UI. */
 export const PROTECTED_SECTOR_KEYS = new Set<string>(SECTORS.map(([key]) => key));
+
+export async function createSector(name: string): Promise<{ error?: string }> {
+  if (await q1("SELECT 1 FROM app.sectors WHERE lower(name)=lower($1)", [name])) return { error: "A sector with this name already exists." };
+  const base = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 16) || "sector";
+  let key = base;
+  for (let i = 2; await q1("SELECT 1 FROM app.sectors WHERE key=$1", [key]); i++) key = `${base}-${i}`;
+  await q("INSERT INTO app.sectors(key,name) VALUES($1,$2)", [key, name]);
+  return {};
+}
+
+export async function renameSectorByKey(key: string, name: string): Promise<{ error?: string }> {
+  if (await q1("SELECT 1 FROM app.sectors WHERE lower(name)=lower($1) AND key<>$2", [name, key])) return { error: "A sector with this name already exists." };
+  await q("UPDATE app.sectors SET name=$1 WHERE key=$2", [name, key]);
+  return {};
+}
+
+export async function removeSector(key: string) {
+  if (PROTECTED_SECTOR_KEYS.has(key)) return; // built into the app; UI disables the button, this guards a forged request
+  if (await countCompanies(key)) return; // UI disables the button; this guards a forged request
+  await q("DELETE FROM app.sectors WHERE key=$1", [key]);
+}

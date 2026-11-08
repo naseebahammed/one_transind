@@ -4,10 +4,12 @@
 // and the comparison is exact. Elsewhere plain columns (`SELECT id, name`) and `${COLS}` lists would need a real SQL parser.
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import ts from "typescript";
 
 const FILE = join(import.meta.dirname, "data.ts");
+const APP_DIR = join(import.meta.dirname, "..", "app");
 const CASTS = /^(text|int|integer|float8|numeric|date)$/i; // `CAST(x AS INTEGER)` is not an alias
 
 /** Aliases as Postgres returns them: quoted ones keep their case, unquoted ones are lowercased. */
@@ -34,4 +36,22 @@ test("every query in lib/data.ts returns exactly the fields its row type declare
   })(sf);
   assert.ok(checked >= 13, `found only ${checked} queries; the search is broken`);
   assert.deepEqual(problems, [], `\n${problems.join("\n")}`);
+});
+
+function walkFiles(dir: string): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((d) => {
+    const p = join(dir, d.name);
+    return d.isDirectory() ? walkFiles(p) : /\.(ts|tsx)$/.test(d.name) ? [p] : [];
+  });
+}
+
+test("no file under app/ imports SQL query runners directly from lib/db or lib/pg", () => {
+  const offenders: string[] = [];
+  for (const file of walkFiles(APP_DIR)) {
+    const text = readFileSync(file, "utf8");
+    if (/import\s*\{[^}]*\b(q|q1|numbering|pg)\b[^}]*\}\s*from\s*["']@\/lib\/(db|pg)["']/.test(text)) {
+      offenders.push(file);
+    }
+  }
+  assert.deepEqual(offenders, [], `Direct SQL imports found in app/: ${offenders.join(", ")}`);
 });

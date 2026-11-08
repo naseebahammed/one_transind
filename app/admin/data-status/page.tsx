@@ -6,7 +6,6 @@ import { PrintButton } from "@/components/admin/PrintButton";
 import { Button } from "@/components/admin/ui/button";
 import { Card } from "@/components/admin/ui/card";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/admin/ui/table";
-import { loadReports } from "@/lib/reports";
 import { listCompanies, type Company } from "@/lib/companies";
 import { monthStatuses, type FigureSection } from "@/lib/company-data";
 import { listFilledMonths } from "@/lib/company-figures";
@@ -41,7 +40,6 @@ export default function DataStatus({ searchParams }: { searchParams: Search }) {
 }
 
 async function Matrix({ searchParams }: { searchParams: Search }) {
-  await loadReports();
   const today = new Date(), thisYear = today.getFullYear(), years = [thisYear - 2, thisYear - 1, thisYear];
   const raw = Number((await searchParams).year), year = years.includes(raw) ? raw : thisYear;
   const companies = (await listCompanies()).filter((c) => c.active && !c.hidden);

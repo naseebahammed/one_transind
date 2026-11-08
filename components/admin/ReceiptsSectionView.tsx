@@ -7,6 +7,7 @@ import { MONTHS } from "@/lib/company-data";
 import { listReceipts } from "@/lib/company-figures";
 import { receiptTable } from "@/lib/receipts";
 import { fmt } from "@/lib/format";
+import { SECTOR } from "@/lib/org";
 import { link } from "@/lib/url";
 
 const amount = (n: number | undefined) => (n === undefined ? "" : fmt(n, 2, 2));
@@ -14,15 +15,16 @@ const amount = (n: number | undefined) => (n === undefined ? "" : fmt(n, 2, 2));
 /** A branch's Daily Sales Deposit sheet for one month. Gross sales is calculated here, never stored. */
 export async function ReceiptsSectionView({ company, year, month, branchId }: { company: { id: number; sector: string }; year: number; month: number; branchId: number | null }) {
   const t = branchId ? receiptTable(await listReceipts(branchId, year, month), year, month) : null;
+  const retail = company.sector === SECTOR.retail;
   const href = (m: number) => link(`/admin/companies/${company.id}`, { section: "daily", year: String(year), month: String(m), branch: branchId ? String(branchId) : undefined });
   return (
     <>
       <Card className="gap-2 py-3">
         <CardHeader>
-          <CardTitle className="text-sm">Upload the daily sales deposit</CardTitle>
-          <CardDescription>Pick a branch above, then upload its Daily Sales Deposit workbook.</CardDescription>
+          <CardTitle className="text-sm">{retail ? "Upload the monthly sales" : "Upload the daily sales deposit"}</CardTitle>
+          <CardDescription>Pick a branch above, then upload its {retail ? "monthly sales" : "Daily Sales Deposit"} workbook.</CardDescription>
         </CardHeader>
-        <CardContent><UploadReport companyId={company.id} sector={company.sector} branchId={branchId} initialType="receipts" /></CardContent>
+        <CardContent><UploadReport companyId={company.id} sector={company.sector} branchId={branchId} initialType={retail ? "dukan" : "receipts"} /></CardContent>
       </Card>
       <Card className="flex-row flex-wrap items-center gap-2 px-6 py-2 text-sm">
         <span className="text-muted-foreground">Month</span>

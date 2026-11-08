@@ -1,7 +1,7 @@
 // Pure (only a relative, import-free sibling) so `node --test` can load it without the Next alias setup.
 import type { RoomType } from "./companies.shared.ts";
 
-type CompanyInput = { name: string; sector: string; active: number; totalRooms: number; roomTypes: RoomType[]; propertyType: string; erpCode: string };
+export type CompanyInput = { name: string; sector: string; active: number; totalRooms: number; roomTypes: RoomType[]; propertyType: string; erpCode: string };
 
 export const PROPERTY_TYPES = [["apartments", "Apartments"], ["villa", "Villa"]] as const;
 

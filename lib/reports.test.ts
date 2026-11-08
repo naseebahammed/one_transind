@@ -22,20 +22,20 @@ const day = (date: string, long_guests: number, short_guests: number, rooms_occu
 const days = [day("2025-01-01", 2, 1, 3, 600, 50), day("2025-01-02", 1, 1, 2, 400, 0), day("2025-02-01", 0, 4, 4, 800, 0)];
 
 const fakeQuery = async <T,>(sql: string) =>
-  (sql.includes("app.companies") ? [{ id: 7 }] : sql.includes("daily_sales_monthly") ? derived : sql.includes("app.daily_sales") ? days : figures) as T[];
+  (sql.includes("daily_sales_monthly") ? derived : sql.includes("app.companies") ? [{ id: 7 }] : sql.includes("app.daily_sales") ? days : figures) as T[];
 
 test("loadReports + readers: years, Al Manzil key, revenue lines and P&L totals", async () => {
-  await loadReports(fakeQuery);
-  assert.equal(alManzilKey(), "7");
-  assert.deepEqual(years("7"), [2025, 2026]);
-  assert.deepEqual(years("7", "sales"), [2025]);
-  assert.deepEqual(years("7", "units"), [2025]);
-  assert.deepEqual(years(["7", "8"]), [2024, 2025, 2026]);
-  assert.deepEqual(revenueLines(2025, "7"), [["Room Rent", 3000], ["Space Rental", 500]]);
-  assert.deepEqual(revenueLines(2025, ["7", "8"]), [["Room Rent", 3400], ["Space Rental", 500]]);
-  assert.deepEqual(report(2025, ["7", "8"]).roomRent, m(1400, 2000));
+  const reports = await loadReports(fakeQuery);
+  assert.equal(alManzilKey(reports), "7");
+  assert.deepEqual(years(reports, "7"), [2025, 2026]);
+  assert.deepEqual(years(reports, "7", "sales"), [2025]);
+  assert.deepEqual(years(reports, "7", "units"), [2025]);
+  assert.deepEqual(years(reports, ["7", "8"]), [2024, 2025, 2026]);
+  assert.deepEqual(revenueLines(reports, 2025, "7"), [["Room Rent", 3000], ["Space Rental", 500]]);
+  assert.deepEqual(revenueLines(reports, 2025, ["7", "8"]), [["Room Rent", 3400], ["Space Rental", 500]]);
+  assert.deepEqual(report(reports, 2025, ["7", "8"]).roomRent, m(1400, 2000));
 
-  const r = report(2025, "7");
+  const r = report(reports, 2025, "7");
   assert.deepEqual(r.revenue, m(1500, 2000));
   assert.deepEqual(r.roomRent, m(1000, 2000));
   assert.deepEqual(r.totalCost, m(300)); // costs stored negative, reported as a positive cost
@@ -44,15 +44,15 @@ test("loadReports + readers: years, Al Manzil key, revenue lines and P&L totals"
 });
 
 test("loadReports + readers: unit-type rows and derived monthly sales", async () => {
-  await loadReports(fakeQuery);
-  assert.deepEqual(plRows(2025, "7", "units"), [{ year: 2025, main: "1 BHK", sub: "Long stay", m: m(0, 0, 4) }]);
-  assert.deepEqual(plRows(2025, "7", "sales"), [{ year: 2025, main: "REVENUE", sub: "Room revenue", m: m(1000) }]);
+  const reports = await loadReports(fakeQuery);
+  assert.deepEqual(plRows(reports, 2025, "7", "units"), [{ year: 2025, main: "1 BHK", sub: "Long stay", m: m(0, 0, 4) }]);
+  assert.deepEqual(plRows(reports, 2025, "7", "sales"), [{ year: 2025, main: "REVENUE", sub: "Room revenue", m: m(1000) }]);
 });
 
 test("occupancy and average daily rate are calculated per month from the daily rows", async () => {
-  await loadReports(fakeQuery);
-  assert.deepEqual(dailyYears("7"), [2025]);
-  const [jan, feb, mar] = occupancy(2025, "7");
+  const reports = await loadReports(fakeQuery);
+  assert.deepEqual(dailyYears(reports, "7"), [2025]);
+  const [jan, feb, mar] = occupancy(reports, 2025, "7");
   assert.deepEqual(jan, { days: 2, sold: 5, avail: 20, occ: 0.25, adr: 200, longShare: 0.6, room: 1000, other: 50 });
   assert.deepEqual(feb, { days: 1, sold: 4, avail: 10, occ: 0.4, adr: 200, longShare: 0, room: 800, other: 0 });
   assert.deepEqual(mar, { days: 0, sold: 0, avail: 0, occ: 0, adr: 0, longShare: 0, room: 0, other: 0 });
@@ -60,8 +60,9 @@ test("occupancy and average daily rate are calculated per month from the daily r
 
 const rows = [{ year: 2025, main: "REVENUE", sub: "Extra Bed", m: Array(12).fill(10) }];
 
-test("a year without a Room Rent row still reports", () => {
-  const r = report(2025, "4", rows);
+test("a year without a Room Rent row still reports", async () => {
+  const reports = await loadReports(fakeQuery);
+  const r = report(reports, 2025, "4", rows);
   assert.equal(r.revenue[0], 10);
   assert.deepEqual(r.roomRent, Array(12).fill(0));
 });

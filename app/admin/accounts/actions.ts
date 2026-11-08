@@ -1,23 +1,17 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import { q, q1 } from "@/lib/db";
+import { createAccount, removeAccount, updateAccountById } from "@/lib/accounts";
 
 export type AccountState = { error?: string };
 
 const text = (f: FormData, k: string) => String(f.get(k) ?? "").trim().replace(/\s+/g, " ").slice(0, 80);
 const done = () => revalidatePath("/", "layout");
-const taken = async (main: string, sub: string, id = 0) =>
-  !!(await q1("SELECT 1 FROM app.accounts WHERE section='pnl' AND lower(main)=lower($1) AND lower(sub)=lower($2) AND id<>$3", [main, sub, id]));
-
-// A main account keeps the position of its existing rows; a new one goes last.
-const orderOf = async (main: string) =>
-  (await q1<{ o: number }>("SELECT COALESCE((SELECT main_order FROM app.accounts WHERE section='pnl' AND lower(main)=lower($1) LIMIT 1), (SELECT COALESCE(MAX(main_order),0)+1 FROM app.accounts WHERE section='pnl')) AS o", [main]))!.o;
 
 export async function addAccount(_: AccountState, f: FormData): Promise<AccountState> {
   const main = text(f, "main"), sub = text(f, "sub");
   if (!main || !sub) return { error: "Main account and sub ledger account are required." };
-  if (await taken(main, sub)) return { error: "This sub ledger account already exists under that main account." };
-  await q("INSERT INTO app.accounts(main,sub,main_order) VALUES($1,$2,$3)", [main, sub, await orderOf(main)]);
+  const res = await createAccount(main, sub);
+  if (res.error) return res;
   done();
   return {};
 }
@@ -25,8 +19,8 @@ export async function addAccount(_: AccountState, f: FormData): Promise<AccountS
 export async function updateAccount(f: FormData): Promise<AccountState> {
   const id = Number(f.get("id")), main = text(f, "main"), sub = text(f, "sub");
   if (!Number.isInteger(id) || id <= 0 || !main || !sub) return { error: "Main account and sub ledger account are required." };
-  if (await taken(main, sub, id)) return { error: "This sub ledger account already exists under that main account." };
-  await q("UPDATE app.accounts SET main=$1, sub=$2, main_order=$3 WHERE id=$4 AND section='pnl'", [main, sub, await orderOf(main), id]);
+  const res = await updateAccountById(id, main, sub);
+  if (res.error) return res;
   done();
   return {};
 }
@@ -34,6 +28,6 @@ export async function updateAccount(f: FormData): Promise<AccountState> {
 export async function deleteAccount(f: FormData) {
   const id = Number(f.get("id"));
   if (!Number.isInteger(id)) return;
-  await q("DELETE FROM app.accounts a WHERE a.id=$1 AND a.section='pnl' AND NOT EXISTS(SELECT 1 FROM app.company_figures f WHERE f.section=a.section AND f.main=a.main AND f.line=a.sub)", [id]);
+  await removeAccount(id);
   done();
 }

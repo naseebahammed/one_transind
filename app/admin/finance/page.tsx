@@ -13,7 +13,8 @@ import { Trash2 } from "lucide-react";
 import { Switch } from "@/components/admin/ui/switch";
 import { deleteDailyYear, deletePnlYear, savePnlCell, saveSalesCell, saveUnitsCell } from "../al-manzil/actions";
 import { toggleCompanyHidden } from "../companies/actions";
-import { alManzilKey, keyFor, plRows, report, years, loadReports } from "@/lib/reports";
+import { costBreakdownByYear, expenseRowsFor, reportsFor, salesFor, type PnlSummary, type SalesSummary } from "@/lib/finance-summary";
+import { keyFor, plRows, years, loadReports, type ReportRow } from "@/lib/reports";
 import { listCompanies, type Company } from "@/lib/companies";
 import { listExpenses } from "@/lib/company-figures";
 import { listSectors } from "@/lib/sectors";
@@ -22,17 +23,8 @@ import { fmt, MONTHS, sum } from "@/lib/format";
 
 const neg = (v: number) => (v < 0 ? "text-destructive" : "");
 
-/** Years on file for this company's P&L, each year's figures. Empty until a statement is uploaded for it. */
-const reportsFor = (c: Company) => { const key = keyFor(c); return years(key).map((year) => { const r = report(year, key); return { year, revenue: r.revenue, cost: r.totalCost, net: r.net, costGroups: r.costGroups }; }); };
-
-/** One row per year of the company's monthly sales grid (same shape as P&L), summed over the year. Empty until a report is uploaded. */
-const salesFor = (c: Company) => {
-  const key = keyFor(c);
-  // Every REVENUE line counts: hotels split room/other revenue, other sectors (e.g. Pavati) have a single "Sales" line.
-  return years(key, "sales").map((year) => ({ year, revenue: sum(plRows(year, key, "sales").filter((r) => r.main === "REVENUE").map((r) => sum(r.m))) }));
-};
-
-type Row = { c: Company; kind: "none" } | { c: Company; kind: "pnl"; r: ReturnType<typeof reportsFor>[number] } | { c: Company; kind: "sales"; r: ReturnType<typeof salesFor>[number] };
+type PnlRow = { c: Company; r?: PnlSummary };
+type SalesRow = { c: Company; r?: SalesSummary };
 
 type Search = Promise<{ company?: string; year?: string; sales?: string; units?: string; showHidden?: string }>;
 
@@ -49,47 +41,33 @@ export default function Finance({ searchParams }: { searchParams: Search }) {
 }
 
 async function Summary({ searchParams }: { searchParams: Search }) {
-  await loadReports();
-  const { company, year: yearParam, sales: salesParam, units: unitsParam } = await searchParams;
-  const sectors = await listSectors();
+  const [reports, { company, year: yearParam, sales: salesParam, units: unitsParam }, sectors, allCompanies, expenses] = await Promise.all([loadReports(), searchParams, listSectors(), listCompanies(), listExpenses()]);
   // Hidden companies stay in the tables (so they can be switched back on) but are left out of the charts.
-  const rows = (await listCompanies()).filter((c) => !company || String(c.id) === company).flatMap((c) => { const reports = reportsFor(c); return (reports.length ? reports : [undefined]).map((r) => ({ c, r })); });
+  const rows = allCompanies.filter((c) => !company || String(c.id) === company).flatMap((c) => { const list = reportsFor(reports, c); return (list.length ? list : [undefined]).map((r) => ({ c, r })); });
   const withData = rows.filter((x) => x.r);
   const companies = new Set(rows.map((x) => x.c.id)).size, withReport = new Set(withData.map((x) => x.c.id)).size;
-  const visibleWithData = withData.filter((x) => !x.c.hidden);
-  const byYear = [...new Set(visibleWithData.map((x) => x.r!.year))].sort().map((year) => {
-    const totals = new Map<string, number>();
-    for (const { r } of visibleWithData.filter((x) => x.r!.year === year))
-      for (const [name, d] of r!.costGroups) totals.set(name, (totals.get(name) ?? 0) + sum(d));
-    const top = [...totals].sort((a, b) => b[1] - a[1]); // all lines, so the percentages are shares of total cost
-    return { year, top };
-  });
+  const byYear = costBreakdownByYear(rows);
   const one = company ? rows[0]?.c : undefined;
   const key = one && keyFor(one);
-  const ys = key ? years(key) : [];
+  const ys = key ? years(reports, key) : [];
   const edit = one && yearParam && ys.includes(+yearParam) ? +yearParam : undefined; // the P&L table shows only after View (?year=) is clicked
+  const uniqueCompanies = [...new Map(rows.map((x) => [x.c.id, x.c])).values()];
+  const salesRows = uniqueCompanies.flatMap((c) => salesFor(reports, c).map((r) => ({ c, r })));
+  const salesYear = one && salesParam && salesRows.some((x) => x.c.id === one.id && x.r.year === +salesParam) ? +salesParam : undefined; // the sales grid shows only after View (?sales=) is clicked
+  const unitYears = key ? years(reports, key, "units") : [];
+  const unitsYear = unitsParam && unitYears.includes(+unitsParam) ? +unitsParam : undefined; // the unit-type grid shows only after View (?units=) is clicked
   // View/Hide on a data row toggles that year's grid below; other open grids of the same company stay open.
   const open = (c: Company) => (one?.id === c.id ? { year: edit ? String(edit) : undefined, sales: salesYear ? String(salesYear) : undefined, units: unitsYear ? String(unitsYear) : undefined } : {});
   const toggle = (c: Company, param: "year" | "sales" | "units", y: number) => link("/admin/finance", { company: String(c.id), ...open(c), [param]: open(c)[param] === String(y) ? undefined : String(y) });
-  const salesRows = [...new Map(rows.map((x) => [x.c.id, x.c])).values()].flatMap((c) => salesFor(c).map((r) => ({ c, r })));
-  const salesYear = one && salesParam && salesRows.some((x) => x.c.id === one.id && x.r.year === +salesParam) ? +salesParam : undefined; // the sales grid shows only after View (?sales=) is clicked
-  const unitYears = key ? years(key, "units") : [];
-  const unitsYear = unitsParam && unitYears.includes(+unitsParam) ? +unitsParam : undefined; // the unit-type grid shows only after View (?units=) is clicked
-  const uniqueCompanies = [...new Map(rows.map((x) => [x.c.id, x.c])).values()];
-  const pnlAll: Row[] = uniqueCompanies.flatMap((c): Row[] => {
-    const items: Row[] = rows.filter((x) => x.c.id === c.id && x.r).map((x) => ({ c, kind: "pnl" as const, r: x.r! }));
-    return items.length ? items : [{ c, kind: "none" }];
+  const pnlAll: PnlRow[] = uniqueCompanies.flatMap((c): PnlRow[] => {
+    const items = rows.filter((x) => x.c.id === c.id && x.r);
+    return items.length ? items : [{ c }];
   });
-  const salesAll: Row[] = uniqueCompanies.flatMap((c): Row[] => {
-    const items: Row[] = salesRows.filter((x) => x.c.id === c.id).map((x) => ({ c, kind: "sales" as const, r: x.r }));
-    return items.length ? items : [{ c, kind: "none" }];
+  const salesAll: SalesRow[] = uniqueCompanies.flatMap((c): SalesRow[] => {
+    const items = salesRows.filter((x) => x.c.id === c.id);
+    return items.length ? items : [{ c }];
   });
-  // Expenses: one row per company and year with data; a month without a row stays empty (not submitted).
-  const expenses = await listExpenses();
-  const expenseRows = uniqueCompanies.flatMap((c) => {
-    const mine = expenses.filter((e) => e.company_id === c.id);
-    return [...new Set(mine.map((e) => e.year))].sort().map((year) => ({ c, year, m: MONTHS.map((_, i) => mine.find((e) => e.year === year && e.month === i)?.value ?? null) }));
-  });
+  const expenseRows = expenseRowsFor(uniqueCompanies, expenses);
   const qar = (v: number | null) => (v === null ? "—" : fmt(Math.abs(v), 2, 0));
   return (
     <>
@@ -116,9 +94,9 @@ async function Summary({ searchParams }: { searchParams: Search }) {
         </TableHeader>
         <TableBody>
           {pnlAll.map((x) => {
-            const { c } = x, head = one ? null : (<><TableCell className="font-medium">{c.name}</TableCell><TableCell>{sectors.find(([k]) => k === c.sector)?.[1] ?? c.sector}</TableCell></>);
-            if (x.kind === "none") return <TableRow key={`${c.id}-none`}>{head}<TableCell colSpan={6}><Badge variant="neutral">No P&amp;L data yet</Badge></TableCell>{!one && <TableCell className="text-right"><HideToggle c={c} /></TableCell>}</TableRow>;
-            const r = x.r as ReturnType<typeof reportsFor>[number], rv = sum(r.revenue), nt = sum(r.net);
+            const { c, r } = x, head = one ? null : (<><TableCell className="font-medium">{c.name}</TableCell><TableCell>{sectors.find(([k]) => k === c.sector)?.[1] ?? c.sector}</TableCell></>);
+            if (!r) return <TableRow key={`${c.id}-none`}>{head}<TableCell colSpan={6}><Badge variant="neutral">No P&amp;L data yet</Badge></TableCell>{!one && <TableCell className="text-right"><HideToggle c={c} /></TableCell>}</TableRow>;
+            const rv = sum(r.revenue), nt = sum(r.net);
             return (
               <TableRow key={`${c.id}-pnl-${r.year}`}>
                 {head}
@@ -145,7 +123,7 @@ async function Summary({ searchParams }: { searchParams: Search }) {
         </TableBody>
       </Table>
       </CardContent></Card>
-      {one && edit && <GridSection title={`P&L - ${edit}`}><AccountGrid year={edit} rows={plRows(edit, key!)} onSave={savePnlCell.bind(null, edit, key!)} /></GridSection>}
+      {one && edit && <GridSection title={`P&L - ${edit}`}><AccountGrid year={edit} rows={plRows(reports, edit, key!)} onSave={savePnlCell.bind(null, edit, key!)} /></GridSection>}
       <Card className="gap-2 py-3"><CardHeader><CardTitle className="text-sm">Monthly sales</CardTitle></CardHeader><CardContent>
       <Table>
         <TableHeader>
@@ -153,9 +131,8 @@ async function Summary({ searchParams }: { searchParams: Search }) {
         </TableHeader>
         <TableBody>
           {salesAll.map((x) => {
-            const { c } = x, head = one ? null : (<><TableCell className="font-medium">{c.name}</TableCell><TableCell>{sectors.find(([k]) => k === c.sector)?.[1] ?? c.sector}</TableCell></>);
-            if (x.kind === "none") return <TableRow key={`${c.id}-none`}>{head}<TableCell colSpan={3}><Badge variant="neutral">No monthly sales report yet</Badge></TableCell></TableRow>;
-            const r = x.r as ReturnType<typeof salesFor>[number];
+            const { c, r } = x, head = one ? null : (<><TableCell className="font-medium">{c.name}</TableCell><TableCell>{sectors.find(([k]) => k === c.sector)?.[1] ?? c.sector}</TableCell></>);
+            if (!r) return <TableRow key={`${c.id}-none`}>{head}<TableCell colSpan={3}><Badge variant="neutral">No monthly sales report yet</Badge></TableCell></TableRow>;
             return (
               <TableRow key={`${c.id}-sales-${r.year}`}>
                 {head}
@@ -178,7 +155,7 @@ async function Summary({ searchParams }: { searchParams: Search }) {
         </TableBody>
       </Table>
       </CardContent></Card>
-      {one && salesYear && <GridSection title={`Monthly sales - ${salesYear}`}><AccountGrid year={salesYear} rows={plRows(salesYear, key!, "sales")} onSave={one.sector === SECTOR.realEstate ? undefined : saveSalesCell.bind(null, salesYear, key!)} /></GridSection>}
+      {one && salesYear && <GridSection title={`Monthly sales - ${salesYear}`}><AccountGrid year={salesYear} rows={plRows(reports, salesYear, key!, "sales")} onSave={one.sector === SECTOR.realEstate ? undefined : saveSalesCell.bind(null, salesYear, key!)} /></GridSection>}
       <Card className="gap-2 py-3"><CardHeader><CardTitle className="text-sm">Expenses (QAR)</CardTitle></CardHeader><CardContent>
       <Table>
         <TableHeader>
@@ -202,7 +179,7 @@ async function Summary({ searchParams }: { searchParams: Search }) {
           {unitYears.map((y) => <Button key={y} asChild variant={y === unitsYear ? "secondary" : "outline"} size="sm"><Link href={toggle(one, "units", y)}>{y === unitsYear ? "Hide" : "View"} {y}</Link></Button>)}
         </CardContent></Card>
       )}
-      {one && unitsYear && <GridSection title={`Sales by unit type - ${unitsYear}`}><AccountGrid year={unitsYear} rows={plRows(unitsYear, key!, "units")} onSave={saveUnitsCell.bind(null, unitsYear, key!)} /></GridSection>}
+      {one && unitsYear && <GridSection title={`Sales by unit type - ${unitsYear}`}><AccountGrid year={unitsYear} rows={plRows(reports, unitsYear, key!, "units")} onSave={saveUnitsCell.bind(null, unitsYear, key!)} /></GridSection>}
       {!company && !!withData.length && (
         <div className="grid gap-4 lg:grid-cols-2">
           {byYear.map(({ year, top }) => <Card key={year}><CardHeader><CardTitle>Cost breakdown - {year}</CardTitle></CardHeader><CardContent><HBars rows={top} /></CardContent></Card>)}
@@ -217,8 +194,8 @@ const GridSection = ({ title, children }: { title: string; children: React.React
 );
 
 /** Read-only monthly grid for one year, grouped by main account. Figures are edited one at a time via EditPnlFigure. Shared by P&L and monthly sales. */
-function AccountGrid({ year, rows, onSave }: { year: number; rows: ReturnType<typeof plRows>; onSave?: (main: string, sub: string, month: number, value: number) => Promise<void> }) {
-  const groups = new Map<string, typeof rows>();
+function AccountGrid({ year, rows, onSave }: { year: number; rows: ReportRow[]; onSave?: (main: string, sub: string, month: number, value: number) => Promise<void> }) {
+  const groups = new Map<string, ReportRow[]>();
   for (const r of rows) groups.set(r.main, [...(groups.get(r.main) ?? []), r]);
   return (
     <div className="space-y-3">

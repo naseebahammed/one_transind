@@ -13,3 +13,12 @@ export async function getSalesSectors(all = false) {
     .filter((s) => all || !ov.get(s.key)?.hidden)
     .map((s) => ({ ...s, label: ov.get(s.key)?.label || s.label, sector: ov.get(s.key)?.sector ?? null }));
 }
+
+export const setSalesDepartmentLabel = (code: string, label: string | null) =>
+  q("INSERT INTO app.sales_departments(code,label,hidden) VALUES($1,$2,COALESCE((SELECT hidden FROM app.sales_departments WHERE code=$1),0)) ON CONFLICT(code) DO UPDATE SET label=excluded.label", [code, label]);
+
+export const setSalesDepartmentSector = (code: string, sector: string | null) =>
+  q("INSERT INTO app.sales_departments(code,sector) VALUES($1,$2) ON CONFLICT(code) DO UPDATE SET sector=excluded.sector", [code, sector]);
+
+export const toggleSalesDepartmentHidden = (code: string) =>
+  q("INSERT INTO app.sales_departments(code,hidden) VALUES($1,1) ON CONFLICT(code) DO UPDATE SET hidden=1-app.sales_departments.hidden", [code]);

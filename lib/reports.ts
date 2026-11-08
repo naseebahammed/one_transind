@@ -1,7 +1,9 @@
 // Company report figures read from app.company_figures and app.daily_sales, and the totals worked out from them: P&L, occupancy, average daily rate.
 // Revenue is positive, costs negative, amounts in QAR. Occupancy and rates are calculated here on demand, never stored.
+import { cache } from "react";
 import type { DailyRow } from "./report-parsers.ts";
 import { MONTHS, sum } from "./format.ts";
+import { SECTOR } from "./org.ts";
 
 /** A company's key in the readers below. */
 export const keyFor = (c: { id: number }) => String(c.id);
@@ -11,15 +13,13 @@ export const AL_MANZIL_NAME = "al manzil";
 
 const db = () => import("@/lib/db"); // lazy so this file stays loadable by `node --test` without the Next alias
 
-type Row = { year: number; main: string; sub: string; m: number[] };
+export type ReportRow = { year: number; main: string; sub: string; m: number[] };
 type Day = Omit<DailyRow, "date"> & { date: string };
 type Kind = "pnl" | "sales" | "units";
 type Key = string | string[];
-// The readers below are synchronous over a snapshot; every page/route that uses them calls `await loadReports()` first, so an upload shows up on the next request.
-let snap: { rows: Map<string, Row[]>; daily: Map<string, Day[]>; alManzil: string } | null = null;
+export type Reports = { rows: Map<string, ReportRow[]>; daily: Map<string, Day[]>; alManzil: string };
 
-/** Load every company's figures from the database. `query` is only passed by tests, to run without a database. */
-export async function loadReports(query?: <T>(text: string) => Promise<T[]>) {
+async function buildReports(query?: <T>(text: string) => Promise<T[]>): Promise<Reports> {
   const q = query ?? (await db()).q;
   const NUMS = "long_guests,long_rate,long_total,short_guests,short_rate,short_total,rooms_occupied,room_revenue,other_revenue,rooms_available";
   const [figures, derived, days, co] = await Promise.all([
@@ -28,13 +28,16 @@ export async function loadReports(query?: <T>(text: string) => Promise<T[]>) {
        FROM app.company_figures f JOIN app.accounts a ON a.section=f.section AND a.main=f.main AND a.sub=f.line
        WHERE f.section IN ('pnl','sales','units') ORDER BY a.main_order, a.id`),
     q<{ id: number; y: number; mo: number; main: string; line: string; v: number }>(
+      // shortcut: a retail company's monthly sales come from its daily takings. Bank deposits repeat cash sales. A monthly figure typed for the same company adds on top, so keep such a company on daily uploads only.
       `SELECT company_id AS id, EXTRACT(year FROM period)::int AS y, EXTRACT(month FROM period)::int - 1 AS mo, main, line, value::float8 AS v
-       FROM app.daily_sales_monthly ORDER BY array_position(ARRAY['Long stay','Short stay','Room revenue','Other revenue','Occupied','Available'], line)`),
+       FROM (SELECT company_id, period, main, line, value FROM app.daily_sales_monthly
+             UNION ALL SELECT r.company_id, date_trunc('month', r.date)::date, 'REVENUE', 'Sales', SUM(r.value) FROM app.daily_receipts r JOIN app.companies c ON c.id = r.company_id WHERE c.sector = '${SECTOR.retail}' AND r.line <> 'Bank deposits' GROUP BY 1, 2) monthly
+       ORDER BY array_position(ARRAY['Long stay','Short stay','Room revenue','Other revenue','Occupied','Available'], line)`),
     q<Day & { id: number }>(`SELECT company_id AS id, to_char(date,'YYYY-MM-DD') AS date, ${NUMS.split(",").map((c) => `${c}::float8 AS ${c}`).join(",")} FROM app.daily_sales ORDER BY date`),
     // shortcut: the Al Manzil panels on /finance, /admin/finance and Ask find it by name; give them a company picker to drop this.
     q<{ id: number }>(`SELECT id FROM app.companies WHERE lower(name) LIKE '${AL_MANZIL_NAME}%' ORDER BY id LIMIT 1`),
   ]);
-  const rows = new Map<string, Row[]>(), index = new Map<string, Row>();
+  const rows = new Map<string, ReportRow[]>(), index = new Map<string, ReportRow>();
   const put = (id: number, kind: Kind, y: number, main: string, sub: string, mo: number, v: number) => {
     const k = `${id}|${kind}|${y}|${main}|${sub}`;
     let r = index.get(k);
@@ -49,22 +52,24 @@ export async function loadReports(query?: <T>(text: string) => Promise<T[]>) {
   for (const d of derived) put(d.id, "sales", d.y, d.main, d.line, d.mo, d.v);
   const daily = new Map<string, Day[]>();
   for (const { id, ...d } of days) daily.set(String(id), [...(daily.get(String(id)) ?? []), d]);
-  snap = { rows, daily, alManzil: co[0] ? String(co[0].id) : "" };
+  return { rows, daily, alManzil: co[0] ? String(co[0].id) : "" };
 }
-const loaded = () => {
-  if (!snap) throw new Error("loadReports() must be awaited before reading reports.");
-  return snap;
-};
-/** Key of the company the Al Manzil panels show. */
-export const alManzilKey = () => loaded().alManzil;
 
-const load = (key: Key, kind: Kind = "pnl") => (Array.isArray(key) ? key : [key]).flatMap((k) => loaded().rows.get(`${k}|${kind}`) ?? []);
-const daysOf = (key: Key) => (Array.isArray(key) ? key : [key]).flatMap((k) => loaded().daily.get(k) ?? []);
-export const years = (key: Key, kind: Kind = "pnl") => [...new Set(load(key, kind).map((x) => x.year))].sort();
+const loadCached = cache(() => buildReports());
+
+/** Load every company's figures from the database (cached per request). `query` is only passed by tests, to run without a database. */
+export const loadReports = (query?: <T>(text: string) => Promise<T[]>) => (query ? buildReports(query) : loadCached());
+
+/** Key of the company the Al Manzil panels show. */
+export const alManzilKey = (reports: Reports) => reports.alManzil;
+
+const load = (reports: Reports, key: Key, kind: Kind = "pnl") => (Array.isArray(key) ? key : [key]).flatMap((k) => reports.rows.get(`${k}|${kind}`) ?? []);
+const daysOf = (reports: Reports, key: Key) => (Array.isArray(key) ? key : [key]).flatMap((k) => reports.daily.get(k) ?? []);
+export const years = (reports: Reports, key: Key, kind: Kind = "pnl") => [...new Set(load(reports, key, kind).map((x) => x.year))].sort();
 const add = (a: number[], b: number[], s = 1) => a.map((v, i) => v + s * b[i]);
 const zero = () => Array<number>(12).fill(0);
 
-export function report(year: number, key: Key, rows = load(key)) {
+export function report(reports: Reports, year: number, key: Key, rows = load(reports, key)) {
   const r = rows.filter((x) => x.year === year);
   const by = new Map<string, number[]>();
   for (const x of r) if (x.main !== "REVENUE") by.set(x.main, add(by.get(x.main) ?? zero(), x.m, -1));
@@ -82,15 +87,15 @@ const label: Record<string, string> = {
 };
 
 /** Revenue by account line (room rent, space rental, ...) for one year, non-zero lines only. */
-export function revenueLines(year: number, key: Key) {
+export function revenueLines(reports: Reports, year: number, key: Key) {
   const by = new Map<string, number>();
-  for (const x of load(key)) if (x.year === year && x.main === "REVENUE") by.set(x.sub, (by.get(x.sub) ?? 0) + sum(x.m));
+  for (const x of load(reports, key)) if (x.year === year && x.main === "REVENUE") by.set(x.sub, (by.get(x.sub) ?? 0) + sum(x.m));
   return [...by].filter(([, v]) => v).sort((a, b) => b[1] - a[1]);
 }
 
 /** Per month for one year from the daily long/short stay sales report: occupancy %, average daily rate, rooms sold, long/short guests, other revenue. */
-export function occupancy(year: number, key: Key) {
-  const days = daysOf(key).filter((d) => d.date.startsWith(`${year}-`));
+export function occupancy(reports: Reports, year: number, key: Key) {
+  const days = daysOf(reports, key).filter((d) => d.date.startsWith(`${year}-`));
   return MONTHS.map((_, m) => {
     const d = days.filter((x) => +x.date.slice(5, 7) === m + 1);
     const total = (k: keyof Omit<Day, "date">) => sum(d.map((x) => x[k]));
@@ -100,7 +105,7 @@ export function occupancy(year: number, key: Key) {
 }
 
 /** Years actually covered by the daily report - the P&L can have years the stay report doesn't (and vice versa), so the stay report's year picker needs its own list. */
-export const dailyYears = (key: Key) => [...new Set(daysOf(key).map((d) => +d.date.slice(0, 4)))].sort();
+export const dailyYears = (reports: Reports, key: Key) => [...new Set(daysOf(reports, key).map((d) => +d.date.slice(0, 4)))].sort();
 
 /** Detail account rows of one year, for the monthly grids. */
-export const plRows = (year: number, key: Key, kind: Kind = "pnl") => load(key, kind).filter((x) => x.year === year);
+export const plRows = (reports: Reports, year: number, key: Key, kind: Kind = "pnl") => load(reports, key, kind).filter((x) => x.year === year);

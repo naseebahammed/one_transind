@@ -6,10 +6,9 @@ import { sum } from "@/lib/format";
 const MAX_Q = 1000;
 
 async function context() {
-  await loadReports();
-  const [o, c] = await Promise.all([getOverview(), getCustomers()]);
-  const alManzil = alManzilKey(), ys = years(alManzil), cur = ys.at(-1), stayYear = dailyYears(alManzil).at(-1);
-  const occ = stayYear ? occupancy(stayYear, alManzil) : [];
+  const [reports, o, c] = await Promise.all([loadReports(), getOverview(), getCustomers()]);
+  const alManzil = alManzilKey(reports), ys = years(reports, alManzil), cur = ys.at(-1), stayYear = dailyYears(reports, alManzil).at(-1);
+  const occ = stayYear ? occupancy(reports, stayYear, alManzil) : [];
   const avail = sum(occ.map((m) => m.avail)) || 1, sold = sum(occ.map((m) => m.sold)) || 1;
   return JSON.stringify({
     year: o.year,
@@ -19,11 +18,11 @@ async function context() {
     topCustomers: c.customers.slice(0, 20).map((x) => ({ name: x.name, group: x.group, ytd: Math.round(x.ytd), thisMonth: Math.round(x.mtd), lastMonth: Math.round(x.lastMonth) })),
     realEstate: {
       source: "Al Manzil (Transind Real Estate)",
-      byYear: ys.map((y) => { const r = report(y, alManzil); return { year: y, revenue: Math.round(sum(r.revenue)), totalCost: Math.round(sum(r.totalCost)), net: Math.round(sum(r.net)) }; }),
+      byYear: ys.map((y) => { const r = report(reports, y, alManzil); return { year: y, revenue: Math.round(sum(r.revenue)), totalCost: Math.round(sum(r.totalCost)), net: Math.round(sum(r.net)) }; }),
       latestYear: cur,
       occupancyPct: Math.round(sum(occ.map((m) => m.sold)) / avail * 1000) / 10,
       averageDailyRate: stayYear ? Math.round(sum(occ.map((m) => m.room)) / sold) : 0,
-      revenueBySource: cur ? revenueLines(cur, alManzil).map(([line, value]) => ({ line, value: Math.round(value) })) : [],
+      revenueBySource: cur ? revenueLines(reports, cur, alManzil).map(([line, value]) => ({ line, value: Math.round(value) })) : [],
     },
   });
 }

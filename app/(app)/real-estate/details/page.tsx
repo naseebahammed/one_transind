@@ -20,15 +20,14 @@ export default function Page({ searchParams }: { searchParams: Params }) {
 
 async function Content({ searchParams }: { searchParams: Params }) {
   await connection(); // the P&L and stay-report files can change when a statement is uploaded
-  await loadReports();
-  const { view, company, year } = await searchParams;
+  const [reports, { view, company, year }, allRealEstate] = await Promise.all([loadReports(), searchParams, listCompanies("", SECTOR.realEstate)]);
   const stay = view === "stay";
-  const companies = (await listCompanies("", SECTOR.realEstate)).filter((c) => c.active && !c.hidden);
+  const companies = allRealEstate.filter((c) => c.active && !c.hidden);
   const all = company === "all";
   const selected = all ? undefined : companies.find((c) => String(c.id) === company) ?? companies.find((c) => c.name.trim().toLowerCase() === AL_MANZIL_NAME) ?? companies[0];
   const companyParam = all ? "all" : selected && String(selected.id);
   const key = all ? companies.map(keyFor) : selected && keyFor(selected);
-  const ys = key ? (stay ? dailyYears(key) : years(key)) : [];
+  const ys = key ? (stay ? dailyYears(reports, key) : years(reports, key)) : [];
   const pick = year && ys.includes(+year) ? +year : 2026;
   const idx = ys.includes(pick) ? ys.indexOf(pick) : ys.length - 1;
   const toolbar = (
@@ -47,15 +46,15 @@ async function Content({ searchParams }: { searchParams: Params }) {
   );
   if (!ys.length) return <>{toolbar}<p className="empty">No P&amp;L or stay-report data uploaded for {all ? "any company" : selected?.name ?? "this company"} yet.</p></>;
   const cur = ys[idx], prev = idx > 0 ? ys[idx - 1] : undefined;
-  const R = ys.map((y) => report(y, key!)), c = R[idx], p = idx > 0 ? R[idx - 1] : undefined;
-  const O = ys.map((y) => occupancy(y, key!)), oc = O[idx];
+  const R = ys.map((y) => report(reports, y, key!)), c = R[idx], p = idx > 0 ? R[idx - 1] : undefined;
+  const O = ys.map((y) => occupancy(reports, y, key!)), oc = O[idx];
   const avg = (o: typeof oc) => ({ occ: sum(o.map((m) => m.sold)) / (sum(o.map((m) => m.avail)) || 1), adr: sum(o.map((m) => m.room)) / (sum(o.map((m) => m.sold)) || 1) });
   const revpar = (o: typeof oc) => sum(o.map((m) => m.room)) / (sum(o.map((m) => m.avail)) || 1);
   const rev = sum(c.revenue), cost = sum(c.totalCost), net = sum(c.net);
   // Cost and net need every company with a P&L that year to have costs: with none, "net" would just repeat revenue.
   const costedIn = (y: number) => {
-    const activeKeys = [key!].flat().filter((k) => years(k).includes(y));
-    return activeKeys.length > 0 && activeKeys.every((k) => sum(report(y, k).totalCost) !== 0);
+    const activeKeys = [key!].flat().filter((k) => years(reports, k).includes(y));
+    return activeKeys.length > 0 && activeKeys.every((k) => sum(report(reports, y, k).totalCost) !== 0);
   };
   const costed = costedIn(cur);
   // Compare against the same months last year: the current year is usually only partly loaded.
@@ -103,7 +102,7 @@ async function Content({ searchParams }: { searchParams: Params }) {
               <CompareChart years={ys} series={R.map((r) => r.net.map((v) => v / 1e6))} sel={upto - 1} />
             </Panel>}
             <Panel span={6} title={`Revenue by source - ${cur}`}>
-              <HBars rows={revenueLines(cur, key!).map(([l, v]) => ({ l, v: v / 1e6 }))} unit=" M" />
+              <HBars rows={revenueLines(reports, cur, key!).map(([l, v]) => ({ l, v: v / 1e6 }))} unit=" M" />
             </Panel>
             {costed && <Panel span={6} title={`Cost breakdown - ${cur}`}>
               <HBars rows={c.costGroups.map(([l, d]) => ({ l, v: sum(d) / 1e6 })).sort((a, b) => b.v - a.v)} unit=" M" />

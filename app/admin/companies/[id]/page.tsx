@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import { loadReports } from "@/lib/reports";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { BranchesCard } from "@/components/admin/BranchesCard";
@@ -33,7 +32,6 @@ export default function EditCompany({ params, searchParams }: { params: Params; 
 }
 
 async function Edit({ params, searchParams }: { params: Params; searchParams: Search }) {
-  await loadReports();
   const id = Number((await params).id);
   if (!Number.isInteger(id)) notFound();
   const { section: rawSection, year: rawYear, branch: rawBranch, month: rawMonth } = await searchParams;

@@ -39,11 +39,9 @@ const Card = ({ label, value, neg, hl, children }: { label: string; value: strin
 
 async function Content({ searchParams }: { searchParams: Params }) {
   await connection(); // the P&L files can change when a statement is uploaded
-  await loadReports();
-  const { year } = await searchParams;
-  const [companies, types] = await Promise.all([listCompanies("", SECTOR.realEstate), listPropertyTypes()]);
-  const withData = companies.filter((c) => c.active && !c.hidden && years(keyFor(c)).length);
-  const ys = [...new Set(withData.flatMap((c) => years(keyFor(c))))].sort();
+  const [reports, { year }, companies, types] = await Promise.all([loadReports(), searchParams, listCompanies("", SECTOR.realEstate), listPropertyTypes()]);
+  const withData = companies.filter((c) => c.active && !c.hidden && years(reports, keyFor(c)).length);
+  const ys = [...new Set(withData.flatMap((c) => years(reports, keyFor(c))))].sort();
   const tabs = (
     <nav className="tabs seg" aria-label="Real estate views">
       <Link href="/real-estate/overview" aria-pressed>Overview</Link>
@@ -55,7 +53,7 @@ async function Content({ searchParams }: { searchParams: Params }) {
   const names = new Map(types);
   const prevYear = cur - 1;
   // Per company: a company missing this year's P&L, or uploading revenue only, must not skew totals, margins or the year-on-year change.
-  const per = withData.filter((c) => years(keyFor(c)).includes(cur)).map((c) => ({ c, r: report(cur, keyFor(c)), p: report(prevYear, keyFor(c)) }))
+  const per = withData.filter((c) => years(reports, keyFor(c)).includes(cur)).map((c) => ({ c, r: report(reports, cur, keyFor(c)), p: report(reports, prevYear, keyFor(c)) }))
     .map((x) => ({ ...x, costed: sum(x.r.totalCost) !== 0 }));
   const missing = withData.filter((c) => !per.some((x) => x.c === c)).map((c) => c.name);
   const revenueOnly = per.filter((x) => !x.costed).map((x) => x.c.name);

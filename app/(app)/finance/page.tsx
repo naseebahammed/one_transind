@@ -15,9 +15,8 @@ export default function Page() {
 
 async function Content() {
   await connection();
-  await loadReports();
-  const [o, sectors] = await Promise.all([getOverview(), getSalesSectors(true)]);
-  const alManzil = alManzilKey(), am = years(alManzil).map((y) => [y, report(y, alManzil)] as const), COLORS = ["#5b7cff", "#3ee08f", "#ffbe55", "#c084fc"];
+  const [reports, o, sectors] = await Promise.all([loadReports(), getOverview(), getSalesSectors(true)]);
+  const alManzil = alManzilKey(reports), am = years(reports, alManzil).map((y) => [y, report(reports, y, alManzil)] as const), COLORS = ["#5b7cff", "#3ee08f", "#ffbe55", "#c084fc"];
   const rev = sum(sectors.map((s) => s.value)), cost = sum(sectors.map((s) => s.cost));
   return (
     <>

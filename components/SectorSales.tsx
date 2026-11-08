@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { connection } from "next/server";
-import { keyFor, plRows, report, years, loadReports } from "@/lib/reports";
+import { keyFor, plRows, report, years, loadReports, type Reports } from "@/lib/reports";
 import { listCompanies } from "@/lib/companies";
 import { fmt, money, MONTHS, pct, sum } from "@/lib/format";
 import { link } from "@/lib/url";
@@ -19,37 +19,36 @@ export function SectorSales(p: Props) {
 }
 
 // Monthly sales per company, entered under Admin → Finance (sales grid).
-const sales = (y: number, key: string | string[]) => report(y, key, plRows(y, key, "sales")).revenue;
+const sales = (reports: Reports, y: number, key: string | string[]) => report(reports, y, key, plRows(reports, y, key, "sales")).revenue;
 
 async function Content({ searchParams, sector, path, title }: Props) {
   await connection(); // sales files change when figures are edited in admin
-  await loadReports();
-  const { year, company } = await searchParams;
-  const cos = (await listCompanies("", sector)).filter((c) => c.active && !c.hidden && years(keyFor(c), "sales").length);
+  const [reports, { year, company }, allCompanies] = await Promise.all([loadReports(), searchParams, listCompanies("", sector)]);
+  const cos = allCompanies.filter((c) => c.active && !c.hidden && years(reports, keyFor(c), "sales").length);
   const all = cos.map(keyFor);
-  const ys = years(all, "sales");
+  const ys = years(reports, all, "sales");
   if (!ys.length) return <p className="empty">No sales entered for any {title} company yet.</p>;
   const sel = cos.find((c) => String(c.id) === company); // undefined = all companies
   const keys = sel ? keyFor(sel) : all;
   const cur = year && ys.includes(+year) ? +year : ys[ys.length - 1];
-  const grand = sales(cur, all);
-  const total = sel ? sales(cur, keys) : grand;
+  const grand = sales(reports, cur, all);
+  const total = sel ? sales(reports, cur, keys) : grand;
   // Compare against the same months last year: the current year is usually only partly loaded.
   const upto = Math.max(1, ...total.map((v, i) => (v ? i + 1 : 0)));
   const grandUpto = Math.max(1, ...grand.map((v, i) => (v ? i + 1 : 0)));
   const period = upto < 12 ? `Jan–${MONTHS[upto - 1]}` : "full year";
   const ytd = (a: number[]) => sum(a.slice(0, upto));
-  const ownYears = years(keys, "sales");
-  const prev = ownYears.includes(cur - 1) ? sales(cur - 1, keys) : null;
+  const ownYears = years(reports, keys, "sales");
+  const prev = ownYears.includes(cur - 1) ? sales(reports, cur - 1, keys) : null;
   const best = total.indexOf(Math.max(...total));
   const shown = ownYears.filter((y) => y <= cur).slice(-3);
-  const per = cos.map((c) => ({ c, s: sum(sales(cur, keyFor(c)).slice(0, grandUpto)), p: sum(sales(cur - 1, keyFor(c)).slice(0, grandUpto)) })).sort((a, b) => b.s - a.s);
+  const per = cos.map((c) => ({ c, s: sum(sales(reports, cur, keyFor(c)).slice(0, grandUpto)), p: sum(sales(reports, cur - 1, keyFor(c)).slice(0, grandUpto)) })).sort((a, b) => b.s - a.s);
   const grandYtd = sum(grand.slice(0, grandUpto));
   const diff = prev ? ytd(total) - ytd(prev) : 0;
   // Gross profit only when every company in view has COGS in its P&L for every month with sales up to upto.
-  const cogsOf = (k: string | string[]) => plRows(cur, k).filter((x) => x.main === "COGS");
+  const cogsOf = (k: string | string[]) => plRows(reports, cur, k).filter((x) => x.main === "COGS");
   const hasCogs = (sel ? [sel] : cos).every((c) => {
-    const cSales = sales(cur, keyFor(c)), cCogs = cogsOf(keyFor(c));
+    const cSales = sales(reports, cur, keyFor(c)), cCogs = cogsOf(keyFor(c));
     return cCogs.length > 0 && cSales.slice(0, upto).every((s, m) => !s || cCogs.some((x) => x.m[m] !== 0));
   });
   const cogs = hasCogs ? -sum(cogsOf(keys).map((x) => ytd(x.m))) : null; // costs are stored negative
@@ -71,7 +70,7 @@ async function Content({ searchParams, sector, path, title }: Props) {
       </div>
       <div className="grid">
         <Panel span={12} title="Sales by month">
-          <CompareChart years={shown} series={shown.map((y) => sales(y, keys).map((v) => v / 1e6 || null))} sel={upto - 1} />
+          <CompareChart years={shown} series={shown.map((y) => sales(reports, y, keys).map((v) => v / 1e6 || null))} sel={upto - 1} />
         </Panel>
         <Panel span={12} title={`Monthly figures ${cur} vs ${cur - 1}`}>
           <div className="tw"><table>
