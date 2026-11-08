@@ -5,6 +5,6 @@ services:
     container_name: one-transind
     restart: unless-stopped
     ports:
-      - "6000:6000"
+      - "6000:3000"
     env_file:
       - .env.local
