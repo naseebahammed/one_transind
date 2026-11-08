@@ -19,7 +19,7 @@ type Hist = { year: number; month: number; value: number; cost: number; creditNo
 type Cust = { id: string; name: string; category: string; group: string; months: number[]; ytd: number; mtd: number; lastMonth: number; brands: { name: string; value: number; lastMonth: number }[] };
 
 /** Sales and cost per year and month, all history. */
-export async function getHistory(): Promise<Hist[]> {
+async function getHistory(): Promise<Hist[]> {
   "use cache";
   cacheLife("minutes");
   const { rows } = await pg.query<Hist>(

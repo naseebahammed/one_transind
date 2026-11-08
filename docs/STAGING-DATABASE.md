@@ -5,6 +5,7 @@
 You need the PostgreSQL command-line tools (`pg_dump`, `pg_restore`, `createdb`, `psql`). Run these in a terminal. Replace the bracketed words. Never write the password into a file in the project.
 
 ## 1. Back up the live database (read-only, safe)
+Create the `backups/` folder first if it is missing (`mkdir backups`). It is git-ignored.
 ```bash
 pg_dump -h [live-host] -U [user] -d [live-db] -n app -Fc -f backups/app-before-branches-2026-11-07.dump
 ```

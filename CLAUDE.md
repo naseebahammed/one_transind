@@ -20,7 +20,7 @@ Main users and roles: Executive Leadership, Finance & Accounting Managers, Opera
 - `components/` : Reusable UI components and administrative building blocks (tables, cards, forms, dialogs)
 - `lib/` : Core business logic, data validators, database connectors (`pg.ts`, `db.ts`), schema definitions (`schema.ts`), and unit tests (`*.test.ts`)
 - `data/` : Local reference data and initial seed assets
-- `docs/` : Design specifications, mockups, and company data reporting templates
+- `docs/` : Project brief, staging-database guide, and the company data reporting template
 - `scripts/` : Migration and maintenance utility scripts
 - `public/` : Static assets, company logos, and icons
 
