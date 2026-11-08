@@ -1,3 +1,4 @@
+import { requireUser } from "@/lib/guard";
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { Skeleton } from "@/components/admin/ui/skeleton";
@@ -22,5 +23,6 @@ export function Page({ title, description, action, children }: { title: string; 
 
 async function Live({ children }: { children: React.ReactNode }) {
   await connection();
+  await requireUser();
   return children;
 }

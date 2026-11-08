@@ -1,3 +1,4 @@
+import { requireUser } from "@/lib/guard";
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { listBranchesForCompanies } from "@/lib/branches";
@@ -23,6 +24,7 @@ const share = (part: number, whole: number) => (whole ? `${fmt((part / whole) * 
 
 async function Content({ searchParams }: { searchParams: Params }) {
   await connection();
+  await requireUser();
   const { m, year: rawYear, company: rawCompany } = await searchParams;
   const companies = (await listCompanies("", SECTOR.foodBeverage)).filter((c) => c.active && !c.hidden);
   if (!companies.length) return <Panel span={12} title="Restaurants"><p className="empty">No restaurant company is set up.</p></Panel>;

@@ -1,5 +1,4 @@
 import { Suspense } from "react";
-import { requireUser } from "@/lib/guard";
 import "./admin.css";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { Breadcrumbs } from "@/components/admin/Breadcrumbs";
@@ -16,8 +15,7 @@ async function Sidebar() {
   return <AdminSidebar companies={companies.map((c) => ({ id: c.id, name: c.name, sector: sectorName.get(c.sector) ?? c.sector }))} />;
 }
 
-export default async function AdminLayout({ children }: { children: React.ReactNode }) {
-  await requireUser();
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="admin min-h-screen">
       <SidebarProvider>

@@ -1,3 +1,4 @@
+import { requireUser } from "@/lib/guard";
 import { Suspense } from "react";
 import Link from "next/link";
 import { connection } from "next/server";
@@ -17,6 +18,7 @@ export default function Page({ searchParams }: { searchParams: Params }) {
 
 async function Content({ searchParams }: { searchParams: Params }) {
   await connection();
+  await requireUser();
   const { h } = await searchParams;
   const p = parsePath(h);
   const o = await getOverview();

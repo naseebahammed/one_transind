@@ -1,3 +1,4 @@
+import { requireUser } from "@/lib/guard";
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { getBreakdown, getDrill, getDrillLabels, getOverview, getStats } from "@/lib/data";
@@ -18,6 +19,7 @@ const mPct = (s: number, c: number) => (s ? (s - c) / s * 100 : 0);
 
 async function Content({ searchParams }: { searchParams: Params }) {
   await connection();
+  await requireUser();
   const [{ m, p, c, q, all }, o] = await Promise.all([searchParams, getOverview()]);
   const rawM = Number(m);
   const month = Math.min(o.month, Math.max(0, m && Number.isInteger(rawM) && rawM >= 1 ? rawM - 1 : o.month));

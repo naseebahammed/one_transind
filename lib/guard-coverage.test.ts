@@ -22,6 +22,30 @@ test("every API route handler except the Auth.js one calls apiGuard", () => {
   assert.deepEqual(bad, [], `Unguarded route handlers: ${show(bad)}`);
 });
 
+// A layout is not re-run when someone clicks between pages that share it, so each page must check for itself.
+test("every dashboard page checks the user itself (or redirects, or hands off to a guarded component)", () => {
+  const pages = files.filter((f) => /[\\/]\(app\)[\\/].*page\.tsx$/.test(f.file));
+  assert.ok(pages.length >= 10, "found too few pages; the search is broken");
+  const bad = pages.filter((f) => !/requireUser\(\)|redirect\(|SectorSales/.test(f.text));
+  assert.deepEqual(bad, [], `Pages without a guard: ${show(bad)}`);
+  const shared = readFileSync(join(APP_DIR, "..", "components", "SectorSales.tsx"), "utf8");
+  assert.match(shared, /requireUser\(\)/, "SectorSales must guard itself");
+});
+
+test("every admin page goes through the shared Page wrapper, which checks the user", () => {
+  const wrapper = readFileSync(join(APP_DIR, "..", "components", "admin", "Page.tsx"), "utf8");
+  assert.match(wrapper, /requireUser\(\)/, "admin Page wrapper must guard");
+  const pages = files.filter((f) => /[\\/]admin[\\/].*page\.tsx$/.test(f.file));
+  const bad = pages.filter((f) => !/<Page\b|redirect\(/.test(f.text));
+  assert.deepEqual(bad, [], `Admin pages outside the Page wrapper: ${show(bad)}`);
+});
+
+test("layouts do not call the guard (it would block prerendering and is skipped on in-app navigation)", () => {
+  const layouts = files.filter((f) => /layout\.tsx$/.test(f.file));
+  const bad = layouts.filter((f) => /requireUser|requireAdmin|apiGuard/.test(f.text));
+  assert.deepEqual(bad, [], `Layouts with a guard call: ${show(bad)}`);
+});
+
 test("the Users page actions require an admin, not just a signed-in user", () => {
   const actions = files.find((f) => /[\\/]admin[\\/]users[\\/]actions\.ts$/.test(f.file));
   assert.ok(actions, "app/admin/users/actions.ts is missing");

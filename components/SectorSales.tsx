@@ -1,3 +1,4 @@
+import { requireUser } from "@/lib/guard";
 import { Suspense } from "react";
 import Link from "next/link";
 import { connection } from "next/server";
@@ -23,6 +24,7 @@ const sales = (reports: Reports, y: number, key: string | string[]) => report(re
 
 async function Content({ searchParams, sector, path, title }: Props) {
   await connection(); // sales files change when figures are edited in admin
+  await requireUser();
   const [reports, { year, company }, allCompanies] = await Promise.all([loadReports(), searchParams, listCompanies("", sector)]);
   const cos = allCompanies.filter((c) => c.active && !c.hidden && years(reports, keyFor(c), "sales").length);
   const all = cos.map(keyFor);

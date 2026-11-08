@@ -32,7 +32,11 @@ Never commit these or paste them into chat.
 
 ## 3. Create the users table (once)
 
-Migration `021_app_users` adds `app.users`. It has not been applied anywhere. Apply it when you choose, to a safe database first, by starting the app once with `DB_INIT=true`. Until it exists, only `ADMIN_EMAILS` people can sign in.
+Migration `021_app_users` adds `app.users`. It has not been applied anywhere yet.
+
+Careful: `npm run dev` applies every pending migration by itself the first time the app touches the database (see `autoInit` in `lib/db.ts`). `.env.local` points at the live database, so do not run `npm run dev` or `npm run build` until `.env.local` points at a safe copy, unless you want 021 created on live. In production, 021 is applied by starting once with `DB_INIT=true`.
+
+Until the table exists, only `ADMIN_EMAILS` people can sign in.
 
 ## 4. Check it works
 

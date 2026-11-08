@@ -1,3 +1,4 @@
+import { requireUser } from "@/lib/guard";
 import { SECTOR } from "@/lib/org";
 import { Suspense, type ReactNode } from "react";
 import Link from "next/link";
@@ -39,6 +40,7 @@ const Card = ({ label, value, neg, hl, children }: { label: string; value: strin
 
 async function Content({ searchParams }: { searchParams: Params }) {
   await connection(); // the P&L files can change when a statement is uploaded
+  await requireUser();
   const [reports, { year }, companies, types] = await Promise.all([loadReports(), searchParams, listCompanies("", SECTOR.realEstate), listPropertyTypes()]);
   const withData = companies.filter((c) => c.active && !c.hidden && years(reports, keyFor(c)).length);
   const ys = [...new Set(withData.flatMap((c) => years(reports, keyFor(c))))].sort();

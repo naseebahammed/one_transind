@@ -1,3 +1,4 @@
+import { requireUser } from "@/lib/guard";
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { getOverview, getRoutes } from "@/lib/data";
@@ -14,6 +15,7 @@ export default function Page() {
 
 async function Content() {
   await connection();
+  await requireUser();
   const o = await getOverview();
   const d = await getRoutes(o.month);
   const label = `${MONTHS[o.month]} ${d.year}`;

@@ -1,3 +1,4 @@
+import { requireUser } from "@/lib/guard";
 import { Suspense } from "react";
 import Link from "next/link";
 import { connection } from "next/server";
@@ -21,6 +22,7 @@ const M = (x: number) => x / 1e6;
 
 async function Content({ searchParams }: { searchParams: Params }) {
   await connection();
+  await requireUser();
   const [{ m, p, all }, o, sectors] = await Promise.all([searchParams, getOverview(), getSalesSectors()]);
   const rawM = Number(m);
   const month = Math.min(o.month, Math.max(0, m && Number.isInteger(rawM) && rawM >= 1 ? rawM - 1 : o.month));

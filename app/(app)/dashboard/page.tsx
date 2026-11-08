@@ -1,3 +1,4 @@
+import { requireUser } from "@/lib/guard";
 import { SECTOR, SECTORS } from "@/lib/org";
 import { getSalesSectors } from "@/lib/sales-sectors";
 import { listSectors } from "@/lib/sectors";
@@ -23,6 +24,7 @@ export default function Page({ searchParams }: { searchParams: Params }) {
 
 async function Content({ searchParams }: { searchParams: Params }) {
   await connection();
+  await requireUser();
   const [reports, { p, all }, o, depts, adminSectors, allCompanies] = await Promise.all([
     loadReports(), searchParams, getOverview(), getSalesSectors(true), listSectors(), listCompanies(),
   ]);

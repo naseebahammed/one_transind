@@ -1,3 +1,4 @@
+import { requireUser } from "@/lib/guard";
 import { SECTOR } from "@/lib/org";
 import { Suspense } from "react";
 import Link from "next/link";
@@ -20,6 +21,7 @@ export default function Page({ searchParams }: { searchParams: Params }) {
 
 async function Content({ searchParams }: { searchParams: Params }) {
   await connection(); // the P&L and stay-report files can change when a statement is uploaded
+  await requireUser();
   const [reports, { view, company, year }, allRealEstate] = await Promise.all([loadReports(), searchParams, listCompanies("", SECTOR.realEstate)]);
   const stay = view === "stay";
   const companies = allRealEstate.filter((c) => c.active && !c.hidden);

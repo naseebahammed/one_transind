@@ -1,3 +1,4 @@
+import { requireUser } from "@/lib/guard";
 import { Suspense } from "react";
 import Link from "next/link";
 import { connection } from "next/server";
@@ -13,6 +14,7 @@ export default function Page({ searchParams }: { searchParams: Promise<{ c?: str
 
 async function Content({ searchParams }: { searchParams: Promise<{ c?: string }> }) {
   await connection();
+  await requireUser();
   const [{ c: id }, d] = await Promise.all([searchParams, getCustomers()]);
   const c = d.customers.find((x) => x.id === id) ?? d.customers[0];
   if (!c) return <p className="empty">No customers.</p>;

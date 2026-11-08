@@ -1,3 +1,4 @@
+import { requireUser } from "@/lib/guard";
 import { getSalesSectors } from "@/lib/sales-sectors";
 import { Suspense } from "react";
 import { connection } from "next/server";
@@ -15,6 +16,7 @@ export default function Page() {
 
 async function Content() {
   await connection();
+  await requireUser();
   const [reports, o, sectors] = await Promise.all([loadReports(), getOverview(), getSalesSectors(true)]);
   const alManzil = alManzilKey(reports), am = years(reports, alManzil).map((y) => [y, report(reports, y, alManzil)] as const), COLORS = ["#5b7cff", "#3ee08f", "#ffbe55", "#c084fc"];
   const rev = sum(sectors.map((s) => s.value)), cost = sum(sectors.map((s) => s.cost));
