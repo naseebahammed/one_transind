@@ -2,7 +2,7 @@
 import { revalidatePath } from "next/cache";
 import { branchOf } from "@/lib/branches";
 import { getCompany } from "@/lib/companies";
-import { isFigureSection, MONTHS, parseGrid, SECTIONS, type FigureSection } from "@/lib/company-data";
+import { checkFigureCell, isFigureSection, LINES, MONTHS, parseGrid, SECTIONS, type FigureSection } from "@/lib/company-data";
 import { deleteFigureMonth, importFigures, linesOf, recordRejected, setFigure, type Upload } from "@/lib/company-figures";
 import { gridFromWorkbook, MAX_UPLOAD_BYTES, readWorkbook } from "@/lib/company-template";
 import { addLog } from "@/lib/db";
@@ -42,6 +42,7 @@ export async function uploadFigures(_: FigureUploadState, f: FormData): Promise<
 
 /** One figure typed by hand instead of uploaded: year + companyId bind first so the client editor gets a plain (main, sub, month, value) action. */
 export async function saveFigureCell(section: FigureSection, year: number, companyId: number, branchId: number | null, main: string, sub: string, month: number, value: number) {
+  if (!isFigureSection(section) || !LINES[section].includes(sub) || checkFigureCell(sub, value)) return;
   const company = await getCompany(companyId);
   if (!company || (await branchOf(company.id, branchId)) === undefined) return;
   await setFigure(company.id, section, year, month, main, sub, "", value, branchId);

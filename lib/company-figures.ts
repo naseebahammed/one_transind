@@ -16,18 +16,18 @@ const sha = (b: Buffer) => createHash("sha256").update(b).digest("hex");
 export const listFigures = (companyId: number, section: FigureSection, year: number, branchId: number | null = null) =>
   q<Figure>(`SELECT EXTRACT(year FROM period)::int AS year, EXTRACT(month FROM period)::int - 1 AS month, line, value::float8 AS value FROM app.company_figures WHERE company_id=$1 AND section=$2 AND ${inYear("period", "$3")} AND branch_id IS NOT DISTINCT FROM $4`, [companyId, section, year, branchId]);
 
-/** Yearly expense total per company, for the company list. Costs are stored negative. */
+/** Yearly expense total per company, for the company list. Summed across branches; ABS guards against any legacy negative row. */
 export const listExpenseTotals = () =>
-  q<{ company_id: number; year: number; value: number }>("SELECT company_id, EXTRACT(year FROM period)::int AS year, SUM(value)::float8 AS value FROM app.company_figures WHERE section='expenses' GROUP BY 1, 2");
+  q<{ company_id: number; year: number; value: number }>("SELECT company_id, EXTRACT(year FROM period)::int AS year, SUM(ABS(value))::float8 AS value FROM app.company_figures WHERE section='expenses' GROUP BY 1, 2");
 
-/** Every monthly expense figure of every company, for the finance page. Costs are stored negative. */
+/** Monthly expense total of every company (summed across branches), for the finance page. */
 export const listExpenses = () =>
-  q<{ company_id: number; year: number; month: number; value: number }>("SELECT company_id, EXTRACT(year FROM period)::int AS year, EXTRACT(month FROM period)::int - 1 AS month, value::float8 AS value FROM app.company_figures WHERE section='expenses'");
+  q<{ company_id: number; year: number; month: number; value: number }>("SELECT company_id, EXTRACT(year FROM period)::int AS year, EXTRACT(month FROM period)::int - 1 AS month, SUM(ABS(value))::float8 AS value FROM app.company_figures WHERE section='expenses' GROUP BY 1, 2, 3");
 
-/** Which months of a year each section has on file. A month is on file when it has rows, so a real zero counts. */
-export async function listFilledMonths(companyId: number, year: number, branchId: number | null = null) {
+/** Which months of a year each section has on file. Omit branchId to check across the whole company (including branch uploads); pass null for company-level rows only. */
+export async function listFilledMonths(companyId: number, year: number, branchId?: number | null) {
   const out: Record<FigureSection | "pnl", Set<number>> = { pnl: new Set(), balance: new Set(), budget: new Set(), people: new Set(), expenses: new Set() };
-  for (const r of await q<{ section: FigureSection | "pnl"; month: number }>(`SELECT DISTINCT section, EXTRACT(month FROM period)::int - 1 AS month FROM app.company_figures WHERE company_id=$1 AND ${inYear("period", "$2")} AND branch_id IS NOT DISTINCT FROM $3`, [companyId, year, branchId])) out[r.section]?.add(r.month);
+  for (const r of await q<{ section: FigureSection | "pnl"; month: number }>(`SELECT DISTINCT section, EXTRACT(month FROM period)::int - 1 AS month FROM app.company_figures WHERE company_id=$1 AND ${inYear("period", "$2")} AND ($3::boolean OR branch_id IS NOT DISTINCT FROM $4)`, [companyId, year, branchId === undefined, branchId ?? null])) out[r.section]?.add(r.month);
   return out;
 }
 
@@ -57,31 +57,37 @@ export const importFigures = (u: Upload, rows: FigureRow[]) =>
 
 const DAILY = ["long_guests", "long_rate", "long_total", "short_guests", "short_rate", "short_total", "rooms_occupied", "room_revenue", "other_revenue", "rooms_available"] as const;
 
-/** All or nothing: days in the file replace the same days, every other day stays as it is. */
+/** All or nothing: the months in the file are replaced as a whole (so a cleared day removes its old row), every other month stays as it is. */
 export const importDaily = (u: Upload, rows: DailyRow[]) =>
   numbering(async (c) => {
-    const id = await addImport(c, u, rows.length, rows.map((r) => `${r.date.slice(0, 7)}-01`));
+    const periods = [...new Set(rows.map((r) => `${r.date.slice(0, 7)}-01`))];
+    const id = await addImport(c, u, rows.length, periods);
+    await c.query("DELETE FROM app.daily_sales WHERE company_id=$1 AND date_trunc('month', date)::date = ANY($2::date[]) AND branch_id IS NOT DISTINCT FROM $3", [u.companyId, periods, u.branchId ?? null]);
     for (const r of rows)
       await c.query(`INSERT INTO app.daily_sales(company_id,date,${DAILY.join(",")},import_id,branch_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
         ON CONFLICT (company_id,(COALESCE(branch_id,0)),date) DO UPDATE SET ${DAILY.map((k) => `${k}=EXCLUDED.${k}`).join(",")},import_id=EXCLUDED.import_id,updated=now()`, [u.companyId, r.date, ...DAILY.map((k) => r[k]), id, u.branchId ?? null]);
   });
 
-/** One figure typed by hand: no import, so import_id is cleared. */
-export function setFigure(companyId: number, section: string, year: number, month: number, main: string, line: string, unitType: string, value: number, branchId: number | null = null) {
+/** One figure typed by hand: no import, so import_id is cleared. When branchId is omitted (company-wide grid), any branch rows for that cell are replaced so they do not double-count. */
+export function setFigure(companyId: number, section: string, year: number, month: number, main: string, line: string, unitType: string, value: number, branchId?: number | null) {
   if (!Number.isFinite(value)) throw new Error("Value must be a number.");
   if (!Number.isInteger(month) || month < 0 || month > 11) throw new Error("Month must be 0-11.");
-  return q(`INSERT INTO app.company_figures(company_id,section,period,main,line,unit_type,value,branch_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8)
-    ON CONFLICT (company_id,(COALESCE(branch_id,0)),section,period,main,line,unit_type) DO UPDATE SET value=EXCLUDED.value, import_id=NULL, updated=now()`, [companyId, section, period(year, month), main, line, unitType, Math.round(value * 100) / 100, branchId]);
+  const p = period(year, month), v = Math.round(value * 100) / 100;
+  return numbering(async (c) => {
+    if (branchId === undefined) await c.query("DELETE FROM app.company_figures WHERE company_id=$1 AND section=$2 AND period=$3 AND main=$4 AND line=$5 AND unit_type=$6 AND branch_id IS NOT NULL", [companyId, section, p, main, line, unitType]);
+    await c.query(`INSERT INTO app.company_figures(company_id,section,period,main,line,unit_type,value,branch_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8)
+      ON CONFLICT (company_id,(COALESCE(branch_id,0)),section,period,main,line,unit_type) DO UPDATE SET value=EXCLUDED.value, import_id=NULL, updated=now()`, [companyId, section, p, main, line, unitType, v, branchId ?? null]);
+  });
 }
 
 export const deleteFigureMonth = (companyId: number, section: FigureSection, year: number, month: number, branchId: number | null = null) =>
   q("DELETE FROM app.company_figures WHERE company_id=$1 AND section=$2 AND period=$3 AND branch_id IS NOT DISTINCT FROM $4", [companyId, section, period(year, month), branchId]);
 
-export const deleteFigureYear = (companyId: number, section: string, year: number, branchId: number | null = null) =>
-  q(`DELETE FROM app.company_figures WHERE company_id=$1 AND section=$2 AND ${inYear("period", "$3")} AND branch_id IS NOT DISTINCT FROM $4`, [companyId, section, year, branchId]);
+export const deleteFigureYear = (companyId: number, section: string, year: number, branchId?: number | null) =>
+  q(`DELETE FROM app.company_figures WHERE company_id=$1 AND section=$2 AND ${inYear("period", "$3")} AND ($4::boolean OR branch_id IS NOT DISTINCT FROM $5)`, [companyId, section, year, branchId === undefined, branchId ?? null]);
 
-export const deleteDailyYearRows = (companyId: number, year: number, branchId: number | null = null) =>
-  q(`DELETE FROM app.daily_sales WHERE company_id=$1 AND ${inYear("date", "$2")} AND branch_id IS NOT DISTINCT FROM $3`, [companyId, year, branchId]);
+export const deleteDailyYearRows = (companyId: number, year: number, branchId?: number | null) =>
+  q(`DELETE FROM app.daily_sales WHERE company_id=$1 AND ${inYear("date", "$2")} AND ($3::boolean OR branch_id IS NOT DISTINCT FROM $4)`, [companyId, year, branchId === undefined, branchId ?? null]);
 
 type ImportRow = { id: number; company: string; section: string; source: string; file_name: string; has_file: boolean; status: string; error: string | null; rows_loaded: number; period_from: string | null; period_to: string | null; created: string };
 export const listImports = () =>
@@ -99,11 +105,12 @@ export const latestReceiptMonth = async (companyId: number) => {
 export const listReceipts = (branchId: number, year: number, month: number) =>
   q<ReceiptRow>(`SELECT to_char(date,'YYYY-MM-DD') AS date, line, value::float8 AS value FROM app.daily_receipts WHERE branch_id=$1 AND date >= make_date($2::int,$3::int + 1,1) AND date < make_date($2::int,$3::int + 1,1) + interval '1 month'`, [branchId, year, month]);
 
-/** All or nothing: days in the file replace the same days of that branch, every other day stays as it is. */
+/** All or nothing: the months in the file replace the same months of that branch (so a cleared cell or trailing day removes its old value), every other month stays as it is. */
 export const importReceipts = (u: Upload & { branchId: number }, rows: ReceiptRow[]) =>
   numbering(async (c) => {
-    const id = await addImport(c, u, rows.length, [...new Set(rows.map((r) => `${r.date.slice(0, 7)}-01`))]);
-    await c.query("DELETE FROM app.daily_receipts WHERE branch_id=$1 AND date = ANY($2::date[])", [u.branchId, [...new Set(rows.map((r) => r.date))]]); // so a cleared cell removes its old value
+    const periods = [...new Set(rows.map((r) => `${r.date.slice(0, 7)}-01`))];
+    const id = await addImport(c, u, rows.length, periods);
+    await c.query("DELETE FROM app.daily_receipts WHERE branch_id=$1 AND date_trunc('month', date)::date = ANY($2::date[])", [u.branchId, periods]);
     await c.query(`INSERT INTO app.daily_receipts(company_id,branch_id,date,line,value,import_id) SELECT $1,$2,d,l,v,$6 FROM unnest($3::date[],$4::text[],$5::numeric[]) AS t(d,l,v)
       ON CONFLICT (branch_id,date,line) DO UPDATE SET value=EXCLUDED.value,import_id=EXCLUDED.import_id,updated=now()`,
       [u.companyId, u.branchId, rows.map((r) => r.date), rows.map((r) => r.line), rows.map((r) => r.value), id]);

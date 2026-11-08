@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { LINES, monthStatuses, parseGrid, profileGaps, templatePeriod, templateTitle, type Cell, type FigureSection } from "./company-data.ts";
+import { checkFigureCell, LINES, monthStatuses, parseGrid, profileGaps, templatePeriod, templateTitle, type Cell, type FigureSection } from "./company-data.ts";
 
 const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const today = new Date(2026, 10, 4);
@@ -70,6 +70,14 @@ test("rejects negatives except cash at bank", () => {
 test("requires whole numbers for headcount, joiners and leavers", () => {
   assert.match(error(parse("people", grid("people", { ...people, Headcount: 1.5 }))), /Headcount/);
   figures(parse("people", grid("people", { ...people, "Payroll cost": 5000.5 })));
+});
+
+test("checkFigureCell enforces the same rules for manual edits", () => {
+  assert.equal(checkFigureCell("Expenses", 500), null);
+  assert.equal(checkFigureCell("Cash at bank", -500), null);
+  assert.match(checkFigureCell("Expenses", -1)!, /negative/);
+  assert.match(checkFigureCell("Headcount", 2.5)!, /whole number/);
+  assert.match(checkFigureCell("Revenue", Number.NaN)!, /number/);
 });
 
 test("rejects a balance sheet that does not balance", () => {

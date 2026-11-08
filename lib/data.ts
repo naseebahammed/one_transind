@@ -83,9 +83,9 @@ export async function getCustomers() {
   const idx = new Map(top.map((c) => [c.id, c]));
   const tmp = new Map<string, Map<string, { name: string; value: number; lastMonth: number }>>();
   for (const r of br) {
-    const m = tmp.get(r.id) ?? new Map();
-    const b = m.get(r.b) ?? { n: r.b, v: 0, lm: 0 };
-    if (r.k === cur) b.v += r.v; else b.lm += r.v;
+    const m = tmp.get(r.id) ?? new Map<string, { name: string; value: number; lastMonth: number }>();
+    const b = m.get(r.b) ?? { name: r.b, value: 0, lastMonth: 0 };
+    if (r.k === cur) b.value += r.v; else b.lastMonth += r.v;
     m.set(r.b, b); tmp.set(r.id, m);
   }
   for (const [id, m] of tmp) idx.get(id)!.brands = [...m.values()].filter((b) => b.value || b.lastMonth).sort((a, b) => b.value - a.value);

@@ -35,6 +35,14 @@ const isFuture = (year: number, month: number, today: Date) => year > today.getF
 const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
 const sum = (m: Map<string, number>, lines: string[]) => lines.reduce((s, l) => s + (m.get(l) ?? 0), 0);
 
+/** Checks one cell's number against its line's rules; returns the problem or null. */
+export function checkFigureCell(line: string, v: number): string | null {
+  if (!Number.isFinite(v)) return "not a number.";
+  if (v < 0 && line !== "Cash at bank") return "cannot be negative.";
+  if (WHOLE.includes(line) && !Number.isInteger(v)) return "must be a whole number.";
+  return null;
+}
+
 /** Blank stays null, never 0: a missing figure and a typed zero mean different things. */
 function readCell(c: Cell): number | null | "bad" {
   if (c === null || (typeof c === "string" && !c.trim())) return null;
@@ -67,8 +75,8 @@ export function parseGrid(section: GridSection, grid: Cell[][], expected: { comp
       const v = readCell(rows.get(line)![month + 1] ?? null);
       if (v === null) continue;
       if (v === "bad") return { error: `${line}, ${name}: not a number.` };
-      if (v < 0 && line !== "Cash at bank") return { error: `${line}, ${name}: cannot be negative.` };
-      if (WHOLE.includes(line) && !Number.isInteger(v)) return { error: `${line}, ${name}: must be a whole number.` };
+      const problem = checkFigureCell(line, v);
+      if (problem) return { error: `${line}, ${name}: ${problem}` };
       values.set(line, v);
     }
     if (!values.size) continue;
