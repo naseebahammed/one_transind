@@ -2,7 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Activity, BookOpen, Building2, ChevronRight, ClipboardCheck, ExternalLink, Home, Layers } from "lucide-react";
+import { Activity, BookOpen, Building2, ChevronRight, ClipboardCheck, ExternalLink, Home, Layers, Users } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupLabel, SidebarHeader, SidebarMenu,
   SidebarMenuButton, SidebarMenuItem, SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem, SidebarRail, useSidebar,
@@ -22,7 +22,7 @@ const GROUPS = [
     ],
   },
   { label: "Finance", items: [{ href: "/admin/accounts", title: "Chart of accounts", icon: BookOpen }] },
-  { label: "System", items: [{ href: "/admin/activity", title: "Activity log", icon: Activity }] },
+  { label: "System", items: [{ href: "/admin/activity", title: "Activity log", icon: Activity }, { href: "/admin/users", title: "Users", icon: Users }] },
 ];
 
 /** Companies under one collapsible row per sector; the selected company's sector starts open. */

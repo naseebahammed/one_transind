@@ -22,6 +22,12 @@ test("every API route handler except the Auth.js one calls apiGuard", () => {
   assert.deepEqual(bad, [], `Unguarded route handlers: ${show(bad)}`);
 });
 
+test("the Users page actions require an admin, not just a signed-in user", () => {
+  const actions = files.find((f) => /[\\/]admin[\\/]users[\\/]actions\.ts$/.test(f.file));
+  assert.ok(actions, "app/admin/users/actions.ts is missing");
+  assert.ok(!/await\s+requireUser\(\)/.test(actions.text) && /await\s+requireAdmin\(\)/.test(actions.text));
+});
+
 test("every Server Actions file calls requireUser or requireAdmin in each exported action", () => {
   const actions = files.filter((f) => /^\s*["']use server["']/.test(f.text));
   assert.ok(actions.length >= 8, "found too few action files; the search is broken");
