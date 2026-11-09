@@ -73,10 +73,9 @@ async function loadFile(type: string, company: Company, u: Upload, formYear: num
       return { rows: control.rowsRead, ok: `Loaded ${what}.${control.issues.length ? ` ${control.issues.length} to check, first: ${control.issues[0].reason}` : ""}` };
     }
     const b = balancesFromWorkbook(wb, u.name);
-    if (!b.rowsRead) throw new Error("No stock or outstanding rows found. Upload the Stock Report or TC Outstanding workbook.");
+    if (!b.rowsRead) throw new Error("No stock rows found. Upload the Stock Report workbook (TC outstanding now comes straight from the database).");
     await importBalances(u, b);
-    const parts = [b.stock.length ? `${b.stock.length} stock rows for ${b.stockDate}` : "", b.outstanding.length ? `${b.outstanding.length} outstanding invoices as of ${b.outstandingDate}` : ""].filter(Boolean);
-    return { rows: b.rowsRead, ok: `Loaded ${parts.join(", ")}.${b.issues.length ? ` ${b.issues.length} to check, first: ${b.issues[0].reason}` : ""}` };
+    return { rows: b.rowsRead, ok: `Loaded ${b.stock.length} stock rows for ${b.stockDate}.${b.issues.length ? ` ${b.issues.length} to check, first: ${b.issues[0].reason}` : ""}` };
   }
   if (type === "masters") {
     const m = mastersFromWorkbook(wb);

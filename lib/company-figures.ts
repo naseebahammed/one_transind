@@ -133,22 +133,17 @@ export const importMasters = (u: Upload, m: Masters) =>
     await c.query("INSERT INTO app.manager_targets(period,manager,target,import_id) SELECT $1::date,a,b,$4 FROM unnest($2::text[],$3::numeric[]) AS t(a,b)", [m.period, ...pick(m.managerTargets, "manager", "target"), id]);
   }, u.companyId);
 
-/** All or nothing, as one import. A day's stock or outstanding replaces that day only, so earlier days stay on file. An item or account the masters don't have yet is added, so a new product never rejects the file. */
+/** All or nothing, as one import. A day's stock replaces that day only, so earlier days stay on file. An item the masters don't have yet is added, so a new product never rejects the file. */
 export const importBalances = (u: Upload, b: Balances) =>
   numbering(async (c) => {
-    const periods = [...new Set([b.stockDate, b.outstandingDate].filter((d): d is string => !!d).map((d) => `${d.slice(0, 7)}-01`))];
-    const id = await addImport(c, u, b.rowsRead, periods, { rowsRead: b.rowsRead, controlTotal: b.stockTotal ?? b.outstandingTotal, issues: b.issues });
+    const periods = [...new Set([b.stockDate].filter((d): d is string => !!d).map((d) => `${d.slice(0, 7)}-01`))];
+    const id = await addImport(c, u, b.rowsRead, periods, { rowsRead: b.rowsRead, controlTotal: b.stockTotal, issues: b.issues });
     const pick = <T,>(rows: T[], ...keys: (keyof T)[]) => keys.map((k) => rows.map((r) => r[k]));
     if (b.stockDate) {
       await c.query("INSERT INTO app.brands(code,name) SELECT DISTINCT a,a FROM unnest($1::text[]) AS t(a) WHERE a <> '' ON CONFLICT (code) DO NOTHING", [b.items.map((i) => i.brand)]);
       await c.query(`INSERT INTO app.items(code,name,brand,packing,size,item_type,department,manager,import_id) SELECT a,b,d,e,f,g,h,i,$9 FROM unnest($1::text[],$2::text[],$3::text[],$4::text[],$5::text[],$6::text[],$7::text[],$8::text[]) AS t(a,b,d,e,f,g,h,i) ON CONFLICT (code) DO NOTHING`, [...pick(b.items, "code", "name", "brand", "packing", "size", "itemType", "department", "manager"), id]);
       await c.query("DELETE FROM app.stock_snapshots WHERE as_of=$1", [b.stockDate]);
       await c.query("INSERT INTO app.stock_snapshots(as_of,item_code,location,qty_current,qty_allocated,qty_balance,value,import_id) SELECT $1::date,a,b,d,e,f,g,$8 FROM unnest($2::text[],$3::text[],$4::numeric[],$5::numeric[],$6::numeric[],$7::numeric[]) AS t(a,b,d,e,f,g)", [b.stockDate, ...pick(b.stock, "itemCode", "location", "qtyCurrent", "qtyAllocated", "qtyBalance", "value"), id]);
-    }
-    if (b.outstandingDate) {
-      await c.query("INSERT INTO app.customers(code,name,status,import_id) SELECT DISTINCT ON (a) a,b,'Active',$3::int FROM unnest($1::text[],$2::text[]) AS t(a,b) ON CONFLICT (code) DO NOTHING", [...pick(b.outstanding, "accountCode", "accountName"), id]);
-      await c.query("DELETE FROM app.salesman_outstanding WHERE as_of=$1", [b.outstandingDate]);
-      await c.query("INSERT INTO app.salesman_outstanding(as_of,account_code,posted_date,doc_code,doc_no,party_ref,department,balance,import_id) SELECT $1::date,a,b,d,e,f,g,h,$9 FROM unnest($2::text[],$3::date[],$4::text[],$5::text[],$6::text[],$7::text[],$8::numeric[]) AS t(a,b,d,e,f,g,h)", [b.outstandingDate, ...pick(b.outstanding, "accountCode", "postedDate", "docCode", "docNo", "partyRef", "department", "balance"), id]);
     }
   }, u.companyId);
 

@@ -393,7 +393,20 @@ CREATE TABLE app.users(
 );
 `;
 
-const MIGRATIONS: readonly (readonly [string, string])[] = [["001_baseline", BASELINE], ["002_standard_data", STANDARD_DATA], ["003_drop_report_files", DROP_REPORT_FILES], ["005_company_expenses", COMPANY_EXPENSES], ["006_company_branches", COMPANY_BRANCHES], ["007_company_has_branches", COMPANY_HAS_BRANCHES], ["008_daily_receipts", DAILY_RECEIPTS], ["009_drop_deals", DROP_DEALS], ["010_drop_invoices", DROP_INVOICES], ["011_enterprise_foundation", ENTERPRISE_FOUNDATION], ["012_rejected_rows_loaded", REJECTED_ROWS_LOADED], ["013_restaurant_cogs", RESTAURANT_COGS], ["014_drop_ownership_pct", DROP_OWNERSHIP_PCT], ["015_fmcg_masters", FMCG_MASTERS], ["016_data_standardization", DATA_STANDARDIZATION], ["017_fmcg_sales_views", FMCG_SALES_VIEWS], ["018_fmcg_balances", FMCG_BALANCES], ["019_fmcg_control", FMCG_CONTROL], ["020_app_optimizations", APP_OPTIMIZATIONS], ["021_app_users", APP_USERS]];
+// TC outstanding and invoices not yet converted to delivery orders now come straight from the ERP tables, not from uploaded Excel. rpt.salesman_outstanding keeps its name so reports built on it still work.
+const ERP_OUTSTANDING = `
+DROP VIEW IF EXISTS rpt.salesman_outstanding;
+DROP TABLE IF EXISTS app.salesman_outstanding;
+DO $$ BEGIN IF to_regclass('public.glas_food_cust_oustanding_inv') IS NOT NULL THEN EXECUTE $view$
+CREATE VIEW rpt.salesman_outstanding AS SELECT current_date AS as_of, true AS is_latest, COALESCE("ACTUAL_CUSTOMER", "SLTR_SLMAST_ACNO") AS account_code, COALESCE("ACTUAL_CUST_NAME", "COAD_PTY_FULL_NAME") AS account,
+  "SALESMAN_NAME" AS salesman, "MANAGER_NAME" AS manager, "PSTNG_DATE1" AS posted_date, "DUE_DATE" AS due_date, "SLTR_DOC_CODE" AS doc_code, "SLTR_OUR_DOC_NO" AS doc_no, COALESCE("SLTR_PTY_REF_NO", '') AS party_ref,
+  "FIN_DEPT" AS department, "BALANCE_AMOUNT" AS balance_qar, current_date - "PSTNG_DATE1" AS age_days,
+  CASE WHEN current_date - "PSTNG_DATE1" <= 30 THEN '0-30' WHEN current_date - "PSTNG_DATE1" <= 60 THEN '31-60' WHEN current_date - "PSTNG_DATE1" <= 90 THEN '61-90' ELSE 'Over 90' END AS age_bucket
+  FROM public.glas_food_cust_oustanding_inv WHERE "CUSTOMER_TYPE" = 'Account Receivable - SALESMAN'
+$view$; END IF; END $$;
+`;
+
+const MIGRATIONS: readonly (readonly [string, string])[] = [["001_baseline", BASELINE], ["002_standard_data", STANDARD_DATA], ["003_drop_report_files", DROP_REPORT_FILES], ["005_company_expenses", COMPANY_EXPENSES], ["006_company_branches", COMPANY_BRANCHES], ["007_company_has_branches", COMPANY_HAS_BRANCHES], ["008_daily_receipts", DAILY_RECEIPTS], ["009_drop_deals", DROP_DEALS], ["010_drop_invoices", DROP_INVOICES], ["011_enterprise_foundation", ENTERPRISE_FOUNDATION], ["012_rejected_rows_loaded", REJECTED_ROWS_LOADED], ["013_restaurant_cogs", RESTAURANT_COGS], ["014_drop_ownership_pct", DROP_OWNERSHIP_PCT], ["015_fmcg_masters", FMCG_MASTERS], ["016_data_standardization", DATA_STANDARDIZATION], ["017_fmcg_sales_views", FMCG_SALES_VIEWS], ["018_fmcg_balances", FMCG_BALANCES], ["019_fmcg_control", FMCG_CONTROL], ["020_app_optimizations", APP_OPTIMIZATIONS], ["021_app_users", APP_USERS], ["022_erp_outstanding", ERP_OUTSTANDING]];
 
 /** Applies the migrations not yet recorded, optionally only up to and including one. Run it inside a transaction holding the init lock. */
 export async function migrate(c: { query: (text: string, params?: unknown[]) => Promise<{ rows: { id: string }[] }> }, upTo?: string) {

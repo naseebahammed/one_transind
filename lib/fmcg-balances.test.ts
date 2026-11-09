@@ -28,18 +28,6 @@ test("stock: a total that disagrees is flagged, and a file name with no date ref
   assert.throws(() => balancesFromWorkbook(stockBook(570), "stock.xlsx"), /no date like/);
 });
 
-test("outstanding: the date is the latest posting, the Grand Total is checked, a bad row is reported", () => {
-  const wb = new ExcelJS.Workbook();
-  sheet(wb, "NEW", [[0], ["SLTR_PTY_REF_NO", "ACCOUNT_NUMBER", "Account Name", "PSTNG_DATE1", "SLTR_DOC_CODE", "SLTR_OUR_DOC_NO", "LEDGER_CODE", "FIN_DEPT", "Sum of BALANCE_AMOUNT"],
-    ["1019", "CS02588", "MOHAMED", new Date("2025-12-10T00:00:00Z"), "IN", "201/DT/1019", "01", "LB", 548.47], ["1020", "CS02588", "MOHAMED", new Date("2026-11-07T00:00:00Z"), "CN", "201/DT/1020", "01", "NF", -48.47], ["1021", "CS02588", "MOHAMED", "not a date", "IN", "201/DT/1021", "01", "LB", 5], ["Grand Total", null, null, null, null, null, null, null, 500]]);
-  const b = balancesFromWorkbook(wb, "TC outstanding _2026.xlsx");
-  assert.equal(b.outstandingDate, "2026-11-07");
-  assert.equal(b.outstandingTotal, 500);
-  assert.deepEqual(b.outstanding.map((r) => [r.docNo, r.postedDate, r.balance]), [["201/DT/1019", "2025-12-10", 548.47], ["201/DT/1020", "2026-11-07", -48.47]]);
-  assert.equal(b.issues.length, 1);
-  assert.equal(b.issues[0].loaded, false);
-});
-
 test("a workbook with neither sheet gives nothing", () => {
   const wb = new ExcelJS.Workbook();
   wb.addWorksheet("Sheet1");
