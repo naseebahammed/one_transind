@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { inTenant, normalizeEmail, parseAdminEmails, roleOf } from "./access.ts";
+import { devLoginEnabled, inTenant, normalizeEmail, parseAdminEmails, roleOf } from "./access.ts";
 
 test("parseAdminEmails trims, lowercases and drops empties", () => {
   assert.deepEqual(parseAdminEmails(" A@x.com, b@X.com ,,"), ["a@x.com", "b@x.com"]);
@@ -31,4 +31,12 @@ test("inTenant is true only when the issuer contains the token's tenant id", () 
   assert.equal(inTenant("xyz", issuer), false);
   assert.equal(inTenant(undefined, issuer), false);
   assert.equal(inTenant("abc", undefined), false);
+});
+
+test("devLoginEnabled needs the flag AND a non-production build", () => {
+  assert.equal(devLoginEnabled({ NODE_ENV: "development", AUTH_DEV_LOGIN: "true" }), true);
+  assert.equal(devLoginEnabled({ NODE_ENV: "development" }), false);
+  assert.equal(devLoginEnabled({ NODE_ENV: "development", AUTH_DEV_LOGIN: "1" }), false);
+  assert.equal(devLoginEnabled({ NODE_ENV: "production", AUTH_DEV_LOGIN: "true" }), false);
+  assert.equal(devLoginEnabled({ AUTH_DEV_LOGIN: "true" }), true);
 });

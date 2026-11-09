@@ -45,3 +45,7 @@ Until the table exists, only `ADMIN_EMAILS` people can sign in.
 3. Remove them: their next page load shows "No access".
 4. Sign in with a Transind account that is not on the list: "No access".
 5. Open `/api/ask` without signing in: 401.
+
+## Testing before the Microsoft values arrive
+
+Set `AUTH_DEV_LOGIN=true` in `.env.local` and run `npm run dev`. The sign-in page then shows a "Test sign in" box: type an email that is in `ADMIN_EMAILS` or on the Users list. It is still checked against the approved list. The box does not exist in production builds, whatever the setting. You still need `AUTH_SECRET` set. Remove the setting once real Microsoft sign-in works.
