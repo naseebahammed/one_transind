@@ -28,6 +28,7 @@ const monthNames = (rows: { year: number; month: number }[]) => [...new Set(rows
 
 /** shortcut: restaurant sheets from before this year are skipped, as agreed for the first load; lower it to bring in older history. */
 const LOAD_FROM_YEAR = 2026;
+const COGS_FROM_YEAR = 2024; // the COGS history starts earlier than the other reports
 
 /** A branch whose workbook is headed with a different name than the branch (lower-case branch name -> names its sheet may carry). shortcut: hard-coded, move to a branch column if more appear. */
 const OTHER_SHEET_NAMES: Record<string, string[]> = { "qatar sports club": ["Westbay"] };
@@ -85,7 +86,7 @@ async function loadFile(type: string, company: Company, u: Upload, formYear: num
     return { rows: m.rowsRead, ok: `Loaded ${parts.join(", ")}.${m.issues.length ? ` ${m.issues.length} to check, first: ${m.issues[0].reason}` : ""}` };
   }
   if (type === "cogs") {
-    const parsed = cogsFromWorkbook(wb, LOAD_FROM_YEAR);
+    const parsed = cogsFromWorkbook(wb, COGS_FROM_YEAR);
     const { rows, issues } = cogsForCompany(parsed.rows, company.name, await listBranches(company.id), company.aliases);
     if (!rows.length) throw new Error(`This file has no COGS columns for ${company.name}.`);
     await importCogs(u, rows, [...parsed.issues, ...issues]);
@@ -119,16 +120,17 @@ async function loadFile(type: string, company: Company, u: Upload, formYear: num
 
 /** One upload form for every report type: "pnl" (monthly P&L workbook), "daily" (daily sales report), "units" (per unit-type sales) or "sales" (monthly sales template), as .xlsx or .csv. */
 export async function uploadReport(_: UploadState, f: FormData): Promise<UploadState> {
-  await requireAdmin();
-  const type = String(f.get("type")), file = f.get("file");
+  const admin = await requireAdmin();
+  const type = String(f.get("type")), companyId = Number(f.get("companyId")), file = f.get("file");
   if (!(type in LABEL)) return { error: "Unknown report type." };
-  const company = await getCompany(Number(f.get("companyId")));
+  if (!Number.isInteger(companyId) || companyId <= 0) return { error: "Company not found." };
+  const company = await getCompany(companyId);
   if (!company) return { error: "Company not found." };
   const branchId = await branchOf(company.id, f.get("branchId"));
   if (branchId === undefined) return { error: "Branch not found." };
   if (!(file instanceof File) || !file.size) return { error: "Choose an .xlsx or .csv file." };
   if (file.size > MAX_UPLOAD_BYTES) return { error: "The file must be under 7 MB." };
-  const u: Upload = { companyId: company.id, section: type, name: file.name, type: file.type, buf: Buffer.from(await file.arrayBuffer()), branchId };
+  const u: Upload = { companyId: company.id, section: type, name: file.name, type: file.type, buf: Buffer.from(await file.arrayBuffer()), branchId, uploadedBy: admin.email };
   try {
     const { rows, ok } = await loadFile(type, company, u, Number(f.get("year")));
     await addLog(`${company.name}: ${LABEL[type]} uploaded (${file.name})`, true, rows);
@@ -143,13 +145,18 @@ export async function uploadReport(_: UploadState, f: FormData): Promise<UploadS
   }
 }
 
+const validYear = (year: number) => Number.isInteger(year) && year >= 2000 && year <= 2100;
+
 async function companyFrom(key: string) {
-  const company = await getCompany(Number(key));
+  const id = Number(key);
+  if (!Number.isInteger(id) || id <= 0) throw new Error("Company not found.");
+  const company = await getCompany(id);
   if (!company) throw new Error("Company not found.");
   return company;
 }
 
 async function saveCell(section: string, year: number, key: string, main: string, sub: string, month: number, value: number, unitType = "") {
+  if (!validYear(year)) return "Invalid year.";
   const company = await companyFrom(key);
   const refused = await setFigure(company.id, section, year, month, main, sub, unitType, value);
   if (refused) return refused;
@@ -160,25 +167,32 @@ async function saveCell(section: string, year: number, key: string, main: string
 /** Save one edited figure: year + key bind first so the client component gets a plain (main, sub, month, value) action. */
 export async function savePnlCell(year: number, key: string, main: string, sub: string, month: number, value: number) {
   await requireAdmin();
+  if (!(await listAccounts()).some((a) => a.main === main && a.sub === sub)) return "Unknown account.";
   return saveCell("pnl", year, key, main, sub, month, value);
 }
 
 /** One edited monthly sales figure, for companies with no daily report. A hotel's monthly sales are calculated from its daily rows. */
 export async function saveSalesCell(year: number, key: string, main: string, sub: string, month: number, value: number) {
   await requireAdmin();
+  if ((await linesOf("sales")).get(sub) !== main) return "Unknown sales line.";
   return saveCell("sales", year, key, main, sub, month, value);
 }
 
 /** One edited unit-type figure. In the grid the unit type shows as the group, so "main" here is the unit type. */
 export async function saveUnitsCell(year: number, key: string, main: string, sub: string, month: number, value: number) {
   await requireAdmin();
-  return saveCell("units", year, key, (await linesOf("units")).get(sub) ?? "UNITS", sub, month, value, main);
+  const group = (await linesOf("units")).get(sub);
+  const unitType = main.trim().slice(0, 40);
+  if (!group || !unitType) return "Unknown unit line.";
+  return saveCell("units", year, key, group, sub, month, value, unitType);
 }
 
 /** Delete one year's P&L statement for a company. */
 export async function deletePnlYear(f: FormData) {
   await requireAdmin();
-  const company = await companyFrom(String(f.get("key"))), year = Number(f.get("year"));
+  const year = Number(f.get("year"));
+  if (!validYear(year)) return;
+  const company = await companyFrom(String(f.get("key")));
   await deleteFigureYear(company.id, "pnl", year);
   await addLog(`${company.name}: P&L ${year} deleted`);
   refresh();
@@ -187,7 +201,9 @@ export async function deletePnlYear(f: FormData) {
 /** Delete one year of a company's monthly sales: its daily rows and any monthly sales figures. */
 export async function deleteDailyYear(f: FormData) {
   await requireAdmin();
-  const company = await companyFrom(String(f.get("key"))), year = Number(f.get("year"));
+  const year = Number(f.get("year"));
+  if (!validYear(year)) return;
+  const company = await companyFrom(String(f.get("key")));
   await deleteDailyYearRows(company.id, year);
   await deleteFigureYear(company.id, "sales", year);
   await addLog(`${company.name}: monthly sales ${year} deleted`);

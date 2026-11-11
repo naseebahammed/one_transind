@@ -406,7 +406,17 @@ CREATE VIEW rpt.salesman_outstanding AS SELECT current_date AS as_of, true AS is
 $view$; END IF; END $$;
 `;
 
-const MIGRATIONS: readonly (readonly [string, string])[] = [["001_baseline", BASELINE], ["002_standard_data", STANDARD_DATA], ["003_drop_report_files", DROP_REPORT_FILES], ["005_company_expenses", COMPANY_EXPENSES], ["006_company_branches", COMPANY_BRANCHES], ["007_company_has_branches", COMPANY_HAS_BRANCHES], ["008_daily_receipts", DAILY_RECEIPTS], ["009_drop_deals", DROP_DEALS], ["010_drop_invoices", DROP_INVOICES], ["011_enterprise_foundation", ENTERPRISE_FOUNDATION], ["012_rejected_rows_loaded", REJECTED_ROWS_LOADED], ["013_restaurant_cogs", RESTAURANT_COGS], ["014_drop_ownership_pct", DROP_OWNERSHIP_PCT], ["015_fmcg_masters", FMCG_MASTERS], ["016_data_standardization", DATA_STANDARDIZATION], ["017_fmcg_sales_views", FMCG_SALES_VIEWS], ["018_fmcg_balances", FMCG_BALANCES], ["019_fmcg_control", FMCG_CONTROL], ["020_app_optimizations", APP_OPTIMIZATIONS], ["021_app_users", APP_USERS], ["022_erp_outstanding", ERP_OUTSTANDING]];
+// The ERP sales table (invs_fdd_fnb_sales_do_t) is loaded with every document several times and holds all document types, so the app reads this copy instead:
+// identical rows once, only IN-DTS, IN-OT and CR, amounts without tax under the old NET_AMOUNT / NET_COST names. Refresh it after each ERP load: scripts/refresh-sales.mjs.
+// shortcut: a copy refreshed by hand, upgrade to a scheduled refresh (or drop this once the ERP load stops duplicating rows).
+const ifTable = (table: string, sql: string) => `DO 'BEGIN IF to_regclass(''${table}'') IS NOT NULL THEN EXECUTE ''${sql.replaceAll("'", "''''")}''; END IF; END';`;
+const SALES_CLEAN = [
+  `CREATE MATERIALIZED VIEW app.sales_clean AS SELECT "DOC_DATE", "DOC_TYPE", "DOC_NO", "CUST_NO", "CUST_NAME", "CUST_CATEGORY", "GROUP_NAME", "BRAND", "ITEM_CODE", "ITEM_NAME", "SUPPLIER_NAME", "SMAN_NAME", "DEPT_CODE", "ROUTE_DESC", "DRIVER_NAME", "QTY_PCS", "NET_AMOUNT_WOT" AS "NET_AMOUNT", "NET_COST_WOT" AS "NET_COST"
+     FROM (SELECT DISTINCT * FROM public.invs_fdd_fnb_sales_do_t WHERE "DOC_TYPE" IN ('IN-DTS','IN-OT','CR')) x`,
+  `CREATE INDEX sales_clean_doc_date ON app.sales_clean("DOC_DATE")`,
+].map((sql) => ifTable("public.invs_fdd_fnb_sales_do_t", sql)).join("\n");
+
+const MIGRATIONS: readonly (readonly [string, string])[] = [["001_baseline", BASELINE], ["002_standard_data", STANDARD_DATA], ["003_drop_report_files", DROP_REPORT_FILES], ["005_company_expenses", COMPANY_EXPENSES], ["006_company_branches", COMPANY_BRANCHES], ["007_company_has_branches", COMPANY_HAS_BRANCHES], ["008_daily_receipts", DAILY_RECEIPTS], ["009_drop_deals", DROP_DEALS], ["010_drop_invoices", DROP_INVOICES], ["011_enterprise_foundation", ENTERPRISE_FOUNDATION], ["012_rejected_rows_loaded", REJECTED_ROWS_LOADED], ["013_restaurant_cogs", RESTAURANT_COGS], ["014_drop_ownership_pct", DROP_OWNERSHIP_PCT], ["015_fmcg_masters", FMCG_MASTERS], ["016_data_standardization", DATA_STANDARDIZATION], ["017_fmcg_sales_views", FMCG_SALES_VIEWS], ["018_fmcg_balances", FMCG_BALANCES], ["019_fmcg_control", FMCG_CONTROL], ["020_app_optimizations", APP_OPTIMIZATIONS], ["021_app_users", APP_USERS], ["022_erp_outstanding", ERP_OUTSTANDING], ["023_sales_clean", SALES_CLEAN]];
 
 /** Applies the migrations not yet recorded, optionally only up to and including one. Run it inside a transaction holding the init lock. */
 export async function migrate(c: { query: (text: string, params?: unknown[]) => Promise<{ rows: { id: string }[] }> }, upTo?: string) {

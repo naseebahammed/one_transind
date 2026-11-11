@@ -9,7 +9,7 @@ import { LINES, type Figure, type FigureSection } from "@/lib/company-data";
 import { branchClash, monthlySalesClash, takingsClash } from "@/lib/figure-rules";
 
 /** One uploaded file, kept with its import so it can be re-read or downloaded later. */
-export type Upload = { companyId: number; section: string; name: string; type: string; buf: Buffer; branchId?: number | null };
+export type Upload = { companyId: number; section: string; name: string; type: string; buf: Buffer; branchId?: number | null; uploadedBy?: string };
 type FigureRow = { year: number; month: number; main: string; line: string; unit_type?: string; value: number };
 
 const period = (year: number, month: number) => `${year}-${String(month + 1).padStart(2, "0")}-01`;
@@ -59,7 +59,7 @@ export const linesOf = async (section: string) => new Map((await q<{ main: strin
 export async function recordRejected(u: Upload, error: string) {
   const hash = sha(u.buf);
   await q("INSERT INTO app.import_files(sha256,file) VALUES($1,$2) ON CONFLICT (sha256) DO NOTHING", [hash, u.buf]);
-  await q("INSERT INTO app.imports(company_id,section,file_name,file_type,file_size,sha256,status,error) VALUES($1,$2,$3,$4,$5,$6,'rejected',$7)", [u.companyId, u.section, u.name, u.type, u.buf.length, hash, error]);
+  await q("INSERT INTO app.imports(company_id,section,file_name,file_type,file_size,sha256,status,error,uploaded_by) VALUES($1,$2,$3,$4,$5,$6,'rejected',$7,$8)", [u.companyId, u.section, u.name, u.type, u.buf.length, hash, error, u.uploadedBy ?? null]);
 }
 
 /** How completely a file loaded. controlTotal is the total the sheet itself prints, to compare with what was loaded. */
@@ -68,8 +68,8 @@ type ImportQuality = { rowsRead: number; controlTotal: number | null; issues: Im
 async function addImport(c: PoolClient, u: Upload, rows: number, periods: string[], quality?: ImportQuality) {
   const sorted = [...periods].sort(), issues = quality?.issues ?? [], hash = sha(u.buf);
   await c.query("INSERT INTO app.import_files(sha256,file) VALUES($1,$2) ON CONFLICT (sha256) DO NOTHING", [hash, u.buf]);
-  const { rows: [r] } = await c.query<{ id: number }>("INSERT INTO app.imports(company_id,section,file_name,file_type,file_size,sha256,status,rows_loaded,period_from,period_to,rows_read,rows_rejected,control_total) VALUES($1,$2,$3,$4,$5,$6,'loaded',$7,$8,$9,$10,$11,$12) RETURNING id",
-    [u.companyId, u.section, u.name, u.type, u.buf.length, hash, rows, sorted[0] ?? null, sorted.at(-1) ?? null, quality?.rowsRead ?? null, issues.filter((x) => !x.loaded).length, quality?.controlTotal ?? null]);
+  const { rows: [r] } = await c.query<{ id: number }>("INSERT INTO app.imports(company_id,section,file_name,file_type,file_size,sha256,status,rows_loaded,period_from,period_to,rows_read,rows_rejected,control_total,uploaded_by) VALUES($1,$2,$3,$4,$5,$6,'loaded',$7,$8,$9,$10,$11,$12,$13) RETURNING id",
+    [u.companyId, u.section, u.name, u.type, u.buf.length, hash, rows, sorted[0] ?? null, sorted.at(-1) ?? null, quality?.rowsRead ?? null, issues.filter((x) => !x.loaded).length, quality?.controlTotal ?? null, u.uploadedBy ?? null]);
   if (issues.length) await c.query("INSERT INTO stg.rejected_rows(import_id,sheet,row_no,reason,loaded) SELECT $1,s,n,m,l FROM unnest($2::text[],$3::int[],$4::text[],$5::boolean[]) AS t(s,n,m,l)",
     [r.id, issues.map((x) => x.sheet), issues.map((x) => x.row), issues.map((x) => x.reason), issues.map((x) => x.loaded)]);
   return r.id;
@@ -92,6 +92,13 @@ export const importFigures = (u: Upload, rows: FigureRow[]) =>
         [u.companyId, u.section, latest.map((r) => period(r.year, r.month)), latest.map((r) => r.main), latest.map((r) => r.line), latest.map((r) => r.unit_type ?? ""), latest.map((r) => r.value), id, u.branchId ?? null],
       );
   }, u.companyId);
+
+export type CogsMonth = { branch: string | null; grossSales: number | null; discount: number | null; netSales: number | null; cogs: number | null };
+/** One month of net sales and cost of goods per branch (branch null = the whole company). Costs are negative; cost % is worked out by the caller, never stored. */
+export const listCogsMonth = (companyId: number, year: number, month: number) =>
+  q<CogsMonth>(`SELECT b.name AS branch, SUM(f.value) FILTER (WHERE f.line='Gross sales')::float8 AS "grossSales", SUM(f.value) FILTER (WHERE f.line='Discount')::float8 AS discount, SUM(f.value) FILTER (WHERE f.line='Net sales')::float8 AS "netSales", SUM(f.value) FILTER (WHERE f.line='COGS')::float8 AS cogs
+    FROM app.company_figures f LEFT JOIN app.branches b ON b.id=f.branch_id
+    WHERE f.company_id=$1 AND f.section='cogs' AND f.period = make_date($2::int,$3::int + 1,1) GROUP BY b.name ORDER BY b.name NULLS FIRST`, [companyId, year, month]);
 
 /** All or nothing, as one import: the months in the file are replaced for each branch of the company the file has a column for. */
 export const importCogs = (u: Upload, rows: (CogsRow & { branchId: number | null })[], issues: ImportIssue[]) =>

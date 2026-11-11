@@ -7,6 +7,7 @@ export type BranchState = { error?: string };
 
 export async function addBranch(companyId: number, _: BranchState, f: FormData): Promise<BranchState> {
   await requireAdmin();
+  if (!Number.isInteger(companyId) || companyId <= 0) return { error: "Company not found." };
   const name = String(f.get("name") ?? "").trim().slice(0, 60);
   if (!name) return { error: "Name is required." };
   const res = await createBranch(companyId, name);

@@ -2,8 +2,9 @@ import { cacheLife } from "next/cache";
 import { pg } from "@/lib/pg";
 import { getPeriod } from "@/lib/period";
 
-// Sales value = every row of the view: IN invoices plus CR credit notes (already negative). Verified against the finance sheet Jan-Sep 2026.
-const table = process.env.SALES_TABLE!;
+// Sales value = IN-DTS and IN-OT invoices plus CR credit notes (already negative), from app.sales_clean: de-duplicated, without tax (migration 023). Data starts 2026-08-09.
+// The trailing "s" is the alias some queries use as s."DOC_DATE".
+const table = `${process.env.SALES_TABLE!} s`;
 const TOP_ITEMS = 25;
 const TOP_CUSTOMERS = 60;
 
@@ -21,7 +22,7 @@ type Cust = { id: string; name: string; category: string; group: string; months:
 /** Sales and cost per year and month, all history. */
 async function getHistory(): Promise<Hist[]> {
   "use cache";
-  cacheLife("minutes");
+  cacheLife("hours");
   const { rows } = await pg.query<Hist>(
     `SELECT EXTRACT(year FROM "DOC_DATE")::int AS year, EXTRACT(month FROM "DOC_DATE")::int AS month,
             SUM("NET_AMOUNT")::float8 AS value, SUM("NET_COST")::float8 AS cost,
@@ -33,20 +34,25 @@ async function getHistory(): Promise<Hist[]> {
 /** Latest complete month plus the current year's monthly totals up to it. */
 export async function getOverview() {
   "use cache";
-  cacheLife("minutes");
-  const [{ year, month }, hist] = await Promise.all([getPeriod(table), getHistory()]);
-  const months = Array.from({ length: month + 1 }, (_, i) => hist.find((h) => h.year === year && h.month === i + 1) ?? { year: year, month: i + 1, value: 0, cost: 0, creditNotes: 0 });
+  cacheLife("hours");
+  const { year, month } = await getPeriod(table);
+  const { rows } = await pg.query<Hist>(
+    `SELECT EXTRACT(year FROM "DOC_DATE")::int AS year, EXTRACT(month FROM "DOC_DATE")::int AS month,
+            SUM("NET_AMOUNT")::float8 AS value, SUM("NET_COST")::float8 AS cost,
+            COALESCE(SUM("NET_AMOUNT") FILTER (WHERE "DOC_TYPE" = 'CR'), 0)::float8 AS "creditNotes"
+     FROM ${table} WHERE ${inYtd('"DOC_DATE"', "$1", "$2")} GROUP BY 1,2 ORDER BY 1,2`, [year, month + 1]);
+  const months = Array.from({ length: month + 1 }, (_, i) => rows.find((h) => h.month === i + 1) ?? { year: year, month: i + 1, value: 0, cost: 0, creditNotes: 0 });
   return { year, month, months };
 }
 
 /** Brands and their top items for the latest complete month and the month before it. */
 export async function getOverviewBrands() {
   "use cache";
-  cacheLife("minutes");
+  cacheLife("hours");
   const { cur, before } = await getPeriod(table);
   const curStart = `${cur}-01`, beforeStart = `${before}-01`;
   const { rows } = await pg.query<{ k: string; b: string; i: string; v: number; u: number }>(
-    `SELECT CASE WHEN "DOC_DATE" >= $1::date THEN $1 ELSE $2 END AS k, COALESCE("BRAND",'-') AS b, COALESCE("ITEM_NAME",'-') AS i,
+    `SELECT (CASE WHEN "DOC_DATE" >= $1::date THEN $1 ELSE $2 END)::text AS k, COALESCE("BRAND",'-') AS b, COALESCE("ITEM_NAME",'-') AS i,
             SUM("NET_AMOUNT")::float8 AS v, COALESCE(SUM("QTY_PCS"),0)::float8 AS u FROM ${table}
      WHERE ${inMonths('"DOC_DATE"', "$1", "$2")} GROUP BY 1,2,3`, [curStart, beforeStart]);
   const brands = new Map<string, { name: string; value: number; lastMonth: number; items: Map<string, Item> }>();
@@ -69,7 +75,7 @@ export async function getOverviewBrands() {
 /** Top customers by year-to-date sales, with monthly series and brand split for the latest complete month. */
 export async function getCustomers() {
   "use cache";
-  cacheLife("minutes");
+  cacheLife("hours");
   const { year, month, cur, before } = await getPeriod(table);
   const curStart = `${cur}-01`, beforeStart = `${before}-01`;
   const { rows } = await pg.query<{ id: string; name: string; cat: string; grp: string; m: number; v: number }>(
@@ -86,7 +92,7 @@ export async function getCustomers() {
   }
   const top = [...byId.values()].sort((a, b) => b.ytd - a.ytd).slice(0, TOP_CUSTOMERS);
   const { rows: br } = await pg.query<{ id: string; k: string; b: string; v: number }>(
-    `SELECT "CUST_NO" AS id, CASE WHEN "DOC_DATE" >= $2::date THEN $2 ELSE $3 END AS k, COALESCE("BRAND",'-') AS b, SUM("NET_AMOUNT")::float8 AS v
+    `SELECT "CUST_NO" AS id, (CASE WHEN "DOC_DATE" >= $2::date THEN $2 ELSE $3 END)::text AS k, COALESCE("BRAND",'-') AS b, SUM("NET_AMOUNT")::float8 AS v
      FROM ${table} WHERE "CUST_NO" = ANY($1) AND ${inMonths('"DOC_DATE"', "$2", "$3")} GROUP BY 1,2,3`, [top.map((c) => c.id), curStart, beforeStart]);
   const idx = new Map(top.map((c) => [c.id, c]));
   const tmp = new Map<string, Map<string, { name: string; value: number; lastMonth: number }>>();
@@ -117,14 +123,14 @@ const ymOf = (y: number, m: number) => `${y + Math.floor(m / 12)}-${String((((m 
 /** One month of sales split by a dimension, with cost, credit notes and the previous month's sales. */
 export async function getBreakdown(month: number, by: Dim) {
   "use cache";
-  cacheLife("minutes");
+  cacheLife("hours");
   const { year } = await getPeriod(table);
   const cur = ymOf(year, month), before = ymOf(year, month - 1), d = DIMENSIONS[by];
   const [{ rows }, { rows: [n] }] = await Promise.all([
     pg.query<{ k: string; ym: string; v: number; c: number; cr: number }>(
-      `SELECT ${d.sql} AS k, CASE WHEN s."DOC_DATE" >= $1::date THEN $1 ELSE $2 END AS ym, SUM(s."NET_AMOUNT")::float8 AS v, SUM(s."NET_COST")::float8 AS c,
+      `SELECT ${d.sql} AS k, (CASE WHEN s."DOC_DATE" >= $1::date THEN $1 ELSE $2 END)::text AS ym, SUM(s."NET_AMOUNT")::float8 AS v, SUM(s."NET_COST")::float8 AS c,
               COALESCE(SUM(s."NET_AMOUNT") FILTER (WHERE s."DOC_TYPE" = 'CR'), 0)::float8 AS cr
-       FROM ${table} s ${d.join} WHERE ${inMonths('s."DOC_DATE"', "$1", "$2")} GROUP BY 1,2`, [cur, before]),
+       FROM ${table} ${d.join} WHERE ${inMonths('s."DOC_DATE"', "$1", "$2")} GROUP BY 1,2`, [cur, before]),
     pg.query<{ customers: number; items: number }>(
       `SELECT COUNT(DISTINCT "CUST_NO")::int AS customers, COUNT(DISTINCT "ITEM_CODE")::int AS items FROM ${table} WHERE ${inMonth('"DOC_DATE"', "$1")}`, [cur]),
   ]);
@@ -140,12 +146,12 @@ export async function getBreakdown(month: number, by: Dim) {
 /** Delivery routes and drivers for one month, from the sales documents (no fleet or warehouse source exists). */
 export async function getRoutes(month: number) {
   "use cache";
-  cacheLife("minutes");
+  cacheLife("hours");
   const { year } = await getPeriod(table);
   const cur = ymOf(year, month), before = ymOf(year, month - 1);
   const [{ rows: routes }, { rows: drivers }] = await Promise.all([
     pg.query<{ k: string; ym: string; v: number; drivers: number; docs: number }>(
-      `SELECT COALESCE("ROUTE_DESC",'-') AS k, CASE WHEN "DOC_DATE" >= $1::date THEN $1 ELSE $2 END AS ym, SUM("NET_AMOUNT")::float8 AS v,
+      `SELECT COALESCE("ROUTE_DESC",'-') AS k, (CASE WHEN "DOC_DATE" >= $1::date THEN $1 ELSE $2 END)::text AS ym, SUM("NET_AMOUNT")::float8 AS v,
               COUNT(DISTINCT "DRIVER_NAME")::int AS drivers, COUNT(DISTINCT "DOC_NO")::int AS docs
        FROM ${table} WHERE ${inMonths('"DOC_DATE"', "$1", "$2")} GROUP BY 1,2`, [cur, before]),
     pg.query<{ name: string; value: number; customers: number; docs: number }>(
@@ -179,7 +185,7 @@ const LEVELS = {
 /** One level of a drill-down for a month: p = department > brand > item, c = customer group > customer > brand > item. */
 export async function getDrill(month: number, kind: "p" | "c", path: string[], dept = "") {
   "use cache";
-  cacheLife("minutes");
+  cacheLife("hours");
   const { year } = await getPeriod(table);
   const ym = [ymOf(year, month), ymOf(year, month - 1), ymOf(year - 1, month), ymOf(year - 2, month)];
   if (path.length >= LEVELS[kind].length) return []; // a path as deep as the leaf level (or deeper, e.g. from a hand-edited URL) has no children
@@ -198,7 +204,7 @@ export async function getDrill(month: number, kind: "p" | "c", path: string[], d
             COALESCE(SUM(s."NET_AMOUNT") FILTER (WHERE ${inMonth('s."DOC_DATE"', "$4")}),0)::float8 AS "twoYearsAgo",
             COALESCE(SUM(s."NET_COST") FILTER (WHERE ${curSql}),0)::float8 AS cost,
             COALESCE(SUM(s."QTY_PCS") FILTER (WHERE ${curSql}),0)::float8 AS units
-     FROM ${table} s ${join}
+     FROM ${table} ${join}
      WHERE ${inMonths('s."DOC_DATE"', "$1", "$2", "$3", "$4")}${where.length ? " AND " + where.join(" AND ") : ""}
      GROUP BY 1 ORDER BY value DESC`, params);
   return rows.filter((r) => r.value || r.lastMonth || r.lastYear || r.twoYearsAgo || r.cost);
@@ -213,7 +219,7 @@ export async function getDrillLabels(month: number, kind: "p" | "c", path: strin
 /** Monthly sales per year (all years), optionally for one department. */
 export async function getMonthly(dept = "") {
   "use cache";
-  cacheLife("minutes");
+  cacheLife("hours");
   if (!dept) return (await getHistory()).map(({ year, month, value }) => ({ year, month, value }));
   const { rows } = await pg.query<{ year: number; month: number; value: number }>(
     `SELECT EXTRACT(year FROM "DOC_DATE")::int AS year, EXTRACT(month FROM "DOC_DATE")::int AS month, SUM("NET_AMOUNT")::float8 AS value
@@ -224,7 +230,7 @@ export async function getMonthly(dept = "") {
 /** Department list with year-to-date sales, cost and previous-year YTD for the latest complete month. */
 export async function getSectors() {
   "use cache";
-  cacheLife("minutes");
+  cacheLife("hours");
   const { year, month } = await getPeriod(table);
   const thisYear = `s."DOC_DATE" >= make_date(($1)::int,1,1)`;
   const { rows } = await pg.query<{ key: string; label: string; value: number; cost: number; lastYear: number }>(
@@ -232,7 +238,7 @@ export async function getSectors() {
             COALESCE(SUM(s."NET_AMOUNT") FILTER (WHERE ${thisYear}),0)::float8 AS value,
             COALESCE(SUM(s."NET_COST") FILTER (WHERE ${thisYear}),0)::float8 AS cost,
             COALESCE(SUM(s."NET_AMOUNT") FILTER (WHERE NOT (${thisYear})),0)::float8 AS "lastYear"
-     FROM ${table} s LEFT JOIN public.invs_departments d ON d.department_code = s."DEPT_CODE"
+     FROM ${table} LEFT JOIN public.invs_departments d ON d.department_code = s."DEPT_CODE"
      WHERE (${inYtd('s."DOC_DATE"', "$2", "$3")} OR ${inYtd('s."DOC_DATE"', "$2 - 1", "$3")}) GROUP BY 1 ORDER BY value DESC`, [year, year, month + 1]);
   return rows.filter((r) => r.value || r.lastYear);
 }
@@ -240,7 +246,7 @@ export async function getSectors() {
 /** Per group or brand: sales, cost, items and customers for one month. */
 export async function getStats(month: number, by: "group" | "brand") {
   "use cache";
-  cacheLife("minutes");
+  cacheLife("hours");
   const { year } = await getPeriod(table);
   const col = by === "group" ? `COALESCE("GROUP_NAME",'-')` : `COALESCE("BRAND",'-')`;
   const { rows } = await pg.query<{ key: string; value: number; cost: number; items: number; customers: number }>(
@@ -253,7 +259,7 @@ export async function getStats(month: number, by: "group" | "brand") {
 /** Salesmen with sales for one month. */
 export async function getSalesmen(month: number) {
   "use cache";
-  cacheLife("minutes");
+  cacheLife("hours");
   const { year } = await getPeriod(table);
   const { rows } = await pg.query<{ name: string; value: number; customers: number; docs: number }>(
     `SELECT "SMAN_NAME" AS name, SUM("NET_AMOUNT")::float8 AS value, COUNT(DISTINCT "CUST_NO")::int AS customers, COUNT(DISTINCT "DOC_NO")::int AS docs

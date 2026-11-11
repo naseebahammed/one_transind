@@ -4,7 +4,7 @@ import { periodOf } from "@/lib/period-calc";
 
 async function maxDate(table: string) {
   "use cache";
-  cacheLife("minutes");
+  cacheLife("hours");
   const { rows: [mx] } = await pg.query<{ d: string | null }>(`SELECT MAX("DOC_DATE")::text AS d FROM ${table}`);
   return mx.d;
 }

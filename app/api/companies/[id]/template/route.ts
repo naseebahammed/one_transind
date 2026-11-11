@@ -12,14 +12,14 @@ const MONTHLY: Record<string, string> = { pnl: "P&L", daily: "Monthly sales repo
 
 /** Downloads an upload's Excel template: ?section=balance|budget|people&year=, ?section=sales with optional year=, or ?section=pnl|daily|units with optional year= and month= (0-11, default last month). */
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const denied = await apiGuard();
+  const denied = await apiGuard("admin");
   if (denied) return denied;
   await connection();
   const q = new URL(req.url).searchParams;
   const section = q.get("section") ?? "";
   if (!(section in MONTHLY) && !isFigureSection(section) && section !== "sales") return bad("Unknown section.");
   const id = Number((await params).id);
-  if (!Number.isInteger(id)) return new Response("Unknown company.", { status: 404 });
+  if (!Number.isInteger(id) || id <= 0) return new Response("Unknown company.", { status: 404 });
   const company = await getCompany(id);
   if (!company) return new Response("Unknown company.", { status: 404 });
 

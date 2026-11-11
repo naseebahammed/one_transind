@@ -1,12 +1,11 @@
 import { requireUser } from "@/lib/guard";
 import { SECTOR, SECTORS } from "@/lib/org";
-import { getSalesSectors } from "@/lib/sales-sectors";
 import { listSectors } from "@/lib/sectors";
 import { keyFor, plRows, report, years, loadReports } from "@/lib/reports";
-import { listCompanies } from "@/lib/companies";
+import { listCompanies, type Company } from "@/lib/companies";
 import { Suspense } from "react";
 import { connection } from "next/server";
-import { getDrill, getDrillLabels, getOverview } from "@/lib/data";
+import { getDrill, getOverview, type DrillRow } from "@/lib/data";
 import { fmt, MONTHS, money, sum } from "@/lib/format";
 import { link, parsePath } from "@/lib/url";
 import { Drill } from "@/components/Drill";
@@ -25,30 +24,41 @@ export default function Page({ searchParams }: { searchParams: Params }) {
 async function Content({ searchParams }: { searchParams: Params }) {
   await connection();
   await requireUser();
-  const [reports, { p, all }, o, depts, adminSectors, allCompanies] = await Promise.all([
-    loadReports(), searchParams, getOverview(), getSalesSectors(true), listSectors(), listCompanies(),
+  const overview = getOverview();
+  const erpDrill = Promise.all([searchParams, overview]).then(([{ p }, o]) =>
+    parsePath(p)[0] === SECTOR.trading ? getDrill(o.month, "p", []) : Promise.resolve([] as DrillRow[]),
+  );
+  const [reports, { p, all }, o, adminSectors, allCompanies, erpRows] = await Promise.all([
+    loadReports(), searchParams, overview, listSectors(), listCompanies(), erpDrill,
   ]);
   const fileSectorCompanies = FILE_SECTORS.map(([k]) => allCompanies.filter((c) => c.sector === k));
-  const realEstateCompanies = allCompanies.filter((c) => c.sector === SECTOR.realEstate);
   const path = parsePath(p);
-  const [rows, labels] = await Promise.all([getDrill(o.month, "p", path), getDrillLabels(o.month, "p", path)]);
-  // Revenue by admin sector: departments are mapped to one under Admin → Sales sectors; the rest fall under "Unassigned".
-  const known = new Set(adminSectors.map(([k]) => k));
-  const bySector = new Map<string, number>();
-  for (const d of depts) { const k = d.sector && known.has(d.sector) ? d.sector : ""; bySector.set(k, (bySector.get(k) ?? 0) + d.value); }
+  // Sector > company. A company's sales are its P&L revenue, or its monthly sales grid when that year's P&L is not uploaded yet.
+  const salesOf = (c: Company, y: number) => { const key = keyFor(c); return report(reports, y, key, years(reports, key).includes(y) ? undefined : plRows(reports, y, key, "sales")).revenue; };
+  const companyRow = (c: Company): DrillRow => {
+    const m = o.month, now = salesOf(c, o.year);
+    return { key: String(c.id), label: c.name, sub: "", value: now[m], lastMonth: m ? now[m - 1] : salesOf(c, o.year - 1)[11], lastYear: salesOf(c, o.year - 1)[m], twoYearsAgo: salesOf(c, o.year - 2)[m], cost: 0, units: 0 };
+  };
+  // Transind Trading and Distribution is the ERP daily sales view: its figure is the ERP total, and its rows are the ERP departments.
+  const erp = o.months[o.month], erpBefore = o.months[o.month - 1];
+  const sectorCompanies = (k: string) => allCompanies.filter((c) => c.sector === k && c.active && !c.hidden);
+  const rows: DrillRow[] = path.length === 0
+    ? adminSectors.map(([k, name]) => {
+        if (k === SECTOR.trading) return { key: k, label: name, sub: "ERP daily sales", value: erp.value, lastMonth: erpBefore?.value ?? 0, lastYear: 0, twoYearsAgo: 0, cost: 0, units: 0 };
+        const cos = sectorCompanies(k).map(companyRow);
+        const total = (f: keyof DrillRow) => sum(cos.map((r) => r[f] as number));
+        return { key: k, label: name, sub: `${cos.length} companies`, value: total("value"), lastMonth: total("lastMonth"), lastYear: total("lastYear"), twoYearsAgo: total("twoYearsAgo"), cost: 0, units: 0 };
+      }).filter((r) => !r.sub.startsWith("0 ")).sort((x, y) => y.value - x.value)
+    : path[0] === SECTOR.trading ? erpRows : sectorCompanies(path[0]).map(companyRow);
+  const labels = path.length ? [adminSectors.find(([k]) => k === path[0])?.[1] ?? path[0]] : [];
   // Health & Beauty (Pavati) and Retail (Top Perfume) companies report monthly sales through Admin → Finance, not the sales table.
   const fileSales = FILE_SECTORS.map(([k, name], i) => {
     const cos = fileSectorCompanies[i].filter((c) => c.active && !c.hidden), keys = cos.map(keyFor);
     const rev = (y: number) => report(reports, y, keys, plRows(reports, y, keys, "sales")).revenue;
-    bySector.set(k, (bySector.get(k) ?? 0) + sum(rev(o.year).slice(0, o.month + 1)));
     return { k, name, cos, rev, ys: years(reports, keys, "sales").slice(-3) };
   });
-  // Real Estate, same months as the other sectors: each property's P&L, or its monthly sales grid when that year's P&L is not uploaded yet (Al Manzil 2026).
-  bySector.set(SECTOR.realEstate, (bySector.get(SECTOR.realEstate) ?? 0) + sum(realEstateCompanies.filter((c) => c.active && !c.hidden).map((c) => {
-    const key = keyFor(c);
-    return sum(report(reports, o.year, key, years(reports, key).includes(o.year) ? undefined : plRows(reports, o.year, key, "sales")).revenue.slice(0, o.month + 1));
-  })));
-  const sectors = [...adminSectors.map(([k, name]) => ({ label: name, v: bySector.get(k) ?? 0 })), ...(bySector.get("") ? [{ label: "Unassigned", v: bySector.get("")! }] : [])];
+  // Revenue by sector, January to the latest month: the sum of each sector's companies, the same figures as the table above.
+  const sectors = adminSectors.map(([k, name]) => ({ label: name, v: k === SECTOR.trading ? sum(o.months.map((m) => m.value)) : sum(sectorCompanies(k).map((c) => sum(salesOf(c, o.year).slice(0, o.month + 1)))) }));
   const cur = o.months[o.month], ytd = sum(o.months.map((m) => m.value));
   const monthly = o.months.map((m) => m.value / 1e6);
   const label = `${MONTHS[o.month]} ${o.year}`;
@@ -58,15 +68,13 @@ async function Content({ searchParams }: { searchParams: Params }) {
       <div className="kpis">
         <Kpi label="Sales this month" value={money(cur.value)} delta={label} spark={monthly} />
         <Kpi label="Revenue year to date" value={`${fmt(ytd / 1e6)} M`} spark={monthly} up />
-        <Kpi label="Open pipeline value" value={<NotConnected />} />
         <Kpi label="Receivables outstanding" value={<NotConnected />} />
         <Kpi label="Employees" value={<NotConnected />} />
-        <Kpi label="On-time delivery" value={<NotConnected />} />
       </div>
       <div className="grid">
         <Drill
           title="Sales this month" src={label} mode="mom" rows={rows} labels={labels} path={path}
-          levels={["Departments", "Brands", "Products"]} rootLabel="All companies" all={all === "1"}
+          levels={["Sectors", "Companies"]} rootLabel="All sectors" all={all === "1"}
           href={(pp, a) => link("/dashboard", { p: pp.join("|"), all: a ? "1" : undefined })}
         />
         <Panel span={7} title="Group monthly revenue">

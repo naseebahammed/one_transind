@@ -1,4 +1,5 @@
 import { apiGuard } from "@/lib/guard";
+import { askAnalyst, hasOpenAiKey } from "@/lib/ask-ai";
 import { connection } from "next/server";
 import { getOverview, getOverviewBrands, getCustomers } from "@/lib/data";
 import { alManzilKey, dailyYears, occupancy, report, revenueLines, years, loadReports } from "@/lib/reports";
@@ -32,29 +33,14 @@ export async function POST(req: Request) {
   const denied = await apiGuard();
   if (denied) return denied;
   await connection();
-  const key = process.env.OPENAI_API_KEY;
-  if (!key) return Response.json({ error: "OPENAI_API_KEY is not set" }, { status: 503 });
+  if (!hasOpenAiKey()) return Response.json({ error: "Ask AI is not configured." }, { status: 503 });
 
   const { question } = (await req.json().catch(() => ({}))) as { question?: unknown };
   if (typeof question !== "string" || !question.trim() || question.length > MAX_Q)
     return Response.json({ error: `Ask a question of 1-${MAX_Q} characters` }, { status: 400 });
 
   const data = await context(); // before the timeout starts, so slow queries do not eat OpenAI's 20 s
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-    signal: AbortSignal.timeout(20_000),
-    body: JSON.stringify({
-      model: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
-      messages: [
-        { role: "system", content: "You are the analyst for One Transind's sales dashboard. Answer concisely using only the data below; if it does not cover the question, say so. Amounts are in QAR.\n\nDATA:\n" + data },
-        { role: "user", content: question },
-      ],
-    }),
-  }).catch(() => null);
-  if (!res) return Response.json({ error: "OpenAI did not answer in time" }, { status: 504 });
-  if (!res.ok) return Response.json({ error: `OpenAI error ${res.status}` }, { status: 502 });
-  const j = await res.json().catch(() => null);
-  if (!j) return Response.json({ error: "OpenAI sent an unreadable reply" }, { status: 502 });
-  return Response.json({ answer: j.choices?.[0]?.message?.content ?? "" });
+  const reply = await askAnalyst(data, question);
+  if ("error" in reply) return Response.json({ error: reply.error }, { status: reply.status });
+  return Response.json({ answer: reply.answer });
 }

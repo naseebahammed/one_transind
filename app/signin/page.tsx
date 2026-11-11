@@ -1,5 +1,7 @@
+import { Suspense } from "react";
+import { connection } from "next/server";
 import { signIn } from "@/auth";
-import { devLoginEnabled } from "@/lib/access";
+import { hasAdminPasswordLogin, isDevLoginEnabled } from "@/lib/server-config";
 
 export const metadata = { title: "Sign in - One Transind" };
 
@@ -57,16 +59,38 @@ export default function SignIn() {
               Sign in with Microsoft
             </button>
           </form>
-          {devLoginEnabled(process.env) && (
-            <form action={async (f: FormData) => { "use server"; await signIn("credentials", { email: String(f.get("email") ?? ""), redirectTo: "/" }); }} style={{ marginTop: 24 }}>
-              <p className="si-note" style={{ marginTop: 0, marginBottom: 8 }}>Development only: test login (never shown in production).</p>
-              <input name="email" type="email" required placeholder="email on the approved list" aria-label="Test login email" className="si-btn" style={{ marginBottom: 8, fontWeight: 400 }} />
-              <button type="submit" className="si-btn">Test sign in</button>
-            </form>
-          )}
+          <Suspense fallback={null}>
+            <OptionalSignInForms />
+          </Suspense>
           <p className="si-note">If you are approved but cannot sign in, contact an administrator.</p>
         </div>
       </section>
     </main>
+  );
+}
+
+async function OptionalSignInForms() {
+  await connection();
+  const showAdminPassword = hasAdminPasswordLogin();
+  const showDevLogin = isDevLoginEnabled();
+  if (!showAdminPassword && !showDevLogin) return null;
+  return (
+    <>
+      {showAdminPassword && (
+        <form action={async (f: FormData) => { "use server"; if (!hasAdminPasswordLogin()) return; await signIn("admin-password", { email: String(f.get("email") ?? ""), password: String(f.get("password") ?? ""), redirectTo: "/" }); }} style={{ marginTop: 24 }}>
+          <p className="si-note" style={{ marginTop: 0, marginBottom: 8 }}>Temporary administrator sign-in.</p>
+          <input name="email" type="email" required placeholder="admin email" aria-label="Admin email" className="si-btn" style={{ marginBottom: 8, fontWeight: 400 }} />
+          <input name="password" type="password" required placeholder="password" aria-label="Admin password" className="si-btn" style={{ marginBottom: 8, fontWeight: 400 }} />
+          <button type="submit" className="si-btn">Admin sign in</button>
+        </form>
+      )}
+      {showDevLogin && (
+        <form action={async (f: FormData) => { "use server"; if (!isDevLoginEnabled()) return; await signIn("credentials", { email: String(f.get("email") ?? ""), redirectTo: "/" }); }} style={{ marginTop: 24 }}>
+          <p className="si-note" style={{ marginTop: 0, marginBottom: 8 }}>Development only: test login (never shown in production).</p>
+          <input name="email" type="email" required placeholder="email on the approved list" aria-label="Test login email" className="si-btn" style={{ marginBottom: 8, fontWeight: 400 }} />
+          <button type="submit" className="si-btn">Test sign in</button>
+        </form>
+      )}
+    </>
   );
 }

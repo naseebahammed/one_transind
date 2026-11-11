@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { apiStatus, type Role } from "@/lib/access";
 import { currentRole } from "@/lib/current-role";
 import { listedEmails } from "@/lib/users";
 
@@ -22,7 +23,11 @@ export async function requireAdmin() {
   return user;
 }
 
-/** Call first in every route handler: returns a 401 response to send back, or null when the caller may continue. */
-export async function apiGuard() {
-  return (await who()).role ? null : Response.json({ error: "Sign in required" }, { status: 401 });
+/** Call first in every route handler: returns a 401/403 response to send back, or null when the caller may continue. */
+export async function apiGuard(need: Role = "user") {
+  const { email, role } = await who();
+  const status = apiStatus(email, role, need);
+  if (status === 401) return Response.json({ error: "Sign in required" }, { status: 401 });
+  if (status === 403) return Response.json({ error: "Forbidden" }, { status: 403 });
+  return null;
 }

@@ -1,8 +1,10 @@
 import { Suspense } from "react";
+import { connection } from "next/server";
 import "./admin.css";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 import { Breadcrumbs } from "@/components/admin/Breadcrumbs";
 import { listCompanies } from "@/lib/companies";
+import { requireAdmin } from "@/lib/guard";
 import { listSectors } from "@/lib/sectors";
 import { Separator } from "@/components/admin/ui/separator";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/admin/ui/sidebar";
@@ -10,6 +12,8 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/admi
 export const metadata = { title: "Admin - One Transind" };
 
 async function Sidebar() {
+  await connection();
+  await requireAdmin();
   const [companies, sectors] = await Promise.all([listCompanies(), listSectors()]);
   const sectorName = new Map(sectors);
   return <AdminSidebar companies={companies.map((c) => ({ id: c.id, name: c.name, sector: sectorName.get(c.sector) ?? c.sector }))} />;

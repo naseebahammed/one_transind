@@ -233,6 +233,18 @@ test("cogsFromWorkbook reads the top block only, makes costs negative, skips wor
   assert.equal(cogsFromWorkbook(wb, 2027).rows.length, 0);
 });
 
+test("cogsFromWorkbook reads a 'MAY-2024 (2)' sheet and writes a verified zero for Musherib in DEC-2024", () => {
+  const wb = new ExcelJS.Workbook();
+  for (const name of ["MAY-2024 (2)", "DEC-2024"]) {
+    const ws = wb.addWorksheet(name);
+    [["Description", "Gharafa"], ["Gross Sales", 10], ["Disc Sales", 0], ["Net Sales", 10], ["COGS", 4]].forEach((r, i) => r.forEach((v, n) => { ws.getCell(4 + i, 2 + n).value = v; }));
+  }
+  const { rows } = cogsFromWorkbook(wb, 2024);
+  assert.deepEqual([...new Set(rows.filter((r) => r.month === 4).map((r) => r.branch))], ["Gharafa"]);
+  const zero = rows.filter((r) => r.branch === "Mr.Shawarma Musherib");
+  assert.deepEqual(zero.map((r) => [r.month, r.line, r.value]), ["Gross sales", "Discount", "Net sales", "COGS"].map((l) => [11, l, 0]));
+});
+
 test("cogsForCompany keeps one company's columns, finds their branches and holds back an unconfirmed column", () => {
   const row = (branch: string) => ({ year: 2026, month: 9, branch, line: "COGS", value: -1 });
   const rows = ["Mr.Shawarma Bin Omran", "West Bay", "Asian Wok Old airport", "Burger Stop", "Mr.Shawarma Gharafa", "New Kitchen", "New Kitchen"].map(row);

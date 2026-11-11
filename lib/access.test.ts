@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { devLoginEnabled, inTenant, normalizeEmail, parseAdminEmails, roleOf } from "./access.ts";
+import { apiStatus, devLoginEnabled, hashPassword, inTenant, normalizeEmail, parseAdminEmails, passwordMatches, roleOf } from "./access.ts";
 
 test("parseAdminEmails trims, lowercases and drops empties", () => {
   assert.deepEqual(parseAdminEmails(" A@x.com, b@X.com ,,"), ["a@x.com", "b@x.com"]);
@@ -29,8 +29,18 @@ test("inTenant is true only when the issuer contains the token's tenant id", () 
   const issuer = "https://login.microsoftonline.com/abc/v2.0";
   assert.equal(inTenant("abc", issuer), true);
   assert.equal(inTenant("xyz", issuer), false);
+  assert.equal(inTenant("v2.0", issuer), false);
+  assert.equal(inTenant("common", "https://login.microsoftonline.com/common/v2.0"), false);
   assert.equal(inTenant(undefined, issuer), false);
   assert.equal(inTenant("abc", undefined), false);
+});
+
+test("apiStatus separates 401 unauthenticated, 403 forbidden and null allowed", () => {
+  assert.equal(apiStatus(undefined, null), 401);
+  assert.equal(apiStatus("stranger@x.com", null), 403);
+  assert.equal(apiStatus("staff@x.com", "user"), null);
+  assert.equal(apiStatus("staff@x.com", "user", "admin"), 403);
+  assert.equal(apiStatus("boss@x.com", "admin", "admin"), null);
 });
 
 test("devLoginEnabled needs the flag AND a non-production build", () => {
@@ -39,4 +49,14 @@ test("devLoginEnabled needs the flag AND a non-production build", () => {
   assert.equal(devLoginEnabled({ NODE_ENV: "development", AUTH_DEV_LOGIN: "1" }), false);
   assert.equal(devLoginEnabled({ NODE_ENV: "production", AUTH_DEV_LOGIN: "true" }), false);
   assert.equal(devLoginEnabled({ AUTH_DEV_LOGIN: "true" }), true);
+});
+
+test("admin password check", () => {
+  const stored = hashPassword("correct horse battery");
+  assert.equal(passwordMatches("correct horse battery", stored), true);
+  assert.equal(passwordMatches("wrong", stored), false);
+  assert.equal(passwordMatches("anything", undefined), false);
+  assert.equal(passwordMatches("anything", "garbage"), false);
+  assert.equal(passwordMatches("anything", "salt:00"), false);
+  assert.equal(passwordMatches("x".repeat(300), stored), false);
 });

@@ -9,5 +9,5 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/((?!api/auth|_next|signin|no-access|icon.svg|favicon.ico|.*\\.(?:webp|png|jpg|jpeg|svg|ico)$).*)"],
+  matcher: ["/((?!api/auth(?:/|$)|_next/|signin(?:/|$)|no-access(?:/|$)|icon\\.svg$|favicon\\.ico$|(?!(?:api|admin)(?:/|$)).*\\.(?:webp|png|jpg|jpeg|svg|ico)$).*)"],
 };

@@ -1,12 +1,13 @@
 "use client";
 import { useRouter } from "next/navigation";
 
-/** Month dropdown that keeps the other query params. Months after `max` are disabled. */
-export function MonthSelect({ value, max, names, year, base }: { value: number; max: number; names: string[]; year: number; base: string }) {
+/** Month dropdown that keeps the other query params. Months after `max` are disabled. With `allLabel`, a first option "all" covers the whole year. */
+export function MonthSelect({ value, max, names, year, base, allLabel }: { value: number | "all"; max: number; names: string[]; year: number; base: string; allLabel?: string }) {
   const router = useRouter();
   return (
     <label className="ctl">Month
-      <select value={value} onChange={(e) => router.push(`${base}${base.includes("?") ? "&" : "?"}m=${+e.target.value + 1}`)}>
+      <select value={value} onChange={(e) => router.push(`${base}${base.includes("?") ? "&" : "?"}m=${e.target.value === "all" ? "all" : +e.target.value + 1}`)}>
+        {allLabel && <option value="all">{allLabel}</option>}
         {names.map((n, i) => <option key={n} value={i} disabled={i > max}>{n} {year}</option>)}
       </select>
     </label>

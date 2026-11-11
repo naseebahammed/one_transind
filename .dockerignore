@@ -1,6 +1,13 @@
 node_modules
 .next
 .git
+.claude
+.superpowers
 .env*
 backups
+*.dump
+*.pem
+*.key
+*.pfx
+*.p12
 *.tsbuildinfo

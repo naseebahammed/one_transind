@@ -4,8 +4,8 @@ import { Page } from "@/components/admin/Page";
 import { Badge } from "@/components/admin/ui/badge";
 import { Card } from "@/components/admin/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/admin/ui/table";
-import { parseAdminEmails } from "@/lib/access";
 import { requireAdmin } from "@/lib/guard";
+import { adminEmails } from "@/lib/server-config";
 import { listUsers } from "@/lib/users";
 import { removeUserAction } from "./actions";
 
@@ -15,7 +15,7 @@ export default function Users() {
 
 async function Rows() {
   await requireAdmin();
-  const [users, admins] = [await listUsers(), parseAdminEmails(process.env.ADMIN_EMAILS)];
+  const [users, admins] = [await listUsers(), adminEmails()];
   return (
     <div className="space-y-6">
       <AddUserForm />

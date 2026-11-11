@@ -337,11 +337,17 @@ export function dukanFromWorkbook(wb: ExcelJS.Workbook, fromYear = 0) {
 const COGS_COLUMNS: Record<string, { company: string; branch?: string[] }> = {
   "burger stop": { company: "burger stop" },
   "mr.shawarma bin omran": { company: "shawarma", branch: ["bin omran"] },
+  "mr.shawarma um salal": { company: "shawarma", branch: ["umm salal", "um salal"] }, // closed branch, its months stay as history
+  "mr.shawarma musherib": { company: "shawarma", branch: ["musherib"] },
+  "ms 43": { company: "shawarma", branch: ["ms 43"] }, // Jan to May 2024 only
   "mr.shawarma gharafa": { company: "shawarma", branch: ["gharafa"] },
   "abu hamour": { company: "shawarma", branch: ["abu hamour"] },
   "west bay": { company: "shawarma", branch: ["qatar sports club", "west bay", "westbay"] },
   "asian wok old airport": { company: "asian wok" },
 };
+
+/** Columns the workbook drops but the owner wants as a verified zero (Musherib is not in DEC-2024: its figures moved to the Burger Stop column). shortcut: one fixed entry, move it to the data if it happens again. */
+const COGS_ZERO_MONTHS = [{ year: 2024, month: 11, branch: "Mr.Shawarma Musherib" }];
 
 /** The COGS rows of one company, each with its branch id (null = the whole company). The workbook covers several companies, so it is uploaded once on each. Columns of other companies are skipped. */
 export function cogsForCompany(rows: CogsRow[], companyName: string, branches: { id: number; name: string; aliases?: string[] }[], companyAliases: string[] = []) {
@@ -367,12 +373,12 @@ export function cogsForCompany(rows: CogsRow[], companyName: string, branches: {
   return { rows: mine, issues };
 }
 
-/** Monthly cost of goods per restaurant from the group "Restaurants COGS Summary" workbook. Only sheets named like OCT-2026 are read (the rest are old workings).
+/** Monthly cost of goods per restaurant from the group "Restaurants COGS Summary" workbook. Only sheets named like OCT-2026 (or "MAY-2024 (2)") are read, the rest are old workings.
  *  Costs are negative. A column with no Gross Sales that month is left out: a closed branch, or the central kitchen, which only passes stock to the branches. Cost % is calculated when read, never stored. */
 export function cogsFromWorkbook(wb: ExcelJS.Workbook, fromYear = 0) {
   const rows: CogsRow[] = [], issues: ImportIssue[] = [];
   for (const ws of wb.worksheets) {
-    const sheet = ws.name.trim(), named = sheet.match(/^([A-Za-z]{3})-(\d{4})$/), month = named ? MONTHS.findIndex((m) => m.toLowerCase() === named[1].toLowerCase()) : -1;
+    const sheet = ws.name.trim(), named = sheet.match(/^([A-Za-z]{3})-(\d{4})(?:\s*\(\d+\))?$/), month = named ? MONTHS.findIndex((m) => m.toLowerCase() === named[1].toLowerCase()) : -1;
     if (!named || month < 0 || +named[2] < fromYear) continue;
     let head = 0, label = 0;
     for (let i = 1; i <= 6 && !head; i++) ws.getRow(i).eachCell((c, n) => { if (fold(String(c.value ?? "")) === "description") { head = i; label = n; } });
@@ -394,6 +400,9 @@ export function cogsFromWorkbook(wb: ExcelJS.Workbook, fromYear = 0) {
       for (const [, line, sign] of COGS_LINES) { const v = found.get(line)?.values.get(n); if (v !== undefined) rows.push({ year: +named[2], month, branch, line, value: round(sign * v) }); }
       const net = found.get("Net sales")?.values.get(n), discount = found.get("Discount")?.values.get(n) ?? 0, expected = round(gross.values.get(n)! - discount);
       if (net !== undefined && Math.abs(net - expected) > 0.05) issues.push({ sheet, row: found.get("Net sales")!.row, reason: `${branch}: gross less discount is ${expected} but Net Sales says ${net}.`, loaded: true });
+    }
+    for (const z of COGS_ZERO_MONTHS) {
+      if (z.year === +named[2] && z.month === month && !rows.some((r) => r.year === z.year && r.month === z.month && r.branch === z.branch)) for (const line of ["Gross sales", "Discount", "Net sales", "COGS"]) rows.push({ ...z, line, value: 0 });
     }
   }
   return { rows, issues };

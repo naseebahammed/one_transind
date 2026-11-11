@@ -1,11 +1,16 @@
 import { Suspense } from "react";
+import { connection } from "next/server";
+import { requireUser } from "@/lib/guard";
 import { getSalesSectors } from "@/lib/sales-sectors";
 import { SalesToolbar } from "@/components/SalesToolbar";
 import { Nav, Title } from "@/components/Shell";
 import { AskAI } from "@/components/AskAI";
 
 async function Toolbar() {
-  return <SalesToolbar sectors={await getSalesSectors()} />;
+  await connection();
+  await requireUser();
+  const sectors = (await getSalesSectors()).map(({ key, label }) => ({ key, label }));
+  return <SalesToolbar sectors={sectors} />;
 }
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {

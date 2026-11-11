@@ -3,6 +3,7 @@ import { requireAdmin } from "@/lib/guard";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { saveCompanyRecord, setCompanyHidden } from "@/lib/companies";
+import { SAFE_LOGO_TYPES } from "@/lib/companies.shared";
 import { parseCompany } from "@/lib/company-input";
 import { listSectors } from "@/lib/sectors";
 import { listPropertyTypes } from "@/lib/property-types";
@@ -19,7 +20,7 @@ export async function saveCompany(_: FormState, f: FormData): Promise<FormState>
   if ("error" in parsed) return parsed;
   const logoFile = f.get("logo");
   const logo = logoFile instanceof File && logoFile.size > 0 ? logoFile : null;
-  if (logo && !logo.type.startsWith("image/")) return { error: "Logo must be an image file." };
+  if (logo && !SAFE_LOGO_TYPES.has(logo.type)) return { error: "Logo must be a PNG, JPEG, WebP, GIF or SVG image." };
   if (logo && logo.size > 2 * 1024 * 1024) return { error: "Logo must be under 2MB." };
   const logoData = logo ? { buf: Buffer.from(await logo.arrayBuffer()), type: logo.type } : null;
   const res = await saveCompanyRecord(id, parsed.data, logoData);

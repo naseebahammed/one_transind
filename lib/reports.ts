@@ -37,7 +37,7 @@ async function buildReports(query?: <T>(text: string) => Promise<T[]>): Promise<
        ORDER BY array_position(ARRAY['Long stay','Short stay','Room revenue','Other revenue','Occupied','Available'], line)`),
     q<Day & { id: number }>(`SELECT company_id AS id, to_char(date,'YYYY-MM-DD') AS date, ${NUMS.split(",").map((c) => `${c}::float8 AS ${c}`).join(",")} FROM app.daily_sales ORDER BY date`),
     // shortcut: the Al Manzil panels on /finance, /admin/finance and Ask find it by name; give them a company picker to drop this.
-    q<{ id: number }>(`SELECT id FROM app.companies WHERE lower(name) LIKE '${AL_MANZIL_NAME}%' ORDER BY id LIMIT 1`),
+    q<{ id: number }>(`SELECT id FROM app.companies WHERE lower(name) LIKE '${AL_MANZIL_NAME}%' AND active = 1 AND hidden = 0 ORDER BY id LIMIT 1`),
   ]);
   const rows = new Map<string, ReportRow[]>(), index = new Map<string, ReportRow>();
   const put = (id: number, kind: Kind, y: number, main: string, sub: string, mo: number, v: number, sign?: 1 | -1) => {

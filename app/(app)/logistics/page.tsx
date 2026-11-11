@@ -24,7 +24,6 @@ async function Content() {
       <div className="kpis">
         <Kpi label="Fleet" value={<NotConnected />} />
         <Kpi label="On route" value={<NotConnected />} />
-        <Kpi label="On-time delivery" value={<NotConnected />} />
         <Kpi label="Outlets reached" value={<NotConnected />} />
       </div>
       <div className="grid">

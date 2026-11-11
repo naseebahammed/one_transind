@@ -2,6 +2,7 @@
 import { requireAdmin } from "@/lib/guard";
 import { revalidatePath } from "next/cache";
 import { setSalesDepartmentLabel, setSalesDepartmentSector, toggleSalesDepartmentHidden } from "@/lib/sales-sectors";
+import { listSectors } from "@/lib/sectors";
 
 // Empty label = use the database name. Overrides only affect display; sales data is untouched.
 export async function saveSalesSector(f: FormData) {
@@ -19,6 +20,7 @@ export async function assignSalesSector(f: FormData) {
   const code = String(f.get("code") ?? "");
   if (!code) return;
   const sector = String(f.get("sector") ?? "") || null;
+  if (sector && !(await listSectors()).some(([k]) => k === sector)) return;
   await setSalesDepartmentSector(code, sector);
   revalidatePath("/", "layout");
 }
