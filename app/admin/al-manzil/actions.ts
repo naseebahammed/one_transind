@@ -3,7 +3,7 @@ import { GuardError, requireAdmin, withUploadSlot } from "@/lib/guard";
 import { cleanText, isValidFigureAmount, parsePositiveIntId } from "@/lib/input-validation";
 import { SECTOR } from "@/lib/org";
 import { inspectWorkbookArchive, sanitizeUploadFileName } from "@/lib/upload-security";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { listAccounts } from "@/lib/accounts";
 import { branchName, branchOf, listBranches } from "@/lib/branches";
 import { getCompany } from "@/lib/companies";
@@ -12,10 +12,12 @@ import { deleteDailyYearRows, deleteFigureYear, importBalances, importCogs, impo
 import { gridFromWorkbook, MAX_UPLOAD_BYTES, readWorkbook } from "@/lib/company-template";
 import { addLog } from "@/lib/db";
 import { checkDaily, cogsForCompany, cogsFromWorkbook, dailyFromWorkbook, dukanFromWorkbook, matchAccounts, pnlFromWorkbook, receiptsFromWorkbook, unitsFromWorkbook } from "@/lib/report-parsers";
+import { REPORTS_CACHE_TAG } from "@/lib/reports";
 import { balancesFromWorkbook } from "@/lib/fmcg-balances";
 import { controlFromWorkbook } from "@/lib/fmcg-control";
 import { mastersFromWorkbook } from "@/lib/fmcg-masters";
 import { MONTHS } from "@/lib/format";
+import { cogsFromYear, receiptsFromYear } from "@/lib/server-config";
 
 export type UploadState = { error?: string; ok?: string };
 type Company = NonNullable<Awaited<ReturnType<typeof getCompany>>>;
@@ -23,21 +25,16 @@ type Company = NonNullable<Awaited<ReturnType<typeof getCompany>>>;
 const LABEL: Record<string, string> = { pnl: "P&L", daily: "Daily sales", units: "Unit types", sales: "Monthly sales", receipts: "Daily sales deposit", cogs: "COGS summary", dukan: "Dukan Food monthly sales", masters: "FMCG reference data", balances: "FMCG stock and control reports" };
 
 function refresh() {
+  updateTag(REPORTS_CACHE_TAG);
   for (const p of ["/admin/finance", "/admin/data-status", "/admin/activity", "/real-estate", "/real-estate/overview", "/real-estate/details", "/restaurants", "/finance", "/dashboard", "/health-beauty", "/retail"]) revalidatePath(p);
   revalidatePath("/admin", "layout");
 }
 const monthNames = (rows: { year: number; month: number }[]) => [...new Set(rows.map((r) => `${MONTHS[r.month]} ${r.year}`))].join(", ");
 
-/** shortcut: restaurant sheets from before this year are skipped, as agreed for the first load; lower it to bring in older history. */
-const LOAD_FROM_YEAR = 2026;
-const COGS_FROM_YEAR = 2024; // the COGS history starts earlier than the other reports
-
-/** A branch whose workbook is headed with a different name than the branch (lower-case branch name -> names its sheet may carry). shortcut: hard-coded, move to a branch column if more appear. */
-const OTHER_SHEET_NAMES: Record<string, string[]> = { "qatar sports club": ["Westbay"] };
-
 /** Parses and saves one file; returns the success message. Throwing rejects the file: nothing is saved except the record of the attempt. */
 async function loadFile(type: string, company: Company, u: Upload, formYear: number) {
   const wb = await readWorkbook(u.buf);
+  const loadFromYear = receiptsFromYear();
   if (type === "pnl") {
     const parsed = pnlFromWorkbook(wb, formYear);
     if ("error" in parsed) throw new Error(parsed.error);
@@ -48,11 +45,11 @@ async function loadFile(type: string, company: Company, u: Upload, formYear: num
   }
   if (type === "receipts") {
     if (!u.branchId) throw new Error("Pick the branch in the \"Data for\" row first.");
-    const { title, rows, issues, rowsRead, controlTotal } = receiptsFromWorkbook(wb, LOAD_FROM_YEAR);
+    const { title, rows, issues, rowsRead, controlTotal } = receiptsFromWorkbook(wb, loadFromYear);
     if (!rows.length) throw new Error("No dated rows found - is this the Daily Sales Deposit layout?");
     const branch = (await listBranches(company.id)).find((b) => b.id === u.branchId);
     const name = branch?.name ?? await branchName(u.branchId);
-    const known = [name, ...(branch?.aliases ?? []), ...(OTHER_SHEET_NAMES[name.toLowerCase()] ?? [])].map((n) => n.toLowerCase());
+    const known = [name, ...(branch?.aliases ?? [])].map((n) => n.toLowerCase());
     if (!known.some((n) => title.toLowerCase().includes(n))) throw new Error(`This file is headed "${title}", not ${name}. Pick the right branch or file.`);
     await importReceipts({ ...u, branchId: u.branchId }, rows, { rowsRead, controlTotal, issues });
     const days = [...new Set(rows.map((r) => r.date))].sort();
@@ -61,8 +58,8 @@ async function loadFile(type: string, company: Company, u: Upload, formYear: num
   }
   if (type === "dukan") {
     if (!u.branchId) throw new Error("Pick the branch in the \"Data for\" row first.");
-    const { rows, issues, rowsRead, controlTotal } = dukanFromWorkbook(wb, LOAD_FROM_YEAR);
-    if (!rows.length) throw new Error(`No figures from ${LOAD_FROM_YEAR} onward. Upload DUKAN-TOTAL, not the summary copy with the old dates.`);
+    const { rows, issues, rowsRead, controlTotal } = dukanFromWorkbook(wb, loadFromYear);
+    if (!rows.length) throw new Error(`No figures from ${loadFromYear} onward. Upload DUKAN-TOTAL, not the summary copy with the old dates.`);
     await importReceipts({ ...u, section: "receipts", branchId: u.branchId }, rows, { rowsRead, controlTotal, issues });
     const days = [...new Set(rows.map((r) => r.date))].sort();
     const review = issues.length ? ` ${issues.length} to check, first: ${issues[0].sheet} row ${issues[0].row}: ${issues[0].reason}` : "";
@@ -88,7 +85,7 @@ async function loadFile(type: string, company: Company, u: Upload, formYear: num
     return { rows: m.rowsRead, ok: `Loaded ${parts.join(", ")}.${m.issues.length ? ` ${m.issues.length} to check, first: ${m.issues[0].reason}` : ""}` };
   }
   if (type === "cogs") {
-    const parsed = cogsFromWorkbook(wb, COGS_FROM_YEAR);
+    const parsed = cogsFromWorkbook(wb, cogsFromYear());
     const { rows, issues } = cogsForCompany(parsed.rows, company.name, await listBranches(company.id), company.aliases);
     if (!rows.length) throw new Error(`This file has no COGS columns for ${company.name}.`);
     await importCogs(u, rows, [...parsed.issues, ...issues]);

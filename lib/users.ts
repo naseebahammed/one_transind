@@ -10,6 +10,9 @@ export const listUsers = () => q<AppUser>("SELECT email, created::text AS create
 
 export const listedEmails = async () => new Set((await q<{ email: string }>("SELECT email FROM app.users")).map((r) => r.email));
 
+export const isListedEmail = async (email: string) =>
+  Boolean(await q1<{ ok: number }>("SELECT 1 AS ok FROM app.users WHERE email = $1", [normalizeEmail(email)]));
+
 export async function addUser(email: string): Promise<{ error?: string }> {
   const who = normalizeEmail(email);
   if (!EMAIL_RE.test(who)) return { error: "Enter the person's full Microsoft email address." };

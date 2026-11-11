@@ -2,6 +2,7 @@
 import { Readable } from "node:stream";
 import ExcelJS from "exceljs";
 import { LINES, MONTHS, templateTitle, type Cell, type GridSection } from "./company-data.ts";
+import { formatDateCell } from "./report-parsers.ts";
 import { inspectWorkbookArchive } from "./upload-security.ts";
 
 export function buildFigureTemplate(company: string, section: GridSection, year: number) {
@@ -26,8 +27,20 @@ export function buildPnlTemplate(year: number, month: number, accounts: { main: 
 }
 
 export const MAX_UPLOAD_BYTES = 7 * 1024 * 1024;
+export const MAX_WORKBOOK_SHEETS = 120;
 export const MAX_WORKBOOK_ROWS = 50_000;
 export const MAX_WORKBOOK_COLS = 200;
+
+export function checkWorkbookDimensions(wb: ExcelJS.Workbook) {
+  if (wb.worksheets.length > MAX_WORKBOOK_SHEETS) {
+    throw new Error("Workbook contains too many sheets.");
+  }
+  for (const ws of wb.worksheets) {
+    if (ws.rowCount > MAX_WORKBOOK_ROWS || ws.columnCount > MAX_WORKBOOK_COLS) {
+      throw new Error("Spreadsheet dimensions exceed the maximum allowed rows or columns.");
+    }
+  }
+}
 
 /** A workbook from .xlsx or .csv bytes, told apart by content rather than the file name. Throws a readable message. */
 export async function readWorkbook(buf: Buffer) {
@@ -36,10 +49,14 @@ export async function readWorkbook(buf: Buffer) {
 
   const wb = new ExcelJS.Workbook();
   if (inspection.mimeType === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") {
-    try { await wb.xlsx.load(buf as unknown as ExcelJS.Buffer); return wb; } catch { throw new Error("Could not read that file as an Excel workbook."); }
+    try { await wb.xlsx.load(buf as unknown as ExcelJS.Buffer); } catch { throw new Error("Could not read that file as an Excel workbook."); }
+    checkWorkbookDimensions(wb);
+    return wb;
   }
   // Cells stay as text: the default parser turns dates into local-time values, which land a day early in Qatar. num() and cellDate() read the text.
-  await wb.csv.read(Readable.from(buf.toString("utf8").replace(/^﻿/, "")), { map: (v: string) => (v === "" ? null : v) });
+  const csvSlice = buf.length >= 3 && buf[0] === 0xef && buf[1] === 0xbb && buf[2] === 0xbf ? buf.subarray(3) : buf;
+  await wb.csv.read(Readable.from(csvSlice.length ? [csvSlice] : []), { map: (v: string) => (v === "" ? null : v) });
+  checkWorkbookDimensions(wb);
   return wb;
 }
 
@@ -73,7 +90,7 @@ function readCell(v: ExcelJS.CellValue): Cell {
   if (typeof v === "object" && "result" in v) return readCell(v.result as ExcelJS.CellValue);
   if (typeof v === "object" && "formula" in v) return null; // a formula Excel never calculated has no value yet
   if (typeof v === "object" && "richText" in v) return v.richText.map((x) => x.text).join("");
-  return v instanceof Date ? v.toISOString() : String(Object(v).error ?? v);
+  return v instanceof Date ? formatDateCell(v) : String(Object(v).error ?? v);
 }
 
 /** The first visible sheet as rows of cells, 0-indexed. */
@@ -86,8 +103,9 @@ export function gridFromWorkbook(wb: ExcelJS.Workbook): Cell[][] {
   const colLimit = Math.min(MAX_WORKBOOK_COLS, Math.max(ws.columnCount, 13));
   const grid: Cell[][] = [];
   for (let r = 1; r <= ws.rowCount; r++) {
+    const wsRow = ws.findRow(r);
     const row: Cell[] = [];
-    for (let c = 1; c <= colLimit; c++) row.push(readCell(ws.getCell(r, c).value));
+    for (let c = 1; c <= colLimit; c++) row.push(wsRow ? readCell(wsRow.findCell(c)?.value ?? null) : null);
     grid.push(row);
   }
   return grid;

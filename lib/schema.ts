@@ -429,7 +429,81 @@ CREATE UNIQUE INDEX company_departments_company_name ON app.company_departments(
 CREATE TABLE app.department_links(source_name TEXT PRIMARY KEY, department_id INTEGER NOT NULL REFERENCES app.company_departments(id) ON DELETE CASCADE);
 `;
 
-const MIGRATIONS: readonly (readonly [string, string])[] = [["001_baseline", BASELINE], ["002_standard_data", STANDARD_DATA], ["003_drop_report_files", DROP_REPORT_FILES], ["005_company_expenses", COMPANY_EXPENSES], ["006_company_branches", COMPANY_BRANCHES], ["007_company_has_branches", COMPANY_HAS_BRANCHES], ["008_daily_receipts", DAILY_RECEIPTS], ["009_drop_deals", DROP_DEALS], ["010_drop_invoices", DROP_INVOICES], ["011_enterprise_foundation", ENTERPRISE_FOUNDATION], ["012_rejected_rows_loaded", REJECTED_ROWS_LOADED], ["013_restaurant_cogs", RESTAURANT_COGS], ["014_drop_ownership_pct", DROP_OWNERSHIP_PCT], ["015_fmcg_masters", FMCG_MASTERS], ["016_data_standardization", DATA_STANDARDIZATION], ["017_fmcg_sales_views", FMCG_SALES_VIEWS], ["018_fmcg_balances", FMCG_BALANCES], ["019_fmcg_control", FMCG_CONTROL], ["020_app_optimizations", APP_OPTIMIZATIONS], ["021_app_users", APP_USERS], ["022_erp_outstanding", ERP_OUTSTANDING], ["023_sales_clean", SALES_CLEAN], ["024_employees", EMPLOYEES], ["025_company_departments", COMPANY_DEPARTMENTS]];
+// Additive B-tree indexes on foreign keys, query filters, and the ERP sales materialized view. Zero rows or columns are modified.
+const PERFORMANCE_INDEXES = [
+  `CREATE INDEX IF NOT EXISTS company_figures_import ON app.company_figures(import_id) WHERE import_id IS NOT NULL;`,
+  `CREATE INDEX IF NOT EXISTS daily_sales_import ON app.daily_sales(import_id) WHERE import_id IS NOT NULL;`,
+  `CREATE INDEX IF NOT EXISTS daily_receipts_import ON app.daily_receipts(import_id) WHERE import_id IS NOT NULL;`,
+  `CREATE INDEX IF NOT EXISTS salesmen_import ON app.salesmen(import_id) WHERE import_id IS NOT NULL;`,
+  `CREATE INDEX IF NOT EXISTS customers_import ON app.customers(import_id) WHERE import_id IS NOT NULL;`,
+  `CREATE INDEX IF NOT EXISTS items_import ON app.items(import_id) WHERE import_id IS NOT NULL;`,
+  `CREATE INDEX IF NOT EXISTS sales_assignments_import ON app.sales_assignments(import_id) WHERE import_id IS NOT NULL;`,
+  `CREATE INDEX IF NOT EXISTS manager_targets_import ON app.manager_targets(import_id) WHERE import_id IS NOT NULL;`,
+  `CREATE INDEX IF NOT EXISTS stock_snapshots_import ON app.stock_snapshots(import_id) WHERE import_id IS NOT NULL;`,
+  `CREATE INDEX IF NOT EXISTS delivery_variances_import ON app.delivery_variances(import_id) WHERE import_id IS NOT NULL;`,
+  `CREATE INDEX IF NOT EXISTS consignment_receipts_import ON app.consignment_receipts(import_id) WHERE import_id IS NOT NULL;`,
+  `CREATE INDEX IF NOT EXISTS stock_expiry_import ON app.stock_expiry(import_id) WHERE import_id IS NOT NULL;`,
+  `CREATE INDEX IF NOT EXISTS imports_sha256 ON app.imports(sha256) WHERE sha256 <> '';`,
+  `CREATE INDEX IF NOT EXISTS companies_sector ON app.companies(sector);`,
+  `CREATE INDEX IF NOT EXISTS company_figures_branch ON app.company_figures(branch_id) WHERE branch_id IS NOT NULL;`,
+  `CREATE INDEX IF NOT EXISTS daily_sales_branch ON app.daily_sales(branch_id) WHERE branch_id IS NOT NULL;`,
+  `CREATE INDEX IF NOT EXISTS items_brand ON app.items(brand);`,
+  `CREATE INDEX IF NOT EXISTS sales_assignments_salesman ON app.sales_assignments(salesman_code);`,
+  `CREATE INDEX IF NOT EXISTS sales_assignments_brand ON app.sales_assignments(brand);`,
+  `CREATE INDEX IF NOT EXISTS stock_snapshots_item ON app.stock_snapshots(item_code);`,
+  `CREATE INDEX IF NOT EXISTS delivery_variances_date ON app.delivery_variances(do_date);`,
+  `CREATE INDEX IF NOT EXISTS department_links_department ON app.department_links(department_id);`,
+  `CREATE INDEX IF NOT EXISTS employees_department ON app.employees(department);`,
+  ifTable("app.sales_clean", `CREATE INDEX IF NOT EXISTS sales_clean_dept_date ON app.sales_clean("DEPT_CODE", "DOC_DATE") INCLUDE ("NET_AMOUNT", "NET_COST")`),
+  ifTable("app.sales_clean", `CREATE INDEX IF NOT EXISTS sales_clean_date_cust ON app.sales_clean("DOC_DATE", "CUST_NO") INCLUDE ("BRAND", "NET_AMOUNT")`),
+  ifTable("app.sales_clean", `CREATE INDEX IF NOT EXISTS sales_clean_cust_no ON app.sales_clean("CUST_NO")`),
+  ifTable("app.sales_clean", `CREATE INDEX IF NOT EXISTS sales_clean_item_code ON app.sales_clean("ITEM_CODE")`),
+].join("\n");
+
+// The balance-sheet section was never used (no figures were ever loaded), so its accounts and any rows go. The CHECK lists that still name it are harmless and left alone.
+const DROP_BALANCE_SHEET = `
+DELETE FROM app.company_figures WHERE section = 'balance';
+DELETE FROM app.imports WHERE section = 'balance';
+DELETE FROM app.accounts WHERE section = 'balance';
+`;
+
+// Single authoritative revenue source per company and month in rpt.company_monthly_revenue (pnl > daily_sales > daily_receipts > sales > cogs Net sales),
+// case-insensitive bank deposit exclusion, and a database check that no employee resign date precedes their joining date.
+const FINANCIAL_AND_DATE_INTEGRITY = `
+CREATE OR REPLACE VIEW rpt.company_monthly_revenue AS
+  WITH raw_sources AS (
+    SELECT f.company_id, f.branch_id, f.period, f.section AS source, f.line, f.value,
+      CASE f.section WHEN 'pnl' THEN 1 WHEN 'sales' THEN 4 ELSE 5 END AS priority
+    FROM app.company_figures f
+    JOIN app.accounts a ON a.section = f.section AND a.main = f.main AND a.sub = f.line
+    WHERE (f.section IN ('pnl', 'sales') AND a.kind = 'revenue')
+       OR (f.section = 'cogs' AND f.line = 'Net sales')
+    UNION ALL
+    SELECT d.company_id, d.branch_id, date_trunc('month', d.date)::date AS period, 'daily_sales'::text AS source, v.line::text AS line, v.value, 2 AS priority
+    FROM app.daily_sales d
+    CROSS JOIN LATERAL (VALUES ('Room revenue', d.room_revenue), ('Other revenue', d.other_revenue)) v(line, value)
+    UNION ALL
+    SELECT r.company_id, r.branch_id, date_trunc('month', r.date)::date AS period, 'daily_receipts'::text AS source, 'Sales'::text AS line, r.value, 3 AS priority
+    FROM app.daily_receipts r
+    WHERE lower(regexp_replace(btrim(r.line), '\\s+', ' ', 'g')) NOT IN ('bank deposits', 'bank deposit')
+  ),
+  ranked AS (
+    SELECT company_id, branch_id, period, source, line, value,
+      DENSE_RANK() OVER (PARTITION BY company_id, period ORDER BY priority) AS source_rank
+    FROM raw_sources
+  )
+  SELECT c.id AS company_id, c.name AS company, c.sector, b.id AS branch_id, b.name AS branch,
+    ranked.period, ranked.source, ranked.line, SUM(ranked.value) AS amount_qar
+  FROM ranked
+  JOIN app.companies c ON c.id = ranked.company_id
+  LEFT JOIN app.branches b ON b.id = ranked.branch_id
+  WHERE ranked.source_rank = 1
+  GROUP BY c.id, c.name, c.sector, b.id, b.name, ranked.period, ranked.source, ranked.line;
+UPDATE app.employees SET left_on = NULL, updated = now() WHERE left_on IS NOT NULL AND left_on < joined;
+DO 'BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = ''employees_dates_valid'' AND conrelid = ''app.employees''::regclass) THEN ALTER TABLE app.employees ADD CONSTRAINT employees_dates_valid CHECK (left_on IS NULL OR left_on >= joined); END IF; END';
+`;
+
+const MIGRATIONS: readonly (readonly [string, string])[] = [["001_baseline", BASELINE], ["002_standard_data", STANDARD_DATA], ["003_drop_report_files", DROP_REPORT_FILES], ["005_company_expenses", COMPANY_EXPENSES], ["006_company_branches", COMPANY_BRANCHES], ["007_company_has_branches", COMPANY_HAS_BRANCHES], ["008_daily_receipts", DAILY_RECEIPTS], ["009_drop_deals", DROP_DEALS], ["010_drop_invoices", DROP_INVOICES], ["011_enterprise_foundation", ENTERPRISE_FOUNDATION], ["012_rejected_rows_loaded", REJECTED_ROWS_LOADED], ["013_restaurant_cogs", RESTAURANT_COGS], ["014_drop_ownership_pct", DROP_OWNERSHIP_PCT], ["015_fmcg_masters", FMCG_MASTERS], ["016_data_standardization", DATA_STANDARDIZATION], ["017_fmcg_sales_views", FMCG_SALES_VIEWS], ["018_fmcg_balances", FMCG_BALANCES], ["019_fmcg_control", FMCG_CONTROL], ["020_app_optimizations", APP_OPTIMIZATIONS], ["021_app_users", APP_USERS], ["022_erp_outstanding", ERP_OUTSTANDING], ["023_sales_clean", SALES_CLEAN], ["024_employees", EMPLOYEES], ["025_company_departments", COMPANY_DEPARTMENTS], ["026_performance_indexes", PERFORMANCE_INDEXES], ["027_drop_balance_sheet", DROP_BALANCE_SHEET], ["028_financial_and_date_integrity", FINANCIAL_AND_DATE_INTEGRITY]];
 
 /** Applies the migrations not yet recorded, optionally only up to and including one. Run it inside a transaction holding the init lock. */
 export async function migrate(c: { query: (text: string, params?: unknown[]) => Promise<{ rows: { id: string }[] }> }, upTo?: string) {

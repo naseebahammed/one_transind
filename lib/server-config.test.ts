@@ -4,12 +4,14 @@ import test from "node:test";
 import {
   adminEmails,
   authSigningSecret,
+  cogsFromYear,
   configuredAuthHost,
   databaseConfig,
   entraIssuer,
   hasAdminPasswordLogin,
   isDevLoginEnabled,
   openAiConfig,
+  receiptsFromYear,
   salesPeriod,
   salesTable,
   trustProxy,
@@ -82,5 +84,11 @@ test("authSigningSecret, configuredAuthHost, and trustProxy enforce safe default
   assert.throws(() => salesTable({ SALES_TABLE: "app.sales_clean; DROP TABLE app.users" }), /SALES_TABLE/);
   assert.equal(salesPeriod({ SALES_PERIOD: " 2026-08 " }), "2026-08");
   assert.equal(salesPeriod({ SALES_PERIOD: "  " }), undefined);
+
+  assert.equal(receiptsFromYear({}), 2026);
+  assert.equal(receiptsFromYear({ RECEIPTS_FROM_YEAR: "2025" }), 2025);
+  assert.equal(receiptsFromYear({ RECEIPTS_FROM_YEAR: "bad" }), 2026);
+  assert.equal(cogsFromYear({}), 2024);
+  assert.equal(cogsFromYear({ COGS_FROM_YEAR: "2023" }), 2023);
 });
 

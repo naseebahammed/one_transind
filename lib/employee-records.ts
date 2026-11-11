@@ -1,16 +1,33 @@
 import { q } from "@/lib/db";
-import type { Employee, StaffRow } from "@/lib/employees";
+import { mergeEmployees, type Employee, type StaffRow } from "@/lib/employees";
 
-/** Saves staff-list rows by employee ID. A leave date already on file is kept when a later file shows the person as still employed. */
+/** Saves staff-list rows by employee ID. Same-stint updates preserve a leave date on file, while re-hires advance `joined` and clear stale prior-stint leave dates. */
 export async function saveEmployees(list: Employee[]) {
+  const rows = mergeEmployees(list);
+  if (!rows.length) return 0;
   await q(
     `INSERT INTO app.employees(id, name, department, designation, nationality, joined, left_on)
      SELECT * FROM unnest($1::text[], $2::text[], $3::text[], $4::text[], $5::text[], $6::date[], $7::date[])
-     ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, department = EXCLUDED.department, designation = EXCLUDED.designation,
-       nationality = EXCLUDED.nationality, joined = EXCLUDED.joined, left_on = COALESCE(EXCLUDED.left_on, app.employees.left_on), updated = now()`,
-    [list.map((e) => e.id), list.map((e) => e.name), list.map((e) => e.department), list.map((e) => e.designation), list.map((e) => e.nationality), list.map((e) => e.joined), list.map((e) => e.left)],
+     ON CONFLICT (id) DO UPDATE SET
+       name = CASE WHEN EXCLUDED.joined >= app.employees.joined THEN EXCLUDED.name ELSE app.employees.name END,
+       department = CASE WHEN EXCLUDED.joined >= app.employees.joined THEN EXCLUDED.department ELSE app.employees.department END,
+       designation = CASE WHEN EXCLUDED.joined >= app.employees.joined THEN EXCLUDED.designation ELSE app.employees.designation END,
+       nationality = CASE WHEN EXCLUDED.joined >= app.employees.joined THEN EXCLUDED.nationality ELSE app.employees.nationality END,
+       joined = GREATEST(EXCLUDED.joined, app.employees.joined),
+       left_on = CASE
+         WHEN EXCLUDED.joined > app.employees.joined THEN
+           CASE WHEN EXCLUDED.left_on >= EXCLUDED.joined THEN EXCLUDED.left_on ELSE NULL END
+         WHEN EXCLUDED.joined < app.employees.joined THEN
+           CASE WHEN app.employees.left_on >= app.employees.joined THEN app.employees.left_on ELSE NULL END
+         ELSE
+           CASE WHEN COALESCE(EXCLUDED.left_on, app.employees.left_on) >= EXCLUDED.joined
+                THEN COALESCE(EXCLUDED.left_on, app.employees.left_on)
+                ELSE NULL END
+       END,
+       updated = now()`,
+    [rows.map((e) => e.id), rows.map((e) => e.name), rows.map((e) => e.department), rows.map((e) => e.designation), rows.map((e) => e.nationality), rows.map((e) => e.joined), rows.map((e) => e.left)],
   );
-  return list.length;
+  return rows.length;
 }
 
 /** Everyone on file, dates as YYYY-MM-DD text. company and unit are where the person's staff-file department is linked; unlinked people sit under "Unassigned" with their original department text. */

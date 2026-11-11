@@ -22,9 +22,12 @@ test("branchClash looks at the opposite level and names the month", async () => 
   assert.deepEqual(branch.calls[0], [1, "expenses", periods, false]);
 });
 
-test("the retail rules only speak up when the other source has the month", async () => {
-  assert.equal(await monthlySalesClash(client([]), 1, periods), null);
-  assert.equal(await takingsClash(client([]), 1, periods), null);
+test("the retail and restaurant takings rules speak up when the other source has the month", async () => {
+  const emptySales = client([]), emptyTakings = client([]);
+  assert.equal(await monthlySalesClash(emptySales, 1, periods), null);
+  assert.equal(await takingsClash(emptyTakings, 1, periods), null);
+  assert.deepEqual(emptySales.calls[0][2], ["retail", "fnb"]);
+  assert.deepEqual(emptyTakings.calls[0][2], ["retail", "fnb"]);
   assert.match((await monthlySalesClash(client(["Mar 2026"]), 1, periods))!, /already has daily takings/);
   assert.match((await takingsClash(client(["Mar 2026"]), 1, periods))!, /already has a monthly sales figure/);
 });

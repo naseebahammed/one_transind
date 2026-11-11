@@ -1,6 +1,7 @@
 // Pure helpers for the HR staff lists (new joiners / leavers): reading a sheet and counting movements. No database here, so `node --test` can load it.
 import type { Cell } from "./company-data.ts";
 import { cleanText } from "./input-validation.ts";
+import { cellDate, excelSerialToIsoDate } from "./report-parsers.ts";
 
 export type Employee = { id: string; name: string; department: string; designation: string; nationality: string; joined: string; left: string | null };
 
@@ -10,8 +11,17 @@ export type StaffRow = Employee & { company: string; unit: string };
 const HEADERS: Record<string, keyof Employee> = { "emp id": "id", "employee name": "name", "joining date": "joined", "department": "department", "designation": "designation", "nationality_desc": "nationality", "resign_date": "left" };
 
 const text = (c: Cell, maxLength = 200) => cleanText(c, maxLength);
-// Excel dates arrive as ISO text (midnight UTC), so the first ten characters are the calendar day.
-const day = (c: Cell) => (/^\d{4}-\d{2}-\d{2}/.test(text(c, 40)) ? text(c, 40).slice(0, 10) : null);
+const day = (c: Cell): string | null => {
+  if (c === null) return null;
+  if (typeof c === "number") return excelSerialToIsoDate(c);
+  const raw = text(c, 40);
+  if (!raw || raw === "(blank)") return null;
+  try {
+    return cellDate(raw, "row");
+  } catch {
+    return null;
+  }
+};
 
 /** Reads one staff-list sheet. Rows that are not valid data are errors (the caller refuses the file); a resign date before the joining date is a mistake in the source, so that row is skipped and reported. */
 export function parseEmployees(grid: Cell[][]): { employees: Employee[]; errors: string[]; skipped: string[] } {
@@ -58,9 +68,18 @@ export function departmentMovements(employees: Pick<Employee, "department" | "jo
   return [...by.values()].filter((r) => r.joiners || r.leavers).sort((a, b) => b.joiners + b.leavers - (a.joiners + a.leavers));
 }
 
-/** One row per employee ID: when a person is in several files, a leave date from any of them is kept. */
+/** One row per employee ID: same-stint files share a leave date, while a later re-hire clears any older stint's leave date. */
 export function mergeEmployees(list: Employee[]): Employee[] {
   const by = new Map<string, Employee>();
-  for (const e of list) by.set(e.id, { ...e, left: e.left ?? by.get(e.id)?.left ?? null });
+  for (const e of list) {
+    const cleanLeft = e.left && e.left >= e.joined ? e.left : null;
+    const prev = by.get(e.id);
+    if (!prev || e.joined > prev.joined) {
+      by.set(e.id, { ...e, left: cleanLeft });
+    } else if (e.joined === prev.joined) {
+      const mergedLeft = cleanLeft ?? prev.left;
+      by.set(e.id, { ...e, left: mergedLeft && mergedLeft >= e.joined ? mergedLeft : null });
+    }
+  }
   return [...by.values()];
 }

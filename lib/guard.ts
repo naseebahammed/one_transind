@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
@@ -12,7 +13,7 @@ import {
   type ConcurrencyRule,
   type RateLimitRule,
 } from "@/lib/rate-limit";
-import { listedEmails } from "@/lib/users";
+import { isListedEmail } from "@/lib/users";
 
 if (typeof window !== "undefined") {
   throw new Error("lib/guard.ts is server-only and must never run in the browser.");
@@ -32,12 +33,12 @@ const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
 const MAX_ASK_BODY_BYTES = 8_192;
 
-async function who() {
+const who = cache(async () => {
   const session = await auth();
   const email = session?.user?.email;
   const name = session?.user?.name;
-  return { email, name, role: await currentRole(email, listedEmails) };
-}
+  return { email, name, role: await currentRole(email, isListedEmail) };
+});
 
 function apiBucketRules(bucket: ApiBucket, email: string, clientIp: string): {
   rateRules: RateLimitRule[];

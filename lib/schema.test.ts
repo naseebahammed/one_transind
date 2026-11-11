@@ -1,0 +1,74 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { migrate } from "./schema.ts";
+
+test("migrate applies 026_performance_indexes with purely additive index statements and skips already-applied migrations", async () => {
+  const executed: { sql: string; params?: unknown[] }[] = [];
+  const applied = new Set([
+    "001_baseline", "002_standard_data", "003_drop_report_files", "005_company_expenses",
+    "006_company_branches", "007_company_has_branches", "008_daily_receipts", "009_drop_deals",
+    "010_drop_invoices", "011_enterprise_foundation", "012_rejected_rows_loaded", "013_restaurant_cogs",
+    "014_drop_ownership_pct", "015_fmcg_masters", "016_data_standardization", "017_fmcg_sales_views",
+    "018_fmcg_balances", "019_fmcg_control", "020_app_optimizations", "021_app_users",
+    "022_erp_outstanding", "023_sales_clean", "024_employees", "025_company_departments",
+  ]);
+
+  await migrate({
+    query: async (sql, params) => {
+      executed.push({ sql, params });
+      if (sql.startsWith("SELECT id FROM app.schema_migrations")) {
+        return { rows: [...applied].map((id) => ({ id })) };
+      }
+      return { rows: [] };
+    },
+  });
+
+  const recordStep = executed.find((step) => step.sql.startsWith("INSERT INTO app.schema_migrations"));
+  assert.ok(recordStep, "expected 026_performance_indexes to be recorded");
+  assert.deepEqual(recordStep.params, ["026_performance_indexes"]);
+
+  const indexStep = executed[executed.indexOf(recordStep) - 1];
+  assert.ok(indexStep, "expected SQL step right before recording migration");
+  assert.doesNotMatch(indexStep.sql, /\b(DROP|DELETE|TRUNCATE|UPDATE|ALTER)\b/i, "026_performance_indexes must be strictly additive");
+  for (const line of indexStep.sql.trim().split("\n")) {
+    assert.ok(
+      line.startsWith("CREATE INDEX IF NOT EXISTS ") || line.startsWith("DO 'BEGIN IF to_regclass("),
+      `Unexpected statement in 026_performance_indexes: ${line}`,
+    );
+  }
+});
+
+test("migrate applies 028_financial_and_date_integrity without deleting or dropping data", async () => {
+  const executed: { sql: string; params?: unknown[] }[] = [];
+  const applied = new Set([
+    "001_baseline", "002_standard_data", "003_drop_report_files", "005_company_expenses",
+    "006_company_branches", "007_company_has_branches", "008_daily_receipts", "009_drop_deals",
+    "010_drop_invoices", "011_enterprise_foundation", "012_rejected_rows_loaded", "013_restaurant_cogs",
+    "014_drop_ownership_pct", "015_fmcg_masters", "016_data_standardization", "017_fmcg_sales_views",
+    "018_fmcg_balances", "019_fmcg_control", "020_app_optimizations", "021_app_users",
+    "022_erp_outstanding", "023_sales_clean", "024_employees", "025_company_departments",
+    "026_performance_indexes", "027_drop_balance_sheet",
+  ]);
+
+  await migrate({
+    query: async (sql, params) => {
+      executed.push({ sql, params });
+      if (sql.startsWith("SELECT id FROM app.schema_migrations")) {
+        return { rows: [...applied].map((id) => ({ id })) };
+      }
+      return { rows: [] };
+    },
+  });
+
+  const recordStep = executed.find((step) => step.sql.startsWith("INSERT INTO app.schema_migrations"));
+  assert.ok(recordStep, "expected 028_financial_and_date_integrity to be recorded");
+  assert.deepEqual(recordStep.params, ["028_financial_and_date_integrity"]);
+
+  const migrationStep = executed[executed.indexOf(recordStep) - 1];
+  assert.ok(migrationStep, "expected SQL step right before recording migration");
+  assert.doesNotMatch(migrationStep.sql, /\b(DROP|DELETE|TRUNCATE)\b/i);
+  assert.match(migrationStep.sql, /CREATE OR REPLACE VIEW rpt\.company_monthly_revenue AS/);
+  assert.match(migrationStep.sql, /DENSE_RANK\(\) OVER \(PARTITION BY company_id, period ORDER BY priority\)/);
+  assert.match(migrationStep.sql, /NOT IN \('bank deposits', 'bank deposit'\)/);
+  assert.match(migrationStep.sql, /employees_dates_valid CHECK \(left_on IS NULL OR left_on >= joined\)/);
+});

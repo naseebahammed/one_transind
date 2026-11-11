@@ -3,13 +3,13 @@
 import type ExcelJS from "exceljs";
 
 import { eachRow, findTable, text } from "./fmcg-masters.ts";
-import { cellDate, num, type ImportIssue } from "./report-parsers.ts";
+import { roundMoney, sumMoney } from "./money.ts";
+import { cellDate, formatDateCell, num, type ImportIssue } from "./report-parsers.ts";
 
 export type Variance = { doDate: string; doNo: string; itemCode: string; location: string; customerCode: string | null; customer: string | null; salesman: string | null; storeInCharge: string | null; driver: string | null; item: string | null; brand: string | null; manager: string | null; supervisor: string | null; qtyRv: number; qtyDo: number; valueRv: number; valueDo: number };
 export type Consignment = { receivedDate: string; lineNo: number; consignmentNo: string; orderNo: string | null; invoiceNo: string | null; invoiceDate: string | null; supplier: string | null; location: string | null; itemCode: string; item: string | null; expiryDate: string | null; excise: string | null; billedQty: number; receivedQty: number };
 export type Expiry = { lineNo: number; itemCode: string; item: string | null; size: string | null; packing: string | null; brand: string | null; category: string | null; location: string | null; cartons: number | null; outers: number | null; pieces: number | null; totalCost: number; expiryDate: string; remarks: string | null };
 
-const round = (v: number) => Math.round(v * 100) / 100;
 const orNull = (v: string) => v || null;
 
 /** Name of the first sheet with all these headings in its first rows. */
@@ -73,10 +73,10 @@ export function controlFromWorkbook(wb: ExcelJS.Workbook) {
         const title = text(c.value).toUpperCase();
         if (title.includes("AGEIN")) expiryReport ??= title.split(/\s*-\s*AGE/)[0].trim() || null;
         const v = typeof c.value === "object" && c.value && "result" in c.value ? c.value.result : c.value;
-        if (v instanceof Date) expiryDate ??= v.toISOString().slice(0, 10);
+        if (v instanceof Date) expiryDate ??= formatDateCell(v) || null;
       });
       const total = row.getCell(cost).value, printed = typeof total === "object" && total && "result" in total ? total.result : total; // the merged title also reads as this cell, so only a number counts
-      if (typeof printed === "number") controlTotal = round(printed);
+      if (typeof printed === "number") controlTotal = roundMoney(printed);
     });
     if (!expiryDate || !expiryReport) throw new Error(`${t.sheet}: no report title or date above the headings.`);
     const categoryColumn = t.column("CATEGORY");
@@ -90,7 +90,7 @@ export function controlFromWorkbook(wb: ExcelJS.Workbook) {
         expiry.push({ lineNo: i, itemCode, item: orNull(cell("DESCRIPTION")), size: orNull(cell("SIZE")), packing: orNull(cell("PACKING")), brand: orNull(cell("BRAND")), category: categoryColumn ? orNull(text(row.getCell(categoryColumn).value)) : null, location: orNull(cell("LOCATION2")), cartons: quantity("CTN"), outers: quantity("OTR"), pieces: quantity("PCS"), totalCost, expiryDate: expiryOn, remarks: orNull(cell("REMARKS")) });
       } catch (e) { issues.push({ sheet: t.sheet, row: i, reason: (e as Error).message, loaded: false }); }
     });
-    const sum = round(expiry.reduce((s, r) => s + r.totalCost, 0));
+    const sum = sumMoney(expiry.map((r) => r.totalCost));
     if (controlTotal !== null && Math.abs(sum - controlTotal) > 1) issues.push({ sheet: t.sheet, row: t.head, reason: `The costs add up to ${sum} but the sheet's total says ${controlTotal}.`, loaded: true });
   }
 

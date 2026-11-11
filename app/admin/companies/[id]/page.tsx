@@ -50,9 +50,9 @@ async function Edit({ params, searchParams }: { params: Params; searchParams: Se
   const branchId = activeBranches.find((b) => String(b.id) === rawBranch)?.id ?? null;
   const filled = await listFilledMonths(id, year, branchId);
   const pnlStatuses = monthStatuses("pnl", year, filled.pnl, today);
-  const figureStatuses = { balance: monthStatuses("balance", year, filled.balance, today), budget: monthStatuses("budget", year, filled.budget, today), people: monthStatuses("people", year, filled.people, today), expenses: monthStatuses("expenses", year, filled.expenses, today) };
+  const figureStatuses = { budget: monthStatuses("budget", year, filled.budget, today), people: monthStatuses("people", year, filled.people, today), expenses: monthStatuses("expenses", year, filled.expenses, today) };
   const gaps = profileGaps(company).length;
-  const labels: Record<Section, string> = { profile: gaps ? `${gaps} blank` : "Complete", pnl: progress(pnlStatuses), balance: progress(figureStatuses.balance), budget: progress(figureStatuses.budget), people: progress(figureStatuses.people), expenses: progress(figureStatuses.expenses), daily: "" };
+  const labels: Record<Section, string> = { profile: gaps ? `${gaps} blank` : "Complete", pnl: progress(pnlStatuses), budget: progress(figureStatuses.budget), people: progress(figureStatuses.people), expenses: progress(figureStatuses.expenses), daily: "" };
   const sibling = (other: number) => link(`/admin/companies/${other}`, { section, year: rawYear });
   const index = ids.findIndex((c) => c.id === id);
   const prevId = index > 0 ? ids[index - 1].id : null;

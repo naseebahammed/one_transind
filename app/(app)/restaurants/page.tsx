@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { connection } from "next/server";
 import { listBranchesForCompanies } from "@/lib/branches";
 import { listCompanies } from "@/lib/companies";
-import { latestReceiptMonth, listBranchesReceipts, listCogsMonth } from "@/lib/company-figures";
+import { latestReceiptMonthForCompanies, listBranchesReceiptsPeriods, listCogsPeriods } from "@/lib/company-figures";
 import { fmt, MONTHS, pct, sum } from "@/lib/format";
 import { SECTOR } from "@/lib/org";
 import { branchSummary, receiptTable } from "@/lib/receipts";
@@ -38,7 +38,7 @@ async function Content({ searchParams }: { searchParams: Params }) {
   const shown = all ? companies : [company];
   const branches = all ? allBranches : branchLists[pick];
   const chosenBranch = branches.find((b) => String(b.id) === rawBranch);
-  const latest = (await Promise.all(shown.map((c) => latestReceiptMonth(c.id)))).reduce<{ year: number; month: number } | null>((best, l) => (l && (!best || l.year * 12 + l.month > best.year * 12 + best.month) ? l : best), null);
+  const latest = await latestReceiptMonthForCompanies(shown.map((c) => c.id));
   const now = new Date(), thisYear = now.getFullYear();
   const years = [thisYear - 2, thisYear - 1, thisYear];
   const year = years.includes(Number(rawYear)) ? Number(rawYear) : (latest?.year ?? thisYear);
@@ -49,8 +49,22 @@ async function Content({ searchParams }: { searchParams: Params }) {
   // Month "all" covers the whole year: every figure below is added up over these months.
   const allMonths = m === "all";
   const months = allMonths ? Array.from({ length: 12 }, (_, i) => i) : [month];
-  const loadCogs = async (y: number) => {
-    const rows = (await Promise.all(months.flatMap((mo) => shown.map(async (c) => (await listCogsMonth(c.id, y, mo)).map((r) => ({ ...r, branch: r.branch ?? c.name })))))).flat().filter((r) => !chosenBranch || r.branch === chosenBranch.name);
+  // The comparison is the same month (or whole year) a year earlier.
+  const previous = { year: year - 1, month };
+  const requestedPeriods = [
+    ...months.map((mo) => ({ year, month: mo })),
+    ...months.map((mo) => ({ year: previous.year, month: mo })),
+  ];
+  const [receiptsByBranchMonth, allCogsRows] = await Promise.all([
+    listBranchesReceiptsPeriods(active.map((b) => b.id), requestedPeriods),
+    listCogsPeriods(shown.map((c) => c.id), requestedPeriods),
+  ]);
+  const companyNames = new Map(shown.map((c) => [c.id, c.name]));
+  const loadCogs = (targetYear: number) => {
+    const rows = allCogsRows
+      .filter((r) => r.year === targetYear)
+      .map((r) => ({ branch: r.branch ?? companyNames.get(r.companyId) ?? company.name, grossSales: r.grossSales, discount: r.discount, netSales: r.netSales, cogs: r.cogs }))
+      .filter((r) => !chosenBranch || r.branch === chosenBranch.name);
     const byName = new Map<string, (typeof rows)[number]>();
     for (const r of rows) {
       const seen = byName.get(r.branch);
@@ -58,20 +72,17 @@ async function Content({ searchParams }: { searchParams: Params }) {
     }
     return [...byName.values()];
   };
-  // The comparison is the same month (or whole year) a year earlier.
-  const previous = { year: year - 1, month };
-  const load = async (y: number) => {
-    const perMonth = await Promise.all(months.map(async (mo) => {
-      const byBranch = await listBranchesReceipts(active.map((b) => b.id), y, mo);
-      return active.map((b) => receiptTable(byBranch.get(b.id) ?? [], y, mo));
-    }));
+  const load = (targetYear: number) => {
+    const perMonth = months.map((mo) =>
+      active.map((b) => receiptTable(receiptsByBranchMonth.get(`${b.id}|${targetYear}-${mo}`) ?? [], targetYear, mo)),
+    );
     return active.map((b, i) => {
       const summaries = perMonth.map((tables) => branchSummary(tables[i]));
       const summary = { gross: sum(summaries.map((s) => s.gross)), cash: sum(summaries.map((s) => s.cash)), card: sum(summaries.map((s) => s.card)), deliveryApps: sum(summaries.map((s) => s.deliveryApps)), days: sum(summaries.map((s) => s.days)) };
       return { name: b.name, table: perMonth[0][i], summary };
     });
   };
-  const [current, before, cogsRows, cogsBefore] = await Promise.all([load(year), load(previous.year), loadCogs(year), loadCogs(previous.year)]);
+  const current = load(year), before = load(previous.year), cogsRows = loadCogs(year), cogsBefore = loadCogs(previous.year);
   const cogsNet = sum(cogsRows.map((r) => r.netSales ?? 0)), cogsCost = sum(cogsRows.map((r) => -(r.cogs ?? 0)));
   const cogsDiscount = sum(cogsRows.map((r) => -(r.discount ?? 0))), cogsGross = sum(cogsRows.map((r) => r.grossSales ?? 0));
   const costShare = (cost: number, net: number) => (net ? `${fmt((cost / net) * 100, 1)}%` : "-");

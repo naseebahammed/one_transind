@@ -88,3 +88,19 @@ export function salesTable(env: ServerEnv = process.env): string {
 export function salesPeriod(env: ServerEnv = process.env): string | undefined {
   return env.SALES_PERIOD?.trim() || undefined;
 }
+
+function parseCutoffYear(raw: string | undefined, fallback: number): number {
+  if (!raw?.trim()) return fallback;
+  const year = Number(raw.trim());
+  return Number.isInteger(year) && year >= 2000 && year <= 2100 ? year : fallback;
+}
+
+/** Earliest calendar year loaded from daily receipt / Dukan sheets (`RECEIPTS_FROM_YEAR`, default 2026). */
+export function receiptsFromYear(env: ServerEnv = process.env): number {
+  return parseCutoffYear(env.RECEIPTS_FROM_YEAR, 2026);
+}
+
+/** Earliest calendar year loaded from restaurant COGS workbooks (`COGS_FROM_YEAR`, default 2024). */
+export function cogsFromYear(env: ServerEnv = process.env): number {
+  return parseCutoffYear(env.COGS_FROM_YEAR, 2024);
+}

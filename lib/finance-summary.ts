@@ -1,5 +1,6 @@
 // Pure summary builders for the Company Finance admin page (no database connection required).
-import { MONTHS, sum } from "./format.ts";
+import { MONTHS } from "./format.ts";
+import { roundMoney, sumMoney } from "./money.ts";
 import { keyFor, plRows, report, years, type Reports } from "./reports.ts";
 
 export type PnlSummary = { year: number; revenue: number[]; cost: number[]; net: number[]; costGroups: [string, number[]][] };
@@ -20,7 +21,7 @@ export function salesFor(reports: Reports, c: { id: number }): SalesSummary[] {
   // Every REVENUE line counts: hotels split room/other revenue, other sectors (e.g. Pavati) have a single "Sales" line.
   return years(reports, key, "sales").map((year) => ({
     year,
-    revenue: sum(plRows(reports, year, key, "sales").filter((r) => r.main === "REVENUE").map((r) => sum(r.m))),
+    revenue: sumMoney(plRows(reports, year, key, "sales").filter((r) => r.main === "REVENUE").map((r) => sumMoney(r.m))),
   }));
 }
 
@@ -30,7 +31,7 @@ export function costBreakdownByYear(entries: { c: { hidden: number }; r?: PnlSum
   return [...new Set(visible.map((x) => x.r!.year))].sort().map((year) => {
     const totals = new Map<string, number>();
     for (const { r } of visible.filter((x) => x.r!.year === year))
-      for (const [name, d] of r!.costGroups) totals.set(name, (totals.get(name) ?? 0) + sum(d));
+      for (const [name, d] of r!.costGroups) totals.set(name, roundMoney((totals.get(name) ?? 0) + sumMoney(d)));
     const top = [...totals].sort((a, b) => b[1] - a[1]); // all lines, so the percentages are shares of total cost
     return { year, top };
   });

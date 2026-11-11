@@ -14,8 +14,6 @@ const parse = (section: FigureSection, g: Cell[][]) => parseGrid(section, g, exp
 const figures = (r: ReturnType<typeof parseGrid>) => { assert.ok("figures" in r, "error" in r ? r.error : ""); return r.figures; };
 const error = (r: ReturnType<typeof parseGrid>) => { assert.ok("error" in r, "expected an error"); return r.error; };
 
-// Assets 100 = liabilities 60 + equity 40.
-const balanced = (over: Record<string, Cell> = {}) => ({ ...Object.fromEntries(LINES.balance.map((l) => [l, 0])), "Cash at bank": 100, "Loan balance": 60, Equity: 40, ...over });
 const budget = { Revenue: 100, "Direct cost": 60, Overheads: 20 };
 const people = { Headcount: 10, "Payroll cost": 5000, Joiners: 1, Leavers: 0 };
 
@@ -61,10 +59,8 @@ test("rejects a partly filled month", () => {
   assert.match(bad, /Jan/); assert.match(bad, /Direct cost/); assert.match(bad, /Overheads/);
 });
 
-test("rejects negatives except cash at bank", () => {
-  assert.match(error(parse("balance", grid("balance", balanced({ Stock: -1 })))), /Stock/);
-  // Overdrawn by 10, with other assets keeping the sheet balanced.
-  figures(parse("balance", grid("balance", balanced({ "Cash at bank": -10, "Other assets": 110 }))));
+test("rejects negative figures", () => {
+  assert.match(error(parse("budget", grid("budget", { ...budget, Overheads: -1 }))), /Overheads/);
 });
 
 test("requires whole numbers for headcount, joiners and leavers", () => {
@@ -74,25 +70,13 @@ test("requires whole numbers for headcount, joiners and leavers", () => {
 
 test("checkFigureCell enforces the same rules for manual edits", () => {
   assert.equal(checkFigureCell("Expenses", 500), null);
-  assert.equal(checkFigureCell("Cash at bank", -500), null);
   assert.match(checkFigureCell("Expenses", -1)!, /negative/);
   assert.match(checkFigureCell("Headcount", 2.5)!, /whole number/);
   assert.match(checkFigureCell("Revenue", Number.NaN)!, /number/);
 });
 
-test("rejects a balance sheet that does not balance", () => {
-  const bad = error(parse("balance", grid("balance", balanced({ Equity: 38 }))));
-  assert.match(bad, /Jan/); assert.match(bad, /2/);
-  figures(parse("balance", grid("balance", balanced({ Equity: 39 }))));
-});
-
-test("excludes the loan repayment memo from the balance check", () => {
-  figures(parse("balance", grid("balance", balanced({ "Loan repayments due in 12 months": 999 }))));
-});
-
-test("rejects future months for balance and people but not budget", () => {
+test("rejects future months for people but not budget", () => {
   assert.match(error(parse("people", grid("people", people, 11))), /Dec/);
-  assert.match(error(parse("balance", grid("balance", balanced(), 11))), /Dec/);
   figures(parse("people", grid("people", people, 10))); // the current month is allowed
   figures(parse("budget", grid("budget", budget, 11)));
 });
@@ -136,4 +120,9 @@ test("templatePeriod rejects a bad month or year", () => {
   assert.equal(templatePeriod("1999", "3", today), null);
   assert.equal(templatePeriod("2025", "12", today), null);
   assert.equal(templatePeriod("2025", "1.5", today), null);
+});
+
+test("parseGrid rounds currency figures cleanly while still rejecting fractional headcount", () => {
+  assert.equal(figures(parse("budget", grid("budget", { Revenue: "1,000.005", "Direct cost": 60, Overheads: 20 }))).find((f) => f.line === "Revenue")?.value, 1000.01);
+  assert.match(error(parse("people", grid("people", { ...people, Headcount: "10.001" }))), /whole number/);
 });

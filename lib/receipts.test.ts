@@ -26,3 +26,14 @@ test("branchSummary: delivery apps are gross minus cash and card; days counts da
   const s = branchSummary(receiptTable(rows, 2026, 1));
   assert.deepEqual(s, { gross: 2864.5, cash: 110.5, card: 333, deliveryApps: 2421, days: 1 });
 });
+
+test("receiptTable: excludes singular or uppercase bank deposit variants from gross and sums decimals without float drift", () => {
+  const rows = [
+    ...day("2026-02-01", { "Bank deposit": 50, "Cash sales": 0.1, "Credit card sales": 0.2 }),
+    ...day("2026-02-02", { "BANK DEPOSITS": 25, "Cash sales": 1.005 }),
+  ];
+  const t = receiptTable(rows, 2026, 1);
+  assert.equal(t.days[0].gross, 0.3);
+  assert.equal(t.totals["Bank deposits"], 75);
+  assert.equal(t.gross, 1.31);
+});

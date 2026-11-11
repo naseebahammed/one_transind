@@ -26,6 +26,8 @@ test("stock: split batches add up per item and warehouse, the date comes from th
 test("stock: a total that disagrees is flagged, and a file name with no date refuses the file", () => {
   assert.match(balancesFromWorkbook(stockBook(999), "STOCK 08-11-2026.xlsx").issues[0].reason, /add up to 570 but the sheet's total says 999/);
   assert.throws(() => balancesFromWorkbook(stockBook(570), "stock.xlsx"), /no date like/);
+  assert.throws(() => balancesFromWorkbook(stockBook(570), "STOCK 31-02-2026.xlsx"), /no date like/);
+  assert.throws(() => balancesFromWorkbook(stockBook(570), "STOCK 11-25-2026.xlsx"), /MM-DD-YYYY/);
 });
 
 test("a workbook with neither sheet gives nothing", () => {

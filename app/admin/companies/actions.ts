@@ -3,9 +3,10 @@ import { GuardError, requireAdmin, withUploadSlot } from "@/lib/guard";
 import { MAX_PG_INT, parseNonNegativeInt, parsePositiveIntId } from "@/lib/input-validation";
 import { inspectLogoUpload, MAX_LOGO_BYTES } from "@/lib/upload-security";
 import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { saveCompanyRecord, setCompanyHidden } from "@/lib/companies";
 import { parseCompany } from "@/lib/company-input";
+import { REPORTS_CACHE_TAG } from "@/lib/reports";
 import { listSectors } from "@/lib/sectors";
 import { listPropertyTypes } from "@/lib/property-types";
 
@@ -49,6 +50,7 @@ export async function saveCompany(_: FormState, f: FormData): Promise<FormState>
     throw e;
   }
   if (saved) {
+    updateTag(REPORTS_CACHE_TAG);
     revalidatePath("/", "layout");
     redirect("/admin/companies");
   }
@@ -61,5 +63,6 @@ export async function toggleCompanyHidden(f: FormData) {
   const id = parsePositiveIntId(f.get("id"));
   if (!id) return;
   await setCompanyHidden(id, f.get("hidden") === "1" ? 1 : 0);
+  updateTag(REPORTS_CACHE_TAG);
   revalidatePath("/", "layout");
 }

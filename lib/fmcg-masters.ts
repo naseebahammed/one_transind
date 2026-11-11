@@ -3,6 +3,7 @@
 import type ExcelJS from "exceljs";
 
 import { MONTHS } from "./format.ts";
+import { sumMoney } from "./money.ts";
 import { num, type ImportIssue } from "./report-parsers.ts";
 
 export type Salesman = { code: string; name: string; status: string; teamLead: string | null; manager: string | null; salesCategory: string | null; route: string | null };
@@ -12,7 +13,6 @@ export type Brand = { code: string; name: string; department: string | null; man
 export type Assignment = { salesmanCode: string; salesmanName: string; brand: string; supervisor: string | null; channel: string | null; department: string | null; target: number | null };
 export type ManagerTarget = { manager: string; target: number };
 
-const round = (v: number) => Math.round(v * 100) / 100;
 const fold = (v: string) => v.replace(/\s+/g, " ").trim().toLowerCase();
 
 /** Text of a cell. "(blank)" is how a pivot table prints an empty value. */
@@ -117,7 +117,7 @@ export function mastersFromWorkbook(wb: ExcelJS.Workbook) {
       if (!ERP_CODE.test(code) || !cell("BRAND")) return skip(targetTable, i, `"${code}" is not a salesman code with a brand.`);
       assignments.push({ salesmanCode: salesmanCode(code), salesmanName: cell("SMAN_NAME"), brand: seenBrand(cell("BRAND")), supervisor: orNull(cell("SUPERVISOR NAME").replace(/\s*&\s*/g, " & ")), channel: orNull(cell("CHANNEL")), department: orNull(cell("DEPT")), target });
     });
-    const sum = round(assignments.reduce((s, a) => s + (a.target ?? 0), 0));
+    const sum = sumMoney(assignments.map((a) => a.target ?? 0));
     controlTotal = printedTotal;
     if (printedTotal !== null && Math.abs(sum - printedTotal) > 1) issues.push( // each target is rounded to the cent, so the sum can drift by a few cents
 { sheet: targetTable.sheet, row: targetTable.head, reason: `The salesman targets add up to ${sum} but the sheet's total says ${printedTotal}.`, loaded: true });
@@ -131,7 +131,7 @@ export function mastersFromWorkbook(wb: ExcelJS.Workbook) {
       if (target === null) return;
       if (fold(manager) === "total") managerTotal = target; else managerTargets.push({ manager, target });
     });
-    const managerSum = round(managerTargets.reduce((s, x) => s + x.target, 0));
+    const managerSum = sumMoney(managerTargets.map((x) => x.target));
     if (managerTotal !== null && Math.abs(managerSum - managerTotal) > 0.05) issues.push({ sheet: managerTable.sheet, row: managerTable.head, reason: `The manager targets add up to ${managerSum} but the sheet's total says ${managerTotal}.`, loaded: true });
   }
 

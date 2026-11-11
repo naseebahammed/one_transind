@@ -8,6 +8,7 @@ import type { CogsRow, DailyRow, ImportIssue, ReceiptRow } from "@/lib/report-pa
 import { LINES, type Figure, type FigureSection } from "@/lib/company-data";
 import { branchClash, monthlySalesClash, takingsClash } from "@/lib/figure-rules";
 import { isValidFigureAmount } from "@/lib/input-validation";
+import { roundMoney } from "@/lib/money";
 
 /** One uploaded file, kept with its import so it can be re-read or downloaded later. */
 export type Upload = { companyId: number; section: string; name: string; type: string; buf: Buffer; branchId?: number | null; uploadedBy?: string };
@@ -30,7 +31,7 @@ export const listExpenses = () =>
   q<{ company_id: number; year: number; month: number; value: number }>("SELECT company_id, EXTRACT(year FROM period)::int AS year, EXTRACT(month FROM period)::int - 1 AS month, SUM(ABS(value))::float8 AS value FROM app.company_figures WHERE section='expenses' GROUP BY 1, 2, 3");
 
 type FilledMonths = Record<FigureSection | "pnl", Set<number>>;
-const emptyFilled = (): FilledMonths => ({ pnl: new Set(), balance: new Set(), budget: new Set(), people: new Set(), expenses: new Set() });
+const emptyFilled = (): FilledMonths => ({ pnl: new Set(), budget: new Set(), people: new Set(), expenses: new Set() });
 const isMonthFilled = (section: FigureSection | "pnl", n: number) => section === "pnl" || (section in LINES && n >= LINES[section as FigureSection].length);
 
 /** Which months of a year each section has on file. Omit branchId to check across the whole company (including branch uploads); pass null for company-level rows only. */
@@ -95,11 +96,30 @@ export const importFigures = (u: Upload, rows: FigureRow[]) =>
   }, u.companyId);
 
 export type CogsMonth = { branch: string | null; grossSales: number | null; discount: number | null; netSales: number | null; cogs: number | null };
+export type CogsPeriodRow = CogsMonth & { companyId: number; year: number; month: number };
 /** One month of net sales and cost of goods per branch (branch null = the whole company). Costs are negative; cost % is worked out by the caller, never stored. */
 export const listCogsMonth = (companyId: number, year: number, month: number) =>
   q<CogsMonth>(`SELECT b.name AS branch, SUM(f.value) FILTER (WHERE f.line='Gross sales')::float8 AS "grossSales", SUM(f.value) FILTER (WHERE f.line='Discount')::float8 AS discount, SUM(f.value) FILTER (WHERE f.line='Net sales')::float8 AS "netSales", SUM(f.value) FILTER (WHERE f.line='COGS')::float8 AS cogs
     FROM app.company_figures f LEFT JOIN app.branches b ON b.id=f.branch_id
     WHERE f.company_id=$1 AND f.section='cogs' AND f.period = make_date($2::int,$3::int + 1,1) GROUP BY b.name ORDER BY b.name NULLS FIRST`, [companyId, year, month]);
+
+/** Cost of goods per company, month and branch across multiple companies and periods in one query. */
+export async function listCogsPeriods(companyIds: number[], periods: { year: number; month: number }[]): Promise<CogsPeriodRow[]> {
+  if (!companyIds.length || !periods.length) return [];
+  const dates = [...new Set(periods.map((p) => period(p.year, p.month)))];
+  return q<CogsPeriodRow>(
+    `SELECT f.company_id AS "companyId", EXTRACT(year FROM f.period)::int AS year, EXTRACT(month FROM f.period)::int - 1 AS month, b.name AS branch,
+       SUM(f.value) FILTER (WHERE f.line='Gross sales')::float8 AS "grossSales",
+       SUM(f.value) FILTER (WHERE f.line='Discount')::float8 AS discount,
+       SUM(f.value) FILTER (WHERE f.line='Net sales')::float8 AS "netSales",
+       SUM(f.value) FILTER (WHERE f.line='COGS')::float8 AS cogs
+     FROM app.company_figures f LEFT JOIN app.branches b ON b.id=f.branch_id
+     WHERE f.section='cogs' AND f.company_id = ANY($1::int[]) AND f.period = ANY($2::date[])
+     GROUP BY f.company_id, f.period, b.name
+     ORDER BY f.period, array_position($1::int[], f.company_id), b.name NULLS FIRST`,
+    [companyIds, dates],
+  );
+}
 
 /** All or nothing, as one import: the months in the file are replaced for each branch of the company the file has a column for. */
 export const importCogs = (u: Upload, rows: (CogsRow & { branchId: number | null })[], issues: ImportIssue[]) =>
@@ -201,7 +221,7 @@ export const importDaily = (u: Upload, rows: DailyRow[]) =>
 export async function setFigure(companyId: number, section: string, year: number, month: number, main: string, line: string, unitType: string, value: number, branchId?: number | null) {
   if (!isValidFigureAmount(value)) return "Enter a valid amount.";
   if (!Number.isInteger(month) || month < 0 || month > 11) return "Invalid month.";
-  const p = period(year, month), v = Math.round(value * 100) / 100;
+  const p = period(year, month), v = roundMoney(value);
   return numbering(async (c) => {
     const clash = (branchId === undefined ? null : await branchClash(c, companyId, section, [p], branchId)) ?? (section === "sales" ? await monthlySalesClash(c, companyId, [p]) : null);
     if (clash) return clash;
@@ -230,11 +250,18 @@ export const listImports = () =>
 export const getImportFile = (id: number) =>
   q1<{ file: Buffer | null; file_name: string }>("SELECT f.file, i.file_name FROM app.imports i LEFT JOIN app.import_files f ON f.sha256=i.sha256 WHERE i.id=$1", [id]);
 
-/** Latest month with takings for any branch of the company, as { year, month 0-11 }; null when nothing is uploaded. */
-export const latestReceiptMonth = async (companyId: number) => {
-  const row = await q1<{ year: number; month: number }>(`SELECT EXTRACT(year FROM max(date))::int AS year, EXTRACT(month FROM max(date))::int - 1 AS month FROM app.daily_receipts WHERE company_id=$1`, [companyId]);
+/** Latest month with takings for any branch of the given companies, as { year, month 0-11 }; null when nothing is uploaded. */
+export const latestReceiptMonthForCompanies = async (companyIds: number[]) => {
+  if (!companyIds.length) return null;
+  const row = await q1<{ year: number; month: number }>(
+    `SELECT EXTRACT(year FROM max(date))::int AS year, EXTRACT(month FROM max(date))::int - 1 AS month FROM app.daily_receipts WHERE company_id = ANY($1::int[])`,
+    [companyIds],
+  );
   return row && row.year != null ? row : null;
 };
+
+/** Latest month with takings for any branch of the company, as { year, month 0-11 }; null when nothing is uploaded. */
+export const latestReceiptMonth = (companyId: number) => latestReceiptMonthForCompanies([companyId]);
 
 /** One branch's takings for one month (month 0-11), a row per day and channel. */
 export const listReceipts = (branchId: number, year: number, month: number) =>
@@ -251,6 +278,27 @@ export async function listBranchesReceipts(branchIds: number[], year: number, mo
     const list = out.get(r.branch_id);
     const row = { date: r.date, line: r.line, value: r.value };
     if (list) list.push(row); else out.set(r.branch_id, [row]);
+  }
+  return out;
+}
+
+/** Takings of a set of branches across multiple { year, month 0-11 } periods in one query, keyed by `${branchId}|${year}-${month}`. */
+export async function listBranchesReceiptsPeriods(branchIds: number[], periods: { year: number; month: number }[]) {
+  const out = new Map<string, ReceiptRow[]>();
+  if (!branchIds.length || !periods.length) return out;
+  const dates = [...new Set(periods.map((p) => period(p.year, p.month)))];
+  for (const r of await q<ReceiptRow & { branchId: number; year: number; month: number }>(
+    `SELECT r.branch_id AS "branchId", EXTRACT(year FROM r.date)::int AS year, EXTRACT(month FROM r.date)::int - 1 AS month,
+       to_char(r.date,'YYYY-MM-DD') AS date, r.line, r.value::float8 AS value
+     FROM app.daily_receipts r
+     JOIN unnest($2::date[]) AS p(month_start) ON r.date >= p.month_start AND r.date < (p.month_start + interval '1 month')::date
+     WHERE r.branch_id = ANY($1::int[])`,
+    [branchIds, dates],
+  )) {
+    const key = `${r.branchId}|${r.year}-${r.month}`;
+    const list = out.get(key);
+    const row = { date: r.date, line: r.line, value: r.value };
+    if (list) list.push(row); else out.set(key, [row]);
   }
   return out;
 }

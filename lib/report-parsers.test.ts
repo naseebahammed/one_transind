@@ -293,3 +293,59 @@ test("receiptsFromWorkbook asks for a recalculated file when a date was never ca
   ws.getCell(5, 2).value = { formula: "B4+1" } as ExcelJS.CellValue;
   assert.throws(() => receiptsFromWorkbook(wb), /date was never calculated/);
 });
+
+test("num rounds halfway decimal QAR values away from zero without binary float drift", () => {
+  assert.equal(num(1.005, "x"), 1.01);
+  assert.equal(num(35.855, "x"), 35.86);
+  assert.equal(num("(1,000.005)", "x"), -1000.01);
+  assert.equal(num(0.1 + 0.2, "x"), 0.3);
+});
+
+test("cellDate preserves local-midnight dates, reads Excel serial numbers, and rejects US MM/DD/YYYY", () => {
+  assert.equal(cellDate(new Date(2026, 9, 1), "x"), "2026-10-01");
+  assert.equal(cellDate(46296, "x"), "2026-10-01");
+  assert.throws(() => cellDate("10/25/2026", "x"), /MM\/DD\/YYYY/);
+});
+
+test("dailyFromWorkbook rejects ambiguous mid-month US MM/DD/YYYY CSV sheets before wiping multiple months", async () => {
+  const wb = await csv(`${DAILY_HEAD.join(",")}\n05/01/2026,80,200,16000,2,400,800,82,16800,0,204.88,87\n05/02/2026,80,200,16000,2,400,800,82,16800,0,204.88,87\n`);
+  assert.throws(() => dailyFromWorkbook(wb), /MM\/DD\/YYYY/);
+});
+
+test("dailyFromWorkbook keeps real zero-guest vacant days while dropping blank future template rows and trailing zero formulas", () => {
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet("March");
+  ws.addRow(DAILY_HEAD);
+  ws.addRow([new Date("2026-03-01T00:00:00Z"), 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 87]); // real recorded vacant day
+  ws.addRow([new Date("2026-03-02T00:00:00Z"), 40, 200, 8000, 0, 0, 0, 40, 8000, 0, 200, 87]);
+  ws.addRow([new Date("2026-03-03T00:00:00Z"), null, null, { formula: "B4*C4", result: 0 }, null, null, { formula: "E4*F4", result: 0 }, { formula: "B4+E4", result: 0 }, { formula: "D4+G4", result: 0 }, null, null, 87]); // trailing formula zero row
+  ws.addRow([new Date("2026-03-04T00:00:00Z"), null, null, null, null, null, null, null, null, null, null, 87]); // blank future template row
+  const out = dailyFromWorkbook(wb);
+  assert.deepEqual(out.map((r) => [r.date, r.rooms_occupied, r.rooms_available]), [["2026-03-01", 0, 87], ["2026-03-02", 40, 87]]);
+});
+
+test("pnlFromWorkbook rejects combined multi-month headers, ignores YTD/Total summary columns, and rejects duplicate months", async () => {
+  const combined = await xlsx([["Main account", null, null, "Account", "Jun-Jul-2025"], [null], ["REVENUE", null, null, "Room Rent", 100]]);
+  const r1 = pnlFromWorkbook(combined, 0);
+  assert.ok("error" in r1 && /combines multiple months/.test(r1.error));
+
+  const withSummary = await xlsx([["Main account", null, null, "Account", "Jan-2026", "Jan-Dec Total"], [null], ["REVENUE", null, null, "Room Rent", 100, 1200]]);
+  const r2 = pnlFromWorkbook(withSummary, 0);
+  assert.ok("rows" in r2);
+  assert.deepEqual(r2.rows, [{ year: 2026, month: 0, main: "REVENUE", line: "Room Rent", value: 100 }]);
+
+  const dup = await xlsx([["Main account", null, null, "Account", "Jan-2026", "January 2026"], [null], ["REVENUE", null, null, "Room Rent", 100, 100]]);
+  const r3 = pnlFromWorkbook(dup, 0);
+  assert.ok("error" in r3 && /Duplicate column/.test(r3.error));
+});
+
+test("receiptsFromWorkbook rescues unformatted Excel serial dates mid-month and normalizes singular Bank Deposit headers", () => {
+  const wb = new ExcelJS.Workbook();
+  const ws = depositSheet(wb, "October 2026", "2026-10", [[10, 5, 10], [20, 5, 20], [30, 5, 30]]);
+  ws.getCell(3, 3).value = "Bank Deposit"; // singular spelling
+  ws.getCell(5, 2).value = 46297; // 2026-10-02 as unformatted Excel serial number
+  const { rows } = receiptsFromWorkbook(wb);
+  assert.equal(rows.find((r) => r.date === "2026-10-02" && r.line === "Cash sales")?.value, 20);
+  assert.equal(rows.find((r) => r.date === "2026-10-03" && r.line === "Cash sales")?.value, 30, "later days are not truncated after a numeric serial date");
+  assert.ok(rows.some((r) => r.date === "2026-10-01" && r.line === "Bank deposits" && r.value === 10));
+});

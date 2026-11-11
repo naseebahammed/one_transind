@@ -2,6 +2,7 @@
 import { GuardError, requireAdmin } from "@/lib/guard";
 import { cleanText, parseSlugKey } from "@/lib/input-validation";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { createSector, removeSector, renameSectorByKey } from "@/lib/sectors";
 
 export type SectorState = { error?: string; success?: boolean };
@@ -46,4 +47,5 @@ export async function deleteSector(f: FormData) {
   if (!key) return;
   await removeSector(key);
   done();
+  redirect("/admin/sectors");
 }

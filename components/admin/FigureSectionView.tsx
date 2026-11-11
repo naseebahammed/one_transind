@@ -11,7 +11,6 @@ import { linesOf, listFigures } from "@/lib/company-figures";
 import { fmt } from "@/lib/format";
 
 const NOTES: Record<FigureSection, string> = {
-  balance: "Month-end balances in QAR. Assets must equal liabilities plus equity. Every line is needed for a month to count as submitted.",
   budget: "Approved monthly budget in QAR. Net profit is calculated.",
   people: "Month-end headcount, joiners and leavers in numbers, and payroll cost in QAR.",
   expenses: "Total monthly expenses in QAR.",

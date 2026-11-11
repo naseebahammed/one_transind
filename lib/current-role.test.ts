@@ -34,3 +34,14 @@ test("currentRole: unset ADMIN_EMAILS makes nobody admin", () =>
   withAdmins(undefined, async () => {
     assert.equal(await currentRole("boss@x.com", listed), null);
   }));
+
+test("currentRole: point-lookup checker gets normalized email and is skipped for env admins", () =>
+  withAdmins("boss@x.com", async () => {
+    const seen: string[] = [];
+    const lookup = async (email: string) => { seen.push(email); return email === "staff@x.com"; };
+    assert.equal(await currentRole("Boss@X.com", lookup), "admin");
+    assert.deepEqual(seen, []);
+    assert.equal(await currentRole("  Staff@X.com ", lookup), "user");
+    assert.equal(await currentRole("other@x.com", lookup), null);
+    assert.deepEqual(seen, ["staff@x.com", "other@x.com"]);
+  }));

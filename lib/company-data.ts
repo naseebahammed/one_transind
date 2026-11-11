@@ -1,32 +1,28 @@
 // Pure (only the import-free ./format.ts) so `node --test` can load it. Rules for the company page's sections and their uploaded templates.
-export type Section = "profile" | "pnl" | "balance" | "budget" | "people" | "expenses" | "daily";
-export type FigureSection = "balance" | "budget" | "people" | "expenses";
+export type Section = "profile" | "pnl" | "budget" | "people" | "expenses" | "daily";
+export type FigureSection = "budget" | "people" | "expenses";
 export type GridSection = FigureSection | "sales"; // same one-year grid; sales is stored in the company's sales file, not the figures table
 export type Cell = string | number | null;
 export type Figure = { year: number; month: number; line: string; value: number };
 export type MonthStatus = "Submitted" | "Not submitted" | "Not due";
 
-export const SECTIONS: readonly (readonly [Section, string])[] = [["profile", "Profile"], ["pnl", "P&L"], ["balance", "Balance sheet and cash"], ["budget", "Budget"], ["people", "People"], ["expenses", "Expenses"], ["daily", "Daily sales"]]; // daily: restaurants with branches only, the page hides it elsewhere
+export const SECTIONS: readonly (readonly [Section, string])[] = [["profile", "Profile"], ["pnl", "P&L"], ["budget", "Budget"], ["people", "People"], ["expenses", "Expenses"], ["daily", "Daily sales"]]; // daily: restaurants with branches only, the page hides it elsewhere
 
 import { MONTHS } from "./format.ts";
 import { isValidFigureAmount } from "./input-validation.ts";
+import { parseMoneyString, roundMoney } from "./money.ts";
 
 export { MONTHS };
-const AGES = ["current", "1-30 days", "31-60 days", "61-90 days", "over 90 days"];
-const RECEIVABLES = AGES.map((a) => `Receivables: ${a}`), PAYABLES = AGES.map((a) => `Payables: ${a}`);
-const ASSETS = ["Cash at bank", ...RECEIVABLES, "Stock", "Fixed assets", "Other assets"];
-const FUNDING = [...PAYABLES, "Loan balance", "Other liabilities", "Equity"];
 const WHOLE = ["Headcount", "Joiners", "Leavers"];
 
 export const LINES: Record<GridSection, readonly string[]> = {
-  balance: [...ASSETS, ...FUNDING, "Loan repayments due in 12 months"],
   budget: ["Revenue", "Direct cost", "Overheads"],
   people: ["Headcount", "Payroll cost", "Joiners", "Leavers"],
   expenses: ["Expenses"],
   sales: ["Sales"],
 };
 
-export const isFigureSection = (s: string): s is FigureSection => s === "balance" || s === "budget" || s === "people" || s === "expenses";
+export const isFigureSection = (s: string): s is FigureSection => s === "budget" || s === "people" || s === "expenses";
 
 export const sectionName = (s: Section | "sales") => (s === "sales" ? "Monthly sales" : SECTIONS.find(([k]) => k === s)![1]);
 export const templateTitle = (company: string, section: GridSection, year: number) => `${company} | ${sectionName(section)} | ${year}`;
@@ -34,22 +30,26 @@ export const templateTitle = (company: string, section: GridSection, year: numbe
 /** Months after today's have not happened yet, so month-end actuals cannot exist for them. Budgets are set ahead. */
 const isFuture = (year: number, month: number, today: Date) => year > today.getFullYear() || (year === today.getFullYear() && month > today.getMonth());
 const same = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
-const sum = (m: Map<string, number>, lines: string[]) => lines.reduce((s, l) => s + (m.get(l) ?? 0), 0);
 
 /** Checks one cell's number against its line's rules; returns the problem or null. */
 export function checkFigureCell(line: string, v: number): string | null {
   if (!Number.isFinite(v)) return "not a number.";
   if (!isValidFigureAmount(v)) return "amount exceeds the maximum allowed.";
-  if (v < 0 && line !== "Cash at bank") return "cannot be negative.";
+  if (v < 0) return "cannot be negative.";
   if (WHOLE.includes(line) && !Number.isInteger(v)) return "must be a whole number.";
   return null;
 }
 
 /** Blank stays null, never 0: a missing figure and a typed zero mean different things. */
-function readCell(c: Cell): number | null | "bad" {
+function readCell(c: Cell, whole = false): number | null | "bad" {
   if (c === null || (typeof c === "string" && !c.trim())) return null;
-  const v = typeof c === "number" ? c : Number(c.replaceAll(",", "").trim());
-  return Number.isFinite(v) ? v : "bad";
+  if (typeof c === "number") {
+    if (!Number.isFinite(c)) return "bad";
+    return whole && !Number.isInteger(c) ? c : roundMoney(c);
+  }
+  const raw = Number(c.replaceAll(",", "").trim());
+  if (whole) return Number.isFinite(raw) ? raw : "bad";
+  return parseMoneyString(c) ?? "bad";
 }
 
 /** Validates a whole uploaded grid and returns its figures, or the first problem found. Nothing is partly accepted. */
@@ -74,7 +74,7 @@ export function parseGrid(section: GridSection, grid: Cell[][], expected: { comp
   for (let month = 0; month < 12; month++) {
     const name = MONTHS[month], values = new Map<string, number>();
     for (const line of lines) {
-      const v = readCell(rows.get(line)![month + 1] ?? null);
+      const v = readCell(rows.get(line)![month + 1] ?? null, WHOLE.includes(line));
       if (v === null) continue;
       if (v === "bad") return { error: `${line}, ${name}: not a number.` };
       const problem = checkFigureCell(line, v);
@@ -85,10 +85,6 @@ export function parseGrid(section: GridSection, grid: Cell[][], expected: { comp
     const blank = lines.filter((l) => !values.has(l));
     if (blank.length) return { error: `${name} is only partly filled. Missing: ${blank.join(", ")}.` };
     if (section !== "budget" && isFuture(year, month, today)) return { error: `${name} ${year} has not finished yet, so it cannot be submitted.` };
-    if (section === "balance") {
-      const gap = sum(values, ASSETS) - sum(values, FUNDING);
-      if (Math.abs(gap) > 1) return { error: `${name}: the balance sheet is out by QAR ${Math.abs(Math.round(gap * 100) / 100)}. Assets must equal liabilities plus equity.` };
-    }
     for (const [line, value] of values) figures.push({ year, month, line, value });
   }
   return figures.length ? { figures } : { error: "The file has no figures." };

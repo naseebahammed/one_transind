@@ -1,5 +1,6 @@
 import { cacheLife } from "next/cache";
 import { cleanText } from "@/lib/input-validation";
+import { roundMoney } from "@/lib/money";
 import { pg } from "@/lib/pg";
 
 // Read straight from the ERP: open invoices per customer (TC outstanding is the "Account Receivable - SALESMAN" part of this table) and invoices reserved but not yet converted to a delivery order.
@@ -28,7 +29,7 @@ export async function getReceivables(customer: string) {
   const aging = AGING.map((bucket) => ({ bucket, value: 0 }));
   for (const r of open.rows) {
     const d = r.daysOverdue, i = d === 0 ? 0 : d <= 30 ? 1 : d <= 60 ? 2 : d <= 90 ? 3 : 4;
-    aging[i].value += r.balance;
+    aging[i].value = roundMoney(aging[i].value + r.balance);
   }
   return { aging, pending: pending.rows };
 }

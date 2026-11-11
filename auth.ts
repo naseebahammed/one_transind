@@ -5,7 +5,7 @@ import { inTenant, normalizeEmail } from "@/lib/access";
 import { currentRole } from "@/lib/current-role";
 import { acquireConcurrency, checkMultiRateLimit, verifyAndConsumeBotChallenge } from "@/lib/rate-limit";
 import { adminEmails, entraIssuer, hasAdminPasswordLogin, isDevLoginEnabled, verifyAdminPassword } from "@/lib/server-config";
-import { listedEmails } from "@/lib/users";
+import { isListedEmail } from "@/lib/users";
 
 const MINUTE = 60_000;
 
@@ -56,7 +56,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           { key: "global:auth:dev", maxRequests: 20, windowMilliseconds: 5 * MINUTE },
         ]);
         if (!limitDecision.allowed) return null;
-        return (await currentRole(email, listedEmails)) ? { email } : null;
+        return (await currentRole(email, isListedEmail)) ? { email } : null;
       },
     })] : []),
   ],
@@ -69,7 +69,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (account?.provider !== "microsoft-entra-id") return false;
       const tenantId = (profile as { tid?: string } | undefined)?.tid;
       const email = (profile as { preferred_username?: string } | undefined)?.preferred_username;
-      return inTenant(tenantId, entraIssuer()) && !!(await currentRole(email, listedEmails));
+      return inTenant(tenantId, entraIssuer()) && !!(await currentRole(email, isListedEmail));
     },
     jwt({ token, profile, user }) {
       const upn = (profile as { preferred_username?: string } | undefined)?.preferred_username ?? user?.email;

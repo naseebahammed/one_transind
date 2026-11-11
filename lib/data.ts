@@ -224,10 +224,40 @@ export async function getDrill(month: number, kind: "p" | "c", path: string[], d
   return rows.filter((r) => r.value || r.lastMonth || r.lastYear || r.twoYearsAgo || r.cost);
 }
 
-/** Label of the node a path ends at, for breadcrumbs. */
-export async function getDrillLabels(month: number, kind: "p" | "c", path: string[]) {
-  const levels = await Promise.all(path.map((_, i) => getDrill(month, kind, path.slice(0, i))));
-  return path.map((k, i) => levels[i].find((r) => r.key === k)?.label ?? k);
+async function getDrillLabel(kind: "p" | "c", depth: number, rawKey: string): Promise<string> {
+  "use cache";
+  cacheLife("hours");
+  const safeKey = cleanText(rawKey, 120);
+  if (!safeKey || safeKey === "-") return safeKey || "-";
+  if (kind === "p" && depth === 0) {
+    const { rows: [row] } = await pg.query<{ label: string }>(
+      `SELECT department_name AS label FROM public.invs_departments WHERE department_code = $1 LIMIT 1`,
+      [safeKey],
+    );
+    return row?.label || safeKey;
+  }
+  if (kind === "c" && depth === 1) {
+    const table = salesSource();
+    const { rows: [row] } = await pg.query<{ label: string }>(
+      `SELECT "CUST_NAME" AS label FROM ${table} WHERE "CUST_NO" = $1 AND "CUST_NAME" IS NOT NULL LIMIT 1`,
+      [safeKey],
+    );
+    return row?.label || safeKey;
+  }
+  if ((kind === "p" && depth === 2) || (kind === "c" && depth === 3)) {
+    const table = salesSource();
+    const { rows: [row] } = await pg.query<{ label: string }>(
+      `SELECT "ITEM_NAME" AS label FROM ${table} WHERE "ITEM_CODE" = $1 AND "ITEM_NAME" IS NOT NULL LIMIT 1`,
+      [safeKey],
+    );
+    return row?.label || safeKey;
+  }
+  return safeKey;
+}
+
+/** Label of each node along a drill path, for breadcrumbs. */
+export async function getDrillLabels(_month: number, kind: "p" | "c", path: string[]) {
+  return Promise.all(path.map((k, i) => getDrillLabel(kind, i, k)));
 }
 
 /** Monthly sales per year (all years), optionally for one department. */

@@ -32,3 +32,19 @@ test("mergeEmployees keeps one row per ID and the leave date from either file", 
   const merged = mergeEmployees([{ ...e, left: "2024-05-31" }, { ...e, left: null }, { ...e, id: "2", left: null }]);
   assert.deepEqual(merged.map((x) => [x.id, x.left]), [["1", "2024-05-31"], ["2", null]]);
 });
+
+test("parseEmployees validates real calendar dates and reads DD/MM/YYYY and Excel serial numbers", () => {
+  assert.equal(parseEmployees([header, row("9", "2024-02-31", "(blank)")]).errors.length, 1);
+  assert.equal(parseEmployees([header, row("9", "05/25/2024", "(blank)")]).errors.length, 1);
+  const ok = parseEmployees([header, ["10", "A B", "15/05/2024", "x", "FOOD", "HELPER", "INDIA", "(blank)"], ["11", "C D", 45413, "x", "FOOD", "HELPER", "INDIA", "(blank)"]]);
+  assert.deepEqual(ok.errors, []);
+  assert.deepEqual(ok.employees.map((e) => [e.id, e.joined]), [["10", "2024-05-15"], ["11", "2024-05-01"]]);
+});
+
+test("mergeEmployees clears stale leave dates on re-hire regardless of file order", () => {
+  const base = { id: "77", name: "Rehired Staff", department: "FOOD", designation: "COOK", nationality: "INDIA" };
+  const oldStint = { ...base, joined: "2023-01-10", left: "2024-06-30" };
+  const rehire = { ...base, joined: "2025-02-01", left: null };
+  assert.deepEqual(mergeEmployees([oldStint, rehire]), [rehire]);
+  assert.deepEqual(mergeEmployees([rehire, oldStint]), [rehire]);
+});

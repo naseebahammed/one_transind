@@ -2,19 +2,21 @@
 import { GuardError, requireAdmin, withUploadSlot } from "@/lib/guard";
 import { cleanText, parsePositiveIntId } from "@/lib/input-validation";
 import { inspectWorkbookArchive, sanitizeUploadFileName } from "@/lib/upload-security";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { branchOf } from "@/lib/branches";
 import { getCompany } from "@/lib/companies";
 import { checkFigureCell, isFigureSection, LINES, MONTHS, parseGrid, SECTIONS, type FigureSection } from "@/lib/company-data";
 import { deleteFigureMonth, importFigures, linesOf, recordRejected, setFigure, type Upload } from "@/lib/company-figures";
 import { gridFromWorkbook, MAX_UPLOAD_BYTES, readWorkbook } from "@/lib/company-template";
 import { addLog } from "@/lib/db";
+import { REPORTS_CACHE_TAG } from "@/lib/reports";
 
 export type FigureUploadState = { error?: string; ok?: string };
 
 const sectionName = (s: string) => SECTIONS.find(([k]) => k === s)?.[1] ?? s;
 
 function refreshFigurePaths(companyId: number) {
+  updateTag(REPORTS_CACHE_TAG);
   for (const p of [`/admin/companies/${companyId}`, "/admin/companies", "/admin/finance", "/admin/data-status", "/admin/activity"]) revalidatePath(p);
 }
 

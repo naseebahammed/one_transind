@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import ExcelJS from "exceljs";
 import { parseGrid } from "./company-data.ts";
 import { dailyFromWorkbook, unitsFromWorkbook } from "./report-parsers.ts";
-import { buildDailyTemplate, buildFigureTemplate, buildPnlTemplate, buildUnitsTemplate, gridFromWorkbook } from "./company-template.ts";
+import { buildDailyTemplate, buildFigureTemplate, buildPnlTemplate, buildUnitsTemplate, gridFromWorkbook, MAX_WORKBOOK_COLS, MAX_WORKBOOK_ROWS, readWorkbook } from "./company-template.ts";
 
 const reload = async (wb: ExcelJS.Workbook) => {
   const out = new ExcelJS.Workbook();
@@ -116,5 +116,22 @@ test("monthly sales rejects another company's file, future months and negatives"
   assert.ok("error" in parseGrid("sales", grid("Top Perfume | Monthly sales | 2026", 1, 5), want, sellingToday));
   assert.ok("error" in parseGrid("sales", grid(title, 12, 5), want, sellingToday));
   assert.ok("error" in parseGrid("sales", grid(title, 1, -5), want, sellingToday));
+});
+
+test("readWorkbook strips UTF-8 BOM from CSV buffers and rejects oversized sparse workbooks", async () => {
+  const bomCsv = Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from("Line,Jan\nRevenue,1200\n", "utf8")]);
+  const parsedCsv = gridFromWorkbook(await readWorkbook(bomCsv));
+  assert.equal(parsedCsv[0][0], "Line");
+  assert.equal(parsedCsv[1][1], "1200");
+
+  const wide = new ExcelJS.Workbook();
+  wide.addWorksheet("Data").getCell(1, MAX_WORKBOOK_COLS + 1).value = "too wide";
+  const wideBuf = Buffer.from(await wide.xlsx.writeBuffer() as ArrayBuffer);
+  await assert.rejects(readWorkbook(wideBuf), /maximum allowed rows or columns/);
+
+  const tall = new ExcelJS.Workbook();
+  tall.addWorksheet("Data").getCell(MAX_WORKBOOK_ROWS + 1, 1).value = "too tall";
+  const tallBuf = Buffer.from(await tall.xlsx.writeBuffer() as ArrayBuffer);
+  await assert.rejects(readWorkbook(tallBuf), /maximum allowed rows or columns/);
 });
 

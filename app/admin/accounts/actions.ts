@@ -1,13 +1,17 @@
 "use server";
 import { GuardError, requireAdmin } from "@/lib/guard";
 import { cleanText, parsePositiveIntId } from "@/lib/input-validation";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { createAccount, removeAccount, updateAccountById } from "@/lib/accounts";
+import { REPORTS_CACHE_TAG } from "@/lib/reports";
 
 export type AccountState = { error?: string };
 
 const text = (f: FormData, k: string) => cleanText(f.get(k), 80);
-const done = () => revalidatePath("/", "layout");
+const done = () => {
+  updateTag(REPORTS_CACHE_TAG);
+  revalidatePath("/", "layout");
+};
 
 export async function addAccount(_: AccountState, f: FormData): Promise<AccountState> {
   try {

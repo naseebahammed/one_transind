@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireUser } from "@/lib/guard";
 import { getSalesSectors } from "@/lib/sales-sectors";
 import { Suspense } from "react";
@@ -22,6 +23,7 @@ async function Content() {
   const rev = sum(sectors.map((s) => s.value)), cost = sum(sectors.map((s) => s.cost));
   return (
     <>
+      <p style={{ marginBottom: 10 }}><Link href="/finance/pnl">Monthly P&amp;L by company →</Link></p>
       <div className="kpis">
         <Kpi label="Revenue year to date" value={`${fmt(rev / 1e6)} M`} up />
         <Kpi label="Gross margin" value={`${fmt(rev ? (1 - cost / rev) * 100 : 0, 1)}%`} />
