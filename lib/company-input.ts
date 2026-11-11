@@ -4,7 +4,14 @@ import { cleanText, parseNonNegativeInt } from "./input-validation.ts";
 
 export type CompanyInput = { name: string; sector: string; active: number; totalRooms: number; roomTypes: RoomType[]; propertyType: string; erpCode: string };
 
-export const PROPERTY_TYPES = [["apartments", "Apartments"], ["villa", "Villa"]] as const;
+export const PROPERTY_TYPES = [
+  ["apartments", "Apartments"], ["villa", "Villa"], ["property-mgmt", "Property Management"],
+  ["restaurant", "Restaurant"], ["hospitality", "Hospitality"], ["supermarket", "Supermarket"],
+  ["beauty-salon", "Beauty Salon"], ["retail-store", "Retail Store"], ["distributor", "Distributor"],
+  ["holding-company", "Holding Company"], ["facility-service", "Facility Services"], ["cleaning-service", "Cleaning Services"],
+  ["laundry", "Laundry & Dry Cleaning"], ["logistics", "Logistics & Warehousing"], ["freight-shipping", "Freight & Shipping"],
+  ["customs", "Customs Clearance"],
+] as const;
 
 const MAX_ROOMS = 100_000;
 const MAX_ROOM_PRICE = 100_000_000;
