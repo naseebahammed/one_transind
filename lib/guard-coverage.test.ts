@@ -182,3 +182,8 @@ test("secret environment variables are read only inside lib/server-config.ts", (
     .map((f) => relative(ROOT_DIR, f));
   assert.deepEqual(offenders, [], `Direct secret process.env reads outside lib/server-config.ts: ${offenders.join(", ")}`);
 });
+
+test("auth.ts passes a config object to NextAuth so proxy.ts exports a synchronous function", () => {
+  const authText = readFileSync(join(ROOT_DIR, "auth.ts"), "utf8");
+  assert.match(authText, /NextAuth\(\s*\{/, "NextAuth must receive an object so auth((req) => ...) in proxy.ts returns a function, not a Promise");
+});

@@ -7,7 +7,8 @@ import { adminEmails, entraIssuer, hasAdminPasswordLogin, isDevLoginEnabled, ver
 import { listedEmails } from "@/lib/users";
 
 // The provider reads AUTH_MICROSOFT_ENTRA_ID_ID / _SECRET / _ISSUER from the environment.
-export const { handlers, auth, signIn, signOut } = NextAuth(() => ({
+// Pass a plain object (not a lazy callback): in next-auth v5 beta, NextAuth(fn) makes auth(handler) return a Promise instead of a function, breaking proxy.ts.
+export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
     MicrosoftEntraID,
     // Temporary admin password login: on only while ADMIN_LOGIN_HASH is set. Remove that line from .env to switch it off.
@@ -52,4 +53,4 @@ export const { handlers, auth, signIn, signOut } = NextAuth(() => ({
       return session;
     },
   },
-}));
+});
