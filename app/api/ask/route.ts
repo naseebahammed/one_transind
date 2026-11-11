@@ -1,5 +1,6 @@
 import { apiGuard } from "@/lib/guard";
 import { askAnalyst, hasOpenAiKey } from "@/lib/ask-ai";
+import { cleanMultilineText } from "@/lib/input-validation";
 import { connection } from "next/server";
 import { getOverview, getOverviewBrands, getCustomers } from "@/lib/data";
 import { alManzilKey, dailyYears, occupancy, report, revenueLines, years, loadReports } from "@/lib/reports";
@@ -30,17 +31,32 @@ async function context() {
 }
 
 export async function POST(req: Request) {
-  const denied = await apiGuard();
-  if (denied) return denied;
-  await connection();
-  if (!hasOpenAiKey()) return Response.json({ error: "Ask AI is not configured." }, { status: 503 });
+  return apiGuard(req, "user", "ask", async () => {
+    await connection();
+    if (!hasOpenAiKey()) return Response.json({ error: "Ask AI is not configured." }, { status: 503 });
 
-  const { question } = (await req.json().catch(() => ({}))) as { question?: unknown };
-  if (typeof question !== "string" || !question.trim() || question.length > MAX_Q)
-    return Response.json({ error: `Ask a question of 1-${MAX_Q} characters` }, { status: 400 });
+    const rawBody = await req.text();
+    if (Buffer.byteLength(rawBody, "utf8") > 8_192) {
+      return Response.json({ error: "Request payload is too large." }, { status: 413 });
+    }
+    let parsedBody: { question?: unknown } = {};
+    try {
+      parsedBody = JSON.parse(rawBody) as { question?: unknown };
+    } catch {
+      parsedBody = {};
+    }
+    const { question: rawQuestion } = parsedBody;
+    if (typeof rawQuestion !== "string" || rawQuestion.length > MAX_Q) {
+      return Response.json({ error: `Ask a question of 1-${MAX_Q} characters` }, { status: 400 });
+    }
+    const question = cleanMultilineText(rawQuestion, MAX_Q);
+    if (!question) {
+      return Response.json({ error: `Ask a question of 1-${MAX_Q} characters` }, { status: 400 });
+    }
 
-  const data = await context(); // before the timeout starts, so slow queries do not eat OpenAI's 20 s
-  const reply = await askAnalyst(data, question);
-  if ("error" in reply) return Response.json({ error: reply.error }, { status: reply.status });
-  return Response.json({ answer: reply.answer });
+    const data = await context(); // before the timeout starts, so slow queries do not eat OpenAI's 20 s
+    const reply = await askAnalyst(data, question);
+    if ("error" in reply) return Response.json({ error: reply.error }, { status: reply.status });
+    return Response.json({ answer: reply.answer });
+  });
 }

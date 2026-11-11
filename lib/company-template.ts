@@ -2,6 +2,7 @@
 import { Readable } from "node:stream";
 import ExcelJS from "exceljs";
 import { LINES, MONTHS, templateTitle, type Cell, type GridSection } from "./company-data.ts";
+import { inspectWorkbookArchive } from "./upload-security.ts";
 
 export function buildFigureTemplate(company: string, section: GridSection, year: number) {
   const wb = new ExcelJS.Workbook(), ws = wb.addWorksheet("Data");
@@ -25,14 +26,18 @@ export function buildPnlTemplate(year: number, month: number, accounts: { main: 
 }
 
 export const MAX_UPLOAD_BYTES = 7 * 1024 * 1024;
+export const MAX_WORKBOOK_ROWS = 50_000;
+export const MAX_WORKBOOK_COLS = 200;
 
 /** A workbook from .xlsx or .csv bytes, told apart by content rather than the file name. Throws a readable message. */
 export async function readWorkbook(buf: Buffer) {
+  const inspection = inspectWorkbookArchive(buf);
+  if (!inspection.ok) throw new Error(inspection.error);
+
   const wb = new ExcelJS.Workbook();
-  if (buf.subarray(0, 2).toString("latin1") === "PK") { // every .xlsx is a zip
+  if (inspection.mimeType === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet") {
     try { await wb.xlsx.load(buf as unknown as ExcelJS.Buffer); return wb; } catch { throw new Error("Could not read that file as an Excel workbook."); }
   }
-  if (buf.includes(0)) throw new Error("Could not read that file. Save it as .xlsx or .csv and try again."); // old .xls and other binary formats
   // Cells stay as text: the default parser turns dates into local-time values, which land a day early in Qatar. num() and cellDate() read the text.
   await wb.csv.read(Readable.from(buf.toString("utf8").replace(/^﻿/, "")), { map: (v: string) => (v === "" ? null : v) });
   return wb;
@@ -75,10 +80,14 @@ function readCell(v: ExcelJS.CellValue): Cell {
 export function gridFromWorkbook(wb: ExcelJS.Workbook): Cell[][] {
   const ws = wb.worksheets.find((w) => w.state === "visible");
   if (!ws) return [];
+  if (ws.rowCount > MAX_WORKBOOK_ROWS || ws.columnCount > MAX_WORKBOOK_COLS) {
+    throw new Error("Spreadsheet dimensions exceed the maximum allowed rows or columns.");
+  }
+  const colLimit = Math.min(MAX_WORKBOOK_COLS, Math.max(ws.columnCount, 13));
   const grid: Cell[][] = [];
   for (let r = 1; r <= ws.rowCount; r++) {
     const row: Cell[] = [];
-    for (let c = 1; c <= Math.max(ws.columnCount, 13); c++) row.push(readCell(ws.getCell(r, c).value));
+    for (let c = 1; c <= colLimit; c++) row.push(readCell(ws.getCell(r, c).value));
     grid.push(row);
   }
   return grid;

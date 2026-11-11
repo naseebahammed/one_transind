@@ -416,7 +416,20 @@ const SALES_CLEAN = [
   `CREATE INDEX sales_clean_doc_date ON app.sales_clean("DOC_DATE")`,
 ].map((sql) => ifTable("public.invs_fdd_fnb_sales_do_t", sql)).join("\n");
 
-const MIGRATIONS: readonly (readonly [string, string])[] = [["001_baseline", BASELINE], ["002_standard_data", STANDARD_DATA], ["003_drop_report_files", DROP_REPORT_FILES], ["005_company_expenses", COMPANY_EXPENSES], ["006_company_branches", COMPANY_BRANCHES], ["007_company_has_branches", COMPANY_HAS_BRANCHES], ["008_daily_receipts", DAILY_RECEIPTS], ["009_drop_deals", DROP_DEALS], ["010_drop_invoices", DROP_INVOICES], ["011_enterprise_foundation", ENTERPRISE_FOUNDATION], ["012_rejected_rows_loaded", REJECTED_ROWS_LOADED], ["013_restaurant_cogs", RESTAURANT_COGS], ["014_drop_ownership_pct", DROP_OWNERSHIP_PCT], ["015_fmcg_masters", FMCG_MASTERS], ["016_data_standardization", DATA_STANDARDIZATION], ["017_fmcg_sales_views", FMCG_SALES_VIEWS], ["018_fmcg_balances", FMCG_BALANCES], ["019_fmcg_control", FMCG_CONTROL], ["020_app_optimizations", APP_OPTIMIZATIONS], ["021_app_users", APP_USERS], ["022_erp_outstanding", ERP_OUTSTANDING], ["023_sales_clean", SALES_CLEAN]];
+// HR staff lists: one row per person. Joined and left dates sit on the same row, so a person in both the new-hires and the leavers file is one employee. Headcount and turnover are counted on demand.
+const EMPLOYEES = `
+CREATE TABLE app.employees(id TEXT PRIMARY KEY, name TEXT NOT NULL, department TEXT NOT NULL DEFAULT '', designation TEXT NOT NULL DEFAULT '',
+  nationality TEXT NOT NULL DEFAULT '', joined DATE NOT NULL, left_on DATE, updated TIMESTAMPTZ NOT NULL DEFAULT now());
+`;
+
+// Departments belong to a company. A department_link says which department a staff-file department text (exactly as written in app.employees) counts under; several spellings can link to one department.
+const COMPANY_DEPARTMENTS = `
+CREATE TABLE app.company_departments(id SERIAL PRIMARY KEY, company_id INTEGER NOT NULL REFERENCES app.companies(id) ON DELETE CASCADE, name TEXT NOT NULL);
+CREATE UNIQUE INDEX company_departments_company_name ON app.company_departments(company_id, lower(name));
+CREATE TABLE app.department_links(source_name TEXT PRIMARY KEY, department_id INTEGER NOT NULL REFERENCES app.company_departments(id) ON DELETE CASCADE);
+`;
+
+const MIGRATIONS: readonly (readonly [string, string])[] = [["001_baseline", BASELINE], ["002_standard_data", STANDARD_DATA], ["003_drop_report_files", DROP_REPORT_FILES], ["005_company_expenses", COMPANY_EXPENSES], ["006_company_branches", COMPANY_BRANCHES], ["007_company_has_branches", COMPANY_HAS_BRANCHES], ["008_daily_receipts", DAILY_RECEIPTS], ["009_drop_deals", DROP_DEALS], ["010_drop_invoices", DROP_INVOICES], ["011_enterprise_foundation", ENTERPRISE_FOUNDATION], ["012_rejected_rows_loaded", REJECTED_ROWS_LOADED], ["013_restaurant_cogs", RESTAURANT_COGS], ["014_drop_ownership_pct", DROP_OWNERSHIP_PCT], ["015_fmcg_masters", FMCG_MASTERS], ["016_data_standardization", DATA_STANDARDIZATION], ["017_fmcg_sales_views", FMCG_SALES_VIEWS], ["018_fmcg_balances", FMCG_BALANCES], ["019_fmcg_control", FMCG_CONTROL], ["020_app_optimizations", APP_OPTIMIZATIONS], ["021_app_users", APP_USERS], ["022_erp_outstanding", ERP_OUTSTANDING], ["023_sales_clean", SALES_CLEAN], ["024_employees", EMPLOYEES], ["025_company_departments", COMPANY_DEPARTMENTS]];
 
 /** Applies the migrations not yet recorded, optionally only up to and including one. Run it inside a transaction holding the init lock. */
 export async function migrate(c: { query: (text: string, params?: unknown[]) => Promise<{ rows: { id: string }[] }> }, upTo?: string) {

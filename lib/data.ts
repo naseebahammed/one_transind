@@ -1,10 +1,13 @@
 import { cacheLife } from "next/cache";
-import { pg } from "@/lib/pg";
+import { cleanText } from "@/lib/input-validation";
 import { getPeriod } from "@/lib/period";
+import { pg } from "@/lib/pg";
+import { salesTable } from "@/lib/server-config";
 
 // Sales value = IN-DTS and IN-OT invoices plus CR credit notes (already negative), from app.sales_clean: de-duplicated, without tax (migration 023). Data starts 2026-08-09.
-// The trailing "s" is the alias some queries use as s."DOC_DATE".
-const table = `${process.env.SALES_TABLE!} s`;
+// Validated via salesTable() so only strict identifier syntax (schema.table or table) can ever be interpolated; trailing "s" is the table alias.
+const salesSource = () => `${salesTable()} s`;
+const clampMonth = (month: number) => (Number.isInteger(month) && month >= 0 && month <= 11 ? month : 0);
 const TOP_ITEMS = 25;
 const TOP_CUSTOMERS = 60;
 
@@ -23,6 +26,7 @@ type Cust = { id: string; name: string; category: string; group: string; months:
 async function getHistory(): Promise<Hist[]> {
   "use cache";
   cacheLife("hours");
+  const table = salesSource();
   const { rows } = await pg.query<Hist>(
     `SELECT EXTRACT(year FROM "DOC_DATE")::int AS year, EXTRACT(month FROM "DOC_DATE")::int AS month,
             SUM("NET_AMOUNT")::float8 AS value, SUM("NET_COST")::float8 AS cost,
@@ -35,6 +39,7 @@ async function getHistory(): Promise<Hist[]> {
 export async function getOverview() {
   "use cache";
   cacheLife("hours");
+  const table = salesSource();
   const { year, month } = await getPeriod(table);
   const { rows } = await pg.query<Hist>(
     `SELECT EXTRACT(year FROM "DOC_DATE")::int AS year, EXTRACT(month FROM "DOC_DATE")::int AS month,
@@ -49,6 +54,7 @@ export async function getOverview() {
 export async function getOverviewBrands() {
   "use cache";
   cacheLife("hours");
+  const table = salesSource();
   const { cur, before } = await getPeriod(table);
   const curStart = `${cur}-01`, beforeStart = `${before}-01`;
   const { rows } = await pg.query<{ k: string; b: string; i: string; v: number; u: number }>(
@@ -76,6 +82,7 @@ export async function getOverviewBrands() {
 export async function getCustomers() {
   "use cache";
   cacheLife("hours");
+  const table = salesSource();
   const { year, month, cur, before } = await getPeriod(table);
   const curStart = `${cur}-01`, beforeStart = `${before}-01`;
   const { rows } = await pg.query<{ id: string; name: string; cat: string; grp: string; m: number; v: number }>(
@@ -124,8 +131,10 @@ const ymOf = (y: number, m: number) => `${y + Math.floor(m / 12)}-${String((((m 
 export async function getBreakdown(month: number, by: Dim) {
   "use cache";
   cacheLife("hours");
+  const table = salesSource();
+  const safeMonth = clampMonth(month);
   const { year } = await getPeriod(table);
-  const cur = ymOf(year, month), before = ymOf(year, month - 1), d = DIMENSIONS[by];
+  const cur = ymOf(year, safeMonth), before = ymOf(year, safeMonth - 1), d = DIMENSIONS[by];
   const [{ rows }, { rows: [n] }] = await Promise.all([
     pg.query<{ k: string; ym: string; v: number; c: number; cr: number }>(
       `SELECT ${d.sql} AS k, (CASE WHEN s."DOC_DATE" >= $1::date THEN $1 ELSE $2 END)::text AS ym, SUM(s."NET_AMOUNT")::float8 AS v, SUM(s."NET_COST")::float8 AS c,
@@ -147,8 +156,10 @@ export async function getBreakdown(month: number, by: Dim) {
 export async function getRoutes(month: number) {
   "use cache";
   cacheLife("hours");
+  const table = salesSource();
+  const safeMonth = clampMonth(month);
   const { year } = await getPeriod(table);
-  const cur = ymOf(year, month), before = ymOf(year, month - 1);
+  const cur = ymOf(year, safeMonth), before = ymOf(year, safeMonth - 1);
   const [{ rows: routes }, { rows: drivers }] = await Promise.all([
     pg.query<{ k: string; ym: string; v: number; drivers: number; docs: number }>(
       `SELECT COALESCE("ROUTE_DESC",'-') AS k, (CASE WHEN "DOC_DATE" >= $1::date THEN $1 ELSE $2 END)::text AS ym, SUM("NET_AMOUNT")::float8 AS v,
@@ -186,13 +197,16 @@ const LEVELS = {
 export async function getDrill(month: number, kind: "p" | "c", path: string[], dept = "") {
   "use cache";
   cacheLife("hours");
+  const table = salesSource();
+  const safeMonth = clampMonth(month);
+  const safeDept = cleanText(dept, 40);
   const { year } = await getPeriod(table);
-  const ym = [ymOf(year, month), ymOf(year, month - 1), ymOf(year - 1, month), ymOf(year - 2, month)];
+  const ym = [ymOf(year, safeMonth), ymOf(year, safeMonth - 1), ymOf(year - 1, safeMonth), ymOf(year - 2, safeMonth)];
   if (path.length >= LEVELS[kind].length) return []; // a path as deep as the leaf level (or deeper, e.g. from a hand-edited URL) has no children
   const level = LEVELS[kind][path.length];
   const params: string[] = [...ym];
-  const where = path.map((p, i) => { params.push(p); return `${LEVELS[kind][i].key}::text = $${params.length}`; });
-  if (dept && kind === "p" && !path.length) { params.push(dept); where.push(`COALESCE(s."DEPT_CODE",'-')::text = $${params.length}`); }
+  const where = path.map((p, i) => { params.push(cleanText(p, 120)); return `${LEVELS[kind][i].key}::text = $${params.length}`; });
+  if (safeDept && kind === "p" && !path.length) { params.push(safeDept); where.push(`COALESCE(s."DEPT_CODE",'-')::text = $${params.length}`); }
   const curSql = inMonth('s."DOC_DATE"', "$1");
   const sql = level.sub.replaceAll("cur", curSql);
   const join = kind === "p" && !path.length ? `LEFT JOIN public.invs_departments d ON d.department_code = s."DEPT_CODE"` : "";
@@ -220,10 +234,12 @@ export async function getDrillLabels(month: number, kind: "p" | "c", path: strin
 export async function getMonthly(dept = "") {
   "use cache";
   cacheLife("hours");
-  if (!dept) return (await getHistory()).map(({ year, month, value }) => ({ year, month, value }));
+  const safeDept = cleanText(dept, 40);
+  if (!safeDept) return (await getHistory()).map(({ year, month, value }) => ({ year, month, value }));
+  const table = salesSource();
   const { rows } = await pg.query<{ year: number; month: number; value: number }>(
     `SELECT EXTRACT(year FROM "DOC_DATE")::int AS year, EXTRACT(month FROM "DOC_DATE")::int AS month, SUM("NET_AMOUNT")::float8 AS value
-     FROM ${table} ${dept ? `WHERE COALESCE("DEPT_CODE",'-') = $1` : ""} GROUP BY 1,2 ORDER BY 1,2`, dept ? [dept] : []);
+     FROM ${table} WHERE COALESCE("DEPT_CODE",'-') = $1 GROUP BY 1,2 ORDER BY 1,2`, [safeDept]);
   return rows;
 }
 
@@ -231,6 +247,7 @@ export async function getMonthly(dept = "") {
 export async function getSectors() {
   "use cache";
   cacheLife("hours");
+  const table = salesSource();
   const { year, month } = await getPeriod(table);
   const thisYear = `s."DOC_DATE" >= make_date(($1)::int,1,1)`;
   const { rows } = await pg.query<{ key: string; label: string; value: number; cost: number; lastYear: number }>(
@@ -247,12 +264,14 @@ export async function getSectors() {
 export async function getStats(month: number, by: "group" | "brand") {
   "use cache";
   cacheLife("hours");
+  const table = salesSource();
+  const safeMonth = clampMonth(month);
   const { year } = await getPeriod(table);
   const col = by === "group" ? `COALESCE("GROUP_NAME",'-')` : `COALESCE("BRAND",'-')`;
   const { rows } = await pg.query<{ key: string; value: number; cost: number; items: number; customers: number }>(
     `SELECT ${col} AS key, SUM("NET_AMOUNT")::float8 AS value, SUM("NET_COST")::float8 AS cost,
             COUNT(DISTINCT "ITEM_CODE")::int AS items, COUNT(DISTINCT "CUST_NO")::int AS customers
-     FROM ${table} WHERE ${inMonth('"DOC_DATE"', "$1")} GROUP BY 1 ORDER BY value DESC`, [ymOf(year, month)]);
+     FROM ${table} WHERE ${inMonth('"DOC_DATE"', "$1")} GROUP BY 1 ORDER BY value DESC`, [ymOf(year, safeMonth)]);
   return rows;
 }
 
@@ -260,9 +279,11 @@ export async function getStats(month: number, by: "group" | "brand") {
 export async function getSalesmen(month: number) {
   "use cache";
   cacheLife("hours");
+  const table = salesSource();
+  const safeMonth = clampMonth(month);
   const { year } = await getPeriod(table);
   const { rows } = await pg.query<{ name: string; value: number; customers: number; docs: number }>(
     `SELECT "SMAN_NAME" AS name, SUM("NET_AMOUNT")::float8 AS value, COUNT(DISTINCT "CUST_NO")::int AS customers, COUNT(DISTINCT "DOC_NO")::int AS docs
-     FROM ${table} WHERE ${inMonth('"DOC_DATE"', "$1")} AND "SMAN_NAME" IS NOT NULL GROUP BY 1 ORDER BY 2 DESC LIMIT 12`, [ymOf(year, month)]);
+     FROM ${table} WHERE ${inMonth('"DOC_DATE"', "$1")} AND "SMAN_NAME" IS NOT NULL GROUP BY 1 ORDER BY 2 DESC LIMIT 12`, [ymOf(year, safeMonth)]);
   return rows;
 }

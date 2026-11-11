@@ -9,6 +9,7 @@ export type MonthStatus = "Submitted" | "Not submitted" | "Not due";
 export const SECTIONS: readonly (readonly [Section, string])[] = [["profile", "Profile"], ["pnl", "P&L"], ["balance", "Balance sheet and cash"], ["budget", "Budget"], ["people", "People"], ["expenses", "Expenses"], ["daily", "Daily sales"]]; // daily: restaurants with branches only, the page hides it elsewhere
 
 import { MONTHS } from "./format.ts";
+import { isValidFigureAmount } from "./input-validation.ts";
 
 export { MONTHS };
 const AGES = ["current", "1-30 days", "31-60 days", "61-90 days", "over 90 days"];
@@ -38,6 +39,7 @@ const sum = (m: Map<string, number>, lines: string[]) => lines.reduce((s, l) => 
 /** Checks one cell's number against its line's rules; returns the problem or null. */
 export function checkFigureCell(line: string, v: number): string | null {
   if (!Number.isFinite(v)) return "not a number.";
+  if (!isValidFigureAmount(v)) return "amount exceeds the maximum allowed.";
   if (v < 0 && line !== "Cash at bank") return "cannot be negative.";
   if (WHOLE.includes(line) && !Number.isInteger(v)) return "must be a whole number.";
   return null;

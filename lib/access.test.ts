@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { apiStatus, devLoginEnabled, hashPassword, inTenant, normalizeEmail, parseAdminEmails, passwordMatches, roleOf } from "./access.ts";
+import { apiStatus, devLoginEnabled, hashPassword, inTenant, normalizeEmail, parseAdminEmails, passwordMatches, roleOf, userDisplayName, userInitials } from "./access.ts";
 
 test("parseAdminEmails trims, lowercases and drops empties", () => {
   assert.deepEqual(parseAdminEmails(" A@x.com, b@X.com ,,"), ["a@x.com", "b@x.com"]);
@@ -59,4 +59,16 @@ test("admin password check", () => {
   assert.equal(passwordMatches("anything", "garbage"), false);
   assert.equal(passwordMatches("anything", "salt:00"), false);
   assert.equal(passwordMatches("x".repeat(300), stored), false);
+});
+
+test("userDisplayName prefers profile name and falls back to email username", () => {
+  assert.equal(userDisplayName(" Aisha Al-Thani ", "aisha@transind.com"), "Aisha Al-Thani");
+  assert.equal(userDisplayName("  ", "mohammed.ali@transind.com"), "mohammed.ali");
+  assert.equal(userDisplayName(undefined, "admin@transind.com"), "admin");
+});
+
+test("userInitials extracts up to two uppercase initials", () => {
+  assert.equal(userInitials("Aisha Al-Thani", "aisha@transind.com"), "AA");
+  assert.equal(userInitials(undefined, "mohammed.ali@transind.com"), "MA");
+  assert.equal(userInitials(null, "admin@transind.com"), "A");
 });

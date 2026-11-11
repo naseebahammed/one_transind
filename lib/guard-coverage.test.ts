@@ -16,18 +16,43 @@ function walkFiles(dir: string): string[] {
 const files = walkFiles(APP_DIR).map((file) => ({ file, text: readFileSync(file, "utf8") }));
 const show = (list: { file: string }[]) => list.map((f) => f.file.slice(APP_DIR.length)).join(", ");
 
-test("every API route handler except the Auth.js one calls apiGuard", () => {
+test("every API route handler except the Auth.js one calls apiGuard with a rate-limit bucket", () => {
   const routes = files.filter((f) => /[\\/]api[\\/].*route\.ts$/.test(f.file) && !/[\\/]api[\\/]auth[\\/]/.test(f.file));
   assert.ok(routes.length >= 4, "found too few route handlers; the search is broken");
-  const bad = routes.filter((f) => !f.text.includes("apiGuard("));
-  assert.deepEqual(bad, [], `Unguarded route handlers: ${show(bad)}`);
+  const bad = routes.filter(
+    (f) => !/apiGuard\(\s*req\s*,\s*["'](?:user|admin)["']\s*,\s*["'](?:ask|template|importDownload|logo)["']/.test(f.text),
+  );
+  assert.deepEqual(bad, [], `Unguarded or un-rate-limited route handlers: ${show(bad)}`);
 });
 
-test("admin API route handlers require an admin via apiGuard(\"admin\")", () => {
+test("admin API route handlers require an admin via apiGuard(req, \"admin\", ...)", () => {
   const adminRoutes = files.filter((f) => /[\\/]api[\\/](?:imports|companies)[\\/].*route\.ts$/.test(f.file));
   assert.equal(adminRoutes.length, 3, "expected imports, company template and company logo routes");
-  const bad = adminRoutes.filter((f) => !f.text.includes('apiGuard("admin")'));
+  const bad = adminRoutes.filter((f) => !/apiGuard\(\s*req\s*,\s*["']admin["']/.test(f.text));
   assert.deepEqual(bad, [], `Admin route handlers not restricted to admin: ${show(bad)}`);
+});
+
+test("Auth.js route, proxy.ts, and auth.ts enforce bot protection and rate limits", () => {
+  const authRoute = files.find((f) => /[\\/]api[\\/]auth[\\/].*route\.ts$/.test(f.file));
+  assert.ok(authRoute, "app/api/auth/[...nextauth]/route.ts is missing");
+  assert.equal((authRoute.text.match(/checkBotProtection\(/g) ?? []).length, 2, "Auth GET and POST must both run checkBotProtection");
+  assert.equal((authRoute.text.match(/checkMultiRateLimit\(/g) ?? []).length, 2, "Auth GET and POST must both run checkMultiRateLimit");
+
+  const proxyText = readFileSync(join(ROOT_DIR, "proxy.ts"), "utf8");
+  assert.match(proxyText, /checkBotProtection\(/, "proxy.ts must run checkBotProtection on /api/*");
+  assert.match(proxyText, /checkMultiRateLimit\(/, "proxy.ts must rate-limit unauthenticated /api/* probes");
+
+  const authText = readFileSync(join(ROOT_DIR, "auth.ts"), "utf8");
+  assert.equal(
+    (authText.match(/verifyAndConsumeBotChallenge\(/g) ?? []).length,
+    2,
+    "Both credential providers in auth.ts must verify the single-use bot challenge inside authorize()",
+  );
+  assert.equal(
+    (authText.match(/checkMultiRateLimit\(/g) ?? []).length,
+    2,
+    "Both credential providers in auth.ts must enforce rate limits inside authorize()",
+  );
 });
 
 // A layout is not re-run when someone clicks between pages that share it, so each page must check for itself.
@@ -60,29 +85,38 @@ test("layouts stay synchronous at top level and guard any Suspense data loaders"
   assert.match(appLayout.text, /await\s+requireUser\(\)/, "app layout Toolbar must require a signed-in user");
 });
 
-test("every admin action requires an admin, not just a signed-in user", () => {
+test("every admin action requires an admin and specifies an upload or mutation rate-limit bucket", () => {
   const actions = files.filter((f) => /[\\/]admin[\\/]/.test(f.file) && /^\s*["']use server["']/.test(f.text));
   assert.ok(actions.some((f) => /[\\/]users[\\/]actions\.ts$/.test(f.file)), "app/admin/users/actions.ts is missing");
-  const bad = actions.filter((f) => /await\s+requireUser\(\)/.test(f.text) || !/await\s+requireAdmin\(\)/.test(f.text));
-  assert.deepEqual(bad, [], `Admin actions not admin-only: ${show(bad)}`);
+  const bad = actions.filter(
+    (f) =>
+      /await\s+requireUser\(/.test(f.text) ||
+      /await\s+requireAdmin\(\s*\)/.test(f.text) ||
+      !/await\s+requireAdmin\(\s*["'](?:upload|mutation)["']\s*\)/.test(f.text),
+  );
+  assert.deepEqual(bad, [], `Admin actions missing admin rate-limit kind: ${show(bad)}`);
 });
 
-test("every Server Actions file calls requireUser or requireAdmin in each exported action", () => {
+test("every Server Actions file calls requireAdmin(\"upload\" | \"mutation\") in each exported action", () => {
   const actions = files.filter((f) => /^\s*["']use server["']/.test(f.text));
   assert.ok(actions.length >= 8, "found too few action files; the search is broken");
   const bad = actions.filter((f) => {
     const exported = (f.text.match(/export\s+async\s+function/g) ?? []).length;
-    const guarded = (f.text.match(/await\s+require(User|Admin)\(\)/g) ?? []).length;
+    const guarded = (f.text.match(/await\s+requireAdmin\(\s*["'](?:upload|mutation)["']\s*\)/g) ?? []).length;
     return guarded < exported;
   });
-  assert.deepEqual(bad, [], `Actions missing a guard call: ${show(bad)}`);
+  assert.deepEqual(bad, [], `Actions missing a rate-limited guard call: ${show(bad)}`);
 });
 
-test("no inline use server functions exist outside signin and no-access without a guard", () => {
+test("inline use server functions call allowPublicAction (or requireUser/requireAdmin) in every inline action", () => {
   const allUi = [...files, ...walkFiles(join(ROOT_DIR, "components")).map((file) => ({ file, text: readFileSync(file, "utf8") }))];
   const inline = allUi.filter((f) => !/^\s*["']use server["']/.test(f.text) && /["']use server["']/.test(f.text));
-  const bad = inline.filter((f) => !/[\\/](?:signin|no-access)[\\/]page\.tsx$/.test(f.file) && !/await\s+require(User|Admin)\(\)/.test(f.text));
-  assert.deepEqual(bad, [], `Unguarded inline Server Actions: ${show(bad)}`);
+  assert.ok(inline.length >= 3, "expected inline server actions on signin, no-access, and app layout");
+  for (const entry of inline) {
+    const actionCount = (entry.text.match(/["']use server["']/g) ?? []).length;
+    const publicGuardCount = (entry.text.match(/await\s+allowPublicAction\(/g) ?? []).length;
+    assert.equal(publicGuardCount, actionCount, `${entry.file} has inline server actions missing allowPublicAction()`);
+  }
 });
 
 function hasDirective(text: string, directive: "use client" | "use server"): boolean {
@@ -131,7 +165,16 @@ test("client components and their transitive non-action imports never read proce
   assert.ok(roots.length >= 25, "found too few client files; the search is broken");
 
   const serverOnlyFiles = new Set(
-    ["auth.ts", "lib/pg.ts", "lib/db.ts", "lib/server-config.ts", "lib/ask-ai.ts", "lib/guard.ts"].map((p) => normalize(join(ROOT_DIR, p))),
+    [
+      "auth.ts",
+      "lib/pg.ts",
+      "lib/db.ts",
+      "lib/server-config.ts",
+      "lib/ask-ai.ts",
+      "lib/guard.ts",
+      "lib/rate-limit.ts",
+      "lib/webhook-signature.ts",
+    ].map((p) => normalize(join(ROOT_DIR, p))),
   );
   const visited = new Set<string>(roots);
   const queue = [...roots];
@@ -166,8 +209,9 @@ test("client components and their transitive non-action imports never read proce
   assert.deepEqual(violations, [], `Client boundary violations: ${violations.join("; ")}`);
 });
 
-test("secret environment variables are read only inside lib/server-config.ts", () => {
-  const secretVarPattern = /\bprocess\.env\.(?:PGPASSWORD|OPENAI_API_KEY|AUTH_SECRET|AUTH_MICROSOFT_ENTRA_ID_SECRET|ADMIN_LOGIN_HASH)\b/;
+test("secret and SQL-identifier environment variables are read only inside lib/server-config.ts", () => {
+  const secretVarPattern =
+    /\bprocess\.env\.(?:PGPASSWORD|OPENAI_API_KEY|AUTH_SECRET|AUTH_MICROSOFT_ENTRA_ID_SECRET|ADMIN_LOGIN_HASH|SALES_TABLE|SALES_PERIOD)\b/;
   const allowed = normalize(join(ROOT_DIR, "lib", "server-config.ts"));
   const appAndLibFiles = [
     ...walkFiles(APP_DIR),
@@ -180,7 +224,33 @@ test("secret environment variables are read only inside lib/server-config.ts", (
   const offenders = appAndLibFiles
     .filter((f) => normalize(f) !== allowed && secretVarPattern.test(readFileSync(f, "utf8")))
     .map((f) => relative(ROOT_DIR, f));
-  assert.deepEqual(offenders, [], `Direct secret process.env reads outside lib/server-config.ts: ${offenders.join(", ")}`);
+  assert.deepEqual(offenders, [], `Direct secret/SQL process.env reads outside lib/server-config.ts: ${offenders.join(", ")}`);
+});
+
+test("uploaded files use private storage and never write to public/ or local disk", () => {
+  const publicEntries = readdirSync(join(ROOT_DIR, "public"));
+  assert.deepEqual(publicEntries, ["logo.webp"], `Unexpected files in public/: ${publicEntries.join(", ")}`);
+
+  const runtimeFiles = [
+    ...walkFiles(APP_DIR),
+    ...walkFiles(join(ROOT_DIR, "components")),
+    ...walkFiles(join(ROOT_DIR, "hooks")),
+    ...walkFiles(join(ROOT_DIR, "lib")).filter((f) => !f.endsWith(".test.ts")),
+  ];
+  const diskWriters = runtimeFiles
+    .filter((f) => /\b(?:writeFile|writeFileSync|createWriteStream)\b/.test(readFileSync(f, "utf8")))
+    .map((f) => relative(ROOT_DIR, f));
+  assert.deepEqual(diskWriters, [], `Application modules writing to local filesystem: ${diskWriters.join(", ")}`);
+
+  for (const relPath of [
+    join("app", "api", "companies", "[id]", "logo", "route.ts"),
+    join("app", "api", "imports", "[id]", "route.ts"),
+  ]) {
+    const routeText = readFileSync(join(ROOT_DIR, relPath), "utf8");
+    assert.match(routeText, /X-Content-Type-Options["']?\s*:\s*["']nosniff["']/, `${relPath} must send nosniff`);
+    assert.match(routeText, /Cache-Control["']?\s*:\s*["']private\b/, `${relPath} must disable shared caching`);
+    assert.match(routeText, /Cross-Origin-Resource-Policy["']?\s*:\s*["']same-origin["']/, `${relPath} must restrict cross-origin embedding`);
+  }
 });
 
 test("auth.ts passes a config object to NextAuth so proxy.ts exports a synchronous function", () => {

@@ -1,10 +1,14 @@
+import { randomBytes } from "node:crypto";
 import { devLoginEnabled, parseAdminEmails, passwordMatches } from "./access.ts";
+import { validateSqlTableIdentifier } from "./input-validation.ts";
 
 if (typeof window !== "undefined") {
   throw new Error("lib/server-config.ts is server-only and must never run in the browser.");
 }
 
 type ServerEnv = Record<string, string | undefined>;
+
+const globalSecret = globalThis as unknown as { _ephemeralSigningSecret?: string };
 
 /** PostgreSQL connection settings read strictly on the server. */
 export function databaseConfig(env: ServerEnv = process.env) {
@@ -50,4 +54,37 @@ export function entraIssuer(env: ServerEnv = process.env): string | undefined {
 /** True only in non-production when AUTH_DEV_LOGIN=true is explicitly set. */
 export function isDevLoginEnabled(env: ServerEnv = process.env): boolean {
   return devLoginEnabled(env);
+}
+
+/** Signing secret for server-issued anti-bot form tokens, using AUTH_SECRET or a per-process 256-bit fallback. */
+export function authSigningSecret(env: ServerEnv = process.env): string {
+  const configured = env.AUTH_SECRET?.trim() || env.NEXTAUTH_SECRET?.trim();
+  if (configured) return configured;
+  return (globalSecret._ephemeralSigningSecret ??= randomBytes(32).toString("hex"));
+}
+
+/** Expected host:port from AUTH_URL when set, normalized to lowercase. */
+export function configuredAuthHost(env: ServerEnv = process.env): string | undefined {
+  const raw = env.AUTH_URL?.trim();
+  if (!raw) return undefined;
+  try {
+    return new URL(raw).host.toLowerCase();
+  } catch {
+    return undefined;
+  }
+}
+
+/** True only when running behind a trusted reverse proxy that sets X-Forwarded-For / X-Forwarded-Host. */
+export function trustProxy(env: ServerEnv = process.env): boolean {
+  return env.TRUST_PROXY === "true";
+}
+
+/** Validated PostgreSQL table or schema.table identifier for the read-only sales source (`SALES_TABLE`). */
+export function salesTable(env: ServerEnv = process.env): string {
+  return validateSqlTableIdentifier(env.SALES_TABLE);
+}
+
+/** Optional pinned `YYYY-MM` period (`SALES_PERIOD`) from server configuration. */
+export function salesPeriod(env: ServerEnv = process.env): string | undefined {
+  return env.SALES_PERIOD?.trim() || undefined;
 }

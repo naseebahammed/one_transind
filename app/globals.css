@@ -350,3 +350,50 @@ a .chit{cursor:pointer}
 .ctip-r b{color:#f1f4ff;font-weight:600;font-variant-numeric:tabular-nums;text-align:right}
 .ctip-f{margin-top:6px;padding-top:6px;border-top:1px solid rgba(140,160,255,.13);color:#8490b5}
 .ctip-f.up{color:#34d399}.ctip-f.down{color:#ff6b78}
+
+/* Sidebar user profile & logout */
+.rail-user{border-top:1px solid var(--line);padding-top:10px;margin-top:4px;display:flex;flex-direction:column;gap:4px}
+.rail-who{display:flex;align-items:center;gap:8px;padding:6px;min-width:0}
+.rail-avatar{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;flex:none;background:linear-gradient(135deg,rgba(91,124,255,.24),rgba(58,214,255,.14));border:1px solid rgba(140,160,255,.26);color:var(--cyan);font-size:11px;font-weight:700;letter-spacing:.03em}
+.rail-meta{min-width:0;flex:1;display:grid;gap:1px;overflow:hidden}
+.rail-name{font-size:13px;font-weight:600;color:var(--ink);line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rail-email{font-size:11px;color:var(--muted);line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rail-user form{margin:0;display:flex}
+.rail-logout{all:unset;box-sizing:border-box;width:100%;cursor:pointer;display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:12px;font-weight:500;color:var(--muted);transition:background .2s,color .2s}
+.rail-logout svg{width:18px;height:18px;flex:none;transition:transform .2s}
+[dir="rtl"] .rail-logout svg{transform:scaleX(-1)}
+.rail-logout .lbl{flex:1;min-width:0;overflow:hidden;white-space:nowrap}
+.rail-logout:hover{background:var(--bad-bg);color:var(--bad)}
+.rail-logout:hover svg{transform:scale(1.08)}
+[dir="rtl"] .rail-logout:hover svg{transform:scaleX(-1) scale(1.08)}
+.rail-logout:focus-visible{outline:2px solid var(--brand)}
+@media (min-width:641px){
+ .nav{min-height:0;overflow-y:auto;margin-inline:-10px;padding-inline:10px}
+}
+@media (min-width:1101px){
+ .app .rail-who{transition:padding .35s cubic-bezier(.4,0,.2,1),gap .35s cubic-bezier(.4,0,.2,1)}
+ .app .rail-meta{transition:opacity .25s}
+ .app .rail-logout{transition:padding .35s cubic-bezier(.4,0,.2,1),gap .35s cubic-bezier(.4,0,.2,1),background .2s,color .2s}
+ .app .rail-logout .lbl{transition:opacity .25s}
+ .app .rail-logout svg{transition:transform .2s,width .35s,height .35s}
+ .app.mini .rail-who{padding-inline:8px;gap:0}
+ .app.mini .rail-meta{opacity:0}
+ .app.mini .rail-logout{padding-inline:12px;gap:0}
+ .app.mini .rail-logout .lbl{opacity:0}
+ .app.mini .rail-logout svg{width:20px;height:20px}
+}
+@media (max-width:1100px) and (min-width:641px){
+ .rail-user{width:100%;align-items:center}
+ .rail-who{padding:4px 0;justify-content:center}
+ .rail-meta,.rail-logout .lbl{display:none}
+ .rail-logout{width:auto;justify-content:center;padding:11px;gap:0}
+ .rail-logout svg{width:20px;height:20px}
+}
+@media (max-width:640px){
+ .rail-user{border-top:0;padding-top:0;margin-top:0;flex-direction:row;align-items:center;gap:8px;min-width:0}
+ .rail-who{padding:0;gap:7px}
+ .rail-name{max-width:110px;font-size:12.5px}
+ .rail-email,.rail-logout .lbl{display:none}
+ .rail-logout{width:auto;padding:7px;border-radius:9px;border:1px solid var(--line);background:rgba(255,255,255,.04);gap:0}
+}
+@media (prefers-reduced-motion:reduce){.rail-logout:hover svg,[dir="rtl"] .rail-logout:hover svg{transform:none}}

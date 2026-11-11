@@ -4,14 +4,16 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { getOverview, getSalesmen } from "@/lib/data";
 import { fmt, MONTHS } from "@/lib/format";
-import { DEPTS, JOBS, SECTORS, SECTOR } from "@/lib/org";
+import { listCompanies } from "@/lib/companies";
+import { listEmployees } from "@/lib/employee-records";
+import { departmentMovements, monthlyMovements } from "@/lib/employees";
 import { link, parsePath } from "@/lib/url";
-import { Empty, Kpi, NotConnected, Panel } from "@/components/ui";
+import { Empty, Kpi, Panel } from "@/components/ui";
 
 export const metadata = { title: "Human resources · One Transind" };
 type Params = Promise<{ h?: string }>;
 
-// No HR source is connected: the organisation structure is the legacy one, with no headcounts.
+// Only the staff lists (joiners and leavers) are connected; the organisation structure is the legacy one, with no headcounts.
 export default function Page({ searchParams }: { searchParams: Params }) {
   return <Suspense fallback={<p className="empty">Loading…</p>}><Content searchParams={searchParams} /></Suspense>;
 }
@@ -23,69 +25,71 @@ async function Content({ searchParams }: { searchParams: Params }) {
   const p = parsePath(h);
   const o = await getOverview();
   const team = await getSalesmen(o.month);
-  const sec = SECTORS.find((s) => s[0] === p[0]);
-  const deptIdx = Number.isInteger(+p[1]) && +p[1] >= 0 && +p[1] < DEPTS.length ? +p[1] : -1;
-  const jobs = sec && deptIdx >= 0 ? JOBS[sec[0]]?.[deptIdx] : undefined;
-  const rows: { k: string; l: string; sub?: string }[] | null =
-    p.length === 0 ? SECTORS.map((s) => ({ k: s[0], l: s[1], sub: DEPTS.join(" · ") }))
-    : p.length === 1 && sec ? DEPTS.map((d, i) => ({ k: String(i), l: d, sub: JOBS[sec[0]]?.[i]?.join(", ") }))
-    : p.length === 2 && jobs ? jobs.map((j, i) => ({ k: String(i), l: j })) : null;
-  const level = ["Sectors", "Departments", "Job titles", "Employees"][Math.min(p.length, 3)];
-  const crumbs = [sec?.[1] ?? p[0], DEPTS[deptIdx] ?? p[1], jobs?.[+p[2]] ?? p[2]];
+  const year = new Date().getFullYear();
+  const [staff, registry] = await Promise.all([listEmployees(), listCompanies()]);
+  const moves = monthlyMovements(staff, year), byCompany = departmentMovements(staff.map((e) => ({ ...e, department: e.company })), year);
+  const countBy = (rows: typeof staff, key: "company" | "unit") => {
+    const counts = new Map<string, number>();
+    for (const e of rows) counts.set(e[key], (counts.get(e[key]) ?? 0) + 1);
+    return [...counts].sort((x, y) => y[1] - x[1]);
+  };
+  // Path: company, then department (unit), then the people.
+  // Every registered company is listed, with 0 until a department is added to it; people not yet linked to one show as Unassigned.
+  const counts = new Map(countBy(staff, "company"));
+  const companies = [...registry.filter((c) => !c.hidden).map((c) => c.name), ...(counts.has("Unassigned") ? ["Unassigned"] : [])]
+    .map((name): [string, number] => [name, counts.get(name) ?? 0]).sort((x, y) => (x[0] === "Unassigned" ? 1 : y[0] === "Unassigned" ? -1 : y[1] - x[1] || x[0].localeCompare(y[0])));
+  const company = companies.some(([name]) => name === p[0]) ? p[0] : undefined;
+  const units = company ? countBy(staff.filter((e) => e.company === company), "unit") : [];
+  const unit = units.some(([name]) => name === p[1]) ? p[1] : undefined;
+  const people = company && unit ? staff.filter((e) => e.company === company && e.unit === unit).sort((x, y) => y.joined.localeCompare(x.joined)) : [];
+  const list = company ? units : companies, biggest = Math.max(1, ...list.map((r) => r[1])), crumbs = [company, unit].filter((x): x is string => !!x);
 
   return (
     <>
       <div className="kpis">
-        <Kpi label="Employees" value={<NotConnected />} />
-        <Kpi label="Sales staff" value={<NotConnected />} />
-        <Kpi label="Maintenance staff" value={<NotConnected />} />
-        <Kpi label="Pending leave requests" value={<NotConnected />} />
-        <Kpi label="Documents expiring" value={<NotConnected />} />
+        <Kpi label={`Joined ${year}`} value={fmt(moves.joiners.reduce((x, y) => x + y, 0))} />
+        <Kpi label={`Left ${year}`} value={fmt(moves.leavers.reduce((x, y) => x + y, 0))} />
       </div>
       <div className="grid">
         <section className="panel c12">
           <header><h2>Employee directory</h2></header>
-          <div className="mtd"><NotConnected /><span className="src">Employees</span></div>
-          <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
-            <nav className="crumbs" aria-label="breadcrumb">
-              {p.length ? <Link href="/hr">All</Link> : <span className="cur">All</span>}
-              {p.map((_, i) => <span key={i} style={{ display: "contents" }}><i>›</i>{i < p.length - 1 ? <Link href={link("/hr", { h: p.slice(0, i + 1).join("|") })}>{crumbs[i]}</Link> : <span className="cur">{crumbs[i]}</span>}</span>)}
-            </nav>
-            <span className="src">{level}{rows ? " · click any row to drill down" : ""}</span>
-          </div>
-          {rows ? (
-            <div className="drill">{rows.map((r) => (
-              <Link key={r.k} className="dr" href={link("/hr", { h: [...p, r.k].join("|") })}>
-                <span className="lab">{r.l}{r.sub && <small>{r.sub}</small>}</span>
-                <span className="track"><span className="fill" style={{ width: "1%" }} /></span>
-                <span className="num" style={{ textAlign: "end" }}>—</span><span className="chev" aria-hidden="true">›</span>
+          <div className="mtd"><span className="src">People on the 2024 to 2026 new-hire and leaver lists</span></div>
+          <nav className="crumbs" aria-label="breadcrumb" style={{ marginBottom: 8 }}>
+            {crumbs.length ? <Link href="/hr">All</Link> : <span className="cur">All</span>}
+            {crumbs.map((c, i) => <span key={c} style={{ display: "contents" }}><i>›</i>{i < crumbs.length - 1 ? <Link href={link("/hr", { h: crumbs.slice(0, i + 1).join("|") })}>{c}</Link> : <span className="cur">{c}</span>}</span>)}
+          </nav>
+          {!staff.length ? <p className="empty">No staff lists uploaded yet</p> : company && !units.length ? <p className="empty">No departments linked to {company} yet. Add them on the company page under Admin, Companies.</p> : !unit ? (
+            <div className="drill">{list.map(([name, count]) => (
+              <Link key={name} className="dr" href={link("/hr", { h: [...crumbs, name].join("|") })}>
+                <span className="lab">{name}</span>
+                <span className="track"><span className="fill" style={{ width: `${(count / biggest) * 100}%` }} /></span>
+                <span className="num" style={{ textAlign: "end" }}>{fmt(count)}</span><span className="chev" aria-hidden="true">›</span>
               </Link>))}</div>
           ) : (
             <div className="tw scroll"><table>
-              <thead><tr><th>Name</th><th>Employee ID</th><th>Job title</th><th>Department</th><th>Location</th><th>Nationality</th><th>Joined</th></tr></thead>
-              <tbody><Empty cols={7} text="Not connected" /></tbody>
+              <thead><tr><th>Name</th><th>Employee ID</th><th>Job title</th><th>Nationality</th><th>Joined</th><th>Left</th></tr></thead>
+              <tbody>{people.map((e) => <tr key={e.id}><td>{e.name}</td><td>{e.id}</td><td>{e.designation}</td><td>{e.nationality}</td><td>{e.joined}</td><td>{e.left ?? "—"}</td></tr>)}</tbody>
             </table></div>
           )}
         </section>
-        {p[0] === SECTOR.fmcg && (
-          <Panel span={12} title={`Salesmen · ${MONTHS[o.month]} ${o.year}`}>
-            <div className="tw"><table>
-              <thead><tr><th>Name</th><th className="n">Sales (QAR)</th><th className="n">Customers</th><th className="n">Documents</th></tr></thead>
-              <tbody>{team.map((m) => <tr key={m.name}><td><span className="who"><span className="avatar">{m.name.split(" ").map((x) => x[0]).join("").slice(0, 2)}</span>{m.name}</span></td><td className="n num">{fmt(m.value)}</td><td className="n num">{m.customers}</td><td className="n num">{fmt(m.docs)}</td></tr>)}</tbody>
-            </table></div>
-          </Panel>
-        )}
-        <Panel span={5} title="Maintenance staff by sector"><p className="empty">Not connected</p></Panel>
-        <Panel span={7} title="Leave requests">
+        <Panel span={12} title={`Salesmen · ${MONTHS[o.month]} ${o.year}`}>
           <div className="tw"><table>
-            <thead><tr><th>Name</th><th>Sector</th><th>Type</th><th>From</th><th className="n">Days</th><th>Status</th></tr></thead>
-            <tbody><Empty cols={6} text="Not connected" /></tbody>
+            <thead><tr><th>Name</th><th className="n">Sales (QAR)</th><th className="n">Customers</th><th className="n">Documents</th></tr></thead>
+            <tbody>{team.map((m) => <tr key={m.name}><td><span className="who"><span className="avatar">{m.name.split(" ").map((x) => x[0]).join("").slice(0, 2)}</span>{m.name}</span></td><td className="n num">{fmt(m.value)}</td><td className="n num">{m.customers}</td><td className="n num">{fmt(m.docs)}</td></tr>)}</tbody>
           </table></div>
         </Panel>
-        <Panel span={12} title="Documents expiring">
+        <Panel span={7} title={`Joiners and leavers · ${year}`}>
+          {staff.length ? (
+            <div className="tw"><table>
+              <thead><tr><th></th>{MONTHS.map((m) => <th key={m} className="n">{m}</th>)}<th className="n">Total</th></tr></thead>
+              <tbody>{([["Joined", moves.joiners], ["Left", moves.leavers]] as const).map(([label, row]) => <tr key={label}><td>{label}</td>{row.map((v, i) => <td key={i} className="n num">{v || "—"}</td>)}<td className="n num">{fmt(row.reduce((a, b) => a + b, 0))}</td></tr>)}</tbody>
+            </table></div>
+          ) : <p className="empty">No staff lists uploaded yet</p>}
+        </Panel>
+        <Panel span={5} title={`By company · ${year}`}>
           <div className="tw"><table>
-            <thead><tr><th>Name</th><th>Sector</th><th>Document</th><th>Expires</th><th className="n">Left</th></tr></thead>
-            <tbody><Empty cols={5} text="Not connected" /></tbody>
+            <thead><tr><th>Company</th><th className="n">Joined</th><th className="n">Left</th></tr></thead>
+            <tbody>{byCompany.length ? byCompany.map((d) => <tr key={d.department}><td>{d.department}</td><td className="n num">{d.joiners}</td><td className="n num">{d.leavers}</td></tr>) : <Empty cols={3} text="—" />}</tbody>
           </table></div>
         </Panel>
       </div>

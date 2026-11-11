@@ -3,11 +3,16 @@ import { scryptSync } from "node:crypto";
 import test from "node:test";
 import {
   adminEmails,
+  authSigningSecret,
+  configuredAuthHost,
   databaseConfig,
   entraIssuer,
   hasAdminPasswordLogin,
   isDevLoginEnabled,
   openAiConfig,
+  salesPeriod,
+  salesTable,
+  trustProxy,
   verifyAdminPassword,
 } from "./server-config.ts";
 
@@ -55,5 +60,27 @@ test("adminEmails, entraIssuer, and isDevLoginEnabled normalize server env value
   assert.equal(entraIssuer({ AUTH_MICROSOFT_ENTRA_ID_ISSUER: "  " }), undefined);
   assert.equal(isDevLoginEnabled({ NODE_ENV: "production", AUTH_DEV_LOGIN: "true" }), false);
   assert.equal(isDevLoginEnabled({ NODE_ENV: "development", AUTH_DEV_LOGIN: "true" }), true);
+});
+
+test("authSigningSecret, configuredAuthHost, and trustProxy enforce safe defaults", () => {
+  assert.equal(authSigningSecret({ AUTH_SECRET: "  explicit-secret  " }), "explicit-secret");
+  assert.equal(authSigningSecret({ NEXTAUTH_SECRET: "legacy-secret" }), "legacy-secret");
+  const generatedFirst = authSigningSecret({});
+  const generatedSecond = authSigningSecret({});
+  assert.equal(generatedFirst.length, 64);
+  assert.equal(generatedFirst, generatedSecond);
+
+  assert.equal(configuredAuthHost({ AUTH_URL: "https://Portal.OneTransind.com:8443/api/auth" }), "portal.onetransind.com:8443");
+  assert.equal(configuredAuthHost({ AUTH_URL: "not-a-url" }), undefined);
+  assert.equal(configuredAuthHost({}), undefined);
+
+  assert.equal(trustProxy({}), false);
+  assert.equal(trustProxy({ TRUST_PROXY: "false" }), false);
+  assert.equal(trustProxy({ TRUST_PROXY: "true" }), true);
+
+  assert.equal(salesTable({ SALES_TABLE: " app.sales_clean " }), "app.sales_clean");
+  assert.throws(() => salesTable({ SALES_TABLE: "app.sales_clean; DROP TABLE app.users" }), /SALES_TABLE/);
+  assert.equal(salesPeriod({ SALES_PERIOD: " 2026-08 " }), "2026-08");
+  assert.equal(salesPeriod({ SALES_PERIOD: "  " }), undefined);
 });
 

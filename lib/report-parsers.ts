@@ -3,6 +3,7 @@
 import type ExcelJS from "exceljs";
 
 import { MONTHS } from "./format.ts";
+import { isValidFigureAmount } from "./input-validation.ts";
 
 const round = (v: number) => Math.round(v * 100) / 100;
 
@@ -10,13 +11,16 @@ const round = (v: number) => Math.round(v * 100) / 100;
 export function num(v: ExcelJS.CellValue, where: string): number | null {
   const x: unknown = typeof v === "object" && v && "result" in v ? v.result : v;
   if (x === null || x === undefined) return null;
-  if (typeof x === "number") return round(x);
+  if (typeof x === "number") {
+    if (!isValidFigureAmount(x)) throw new Error(`${where}: "${x}" is not a valid amount.`);
+    return round(x);
+  }
   if (typeof x === "object" && ("formula" in x || "sharedFormula" in x)) return null; // a formula Excel never calculated has no value yet
   const raw = typeof x === "object" && "richText" in x ? (x as ExcelJS.CellRichTextValue).richText.map((r) => r.text).join("") : typeof x === "string" ? x : String((x as { error?: string }).error ?? x);
   const t = raw.trim();
   if (!t || t === "-") return null;
   const neg = /^\(.*\)$/.test(t), n = Number((neg ? t.slice(1, -1) : t).replaceAll(",", ""));
-  if (t === "" || !Number.isFinite(n)) throw new Error(`${where}: "${t}" is not a number.`);
+  if (t === "" || !isValidFigureAmount(n)) throw new Error(`${where}: "${t}" is not a number.`);
   return round(neg ? -n : n);
 }
 

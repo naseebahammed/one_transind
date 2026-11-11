@@ -19,8 +19,10 @@ type Kind = "pnl" | "sales" | "units";
 type Key = string | string[];
 export type Reports = { rows: Map<string, ReportRow[]>; daily: Map<string, Day[]>; alManzil: string };
 
-async function buildReports(query?: <T>(text: string) => Promise<T[]>): Promise<Reports> {
-  const q = query ?? (await db()).q;
+type QueryRunner = <T>(text: string, params?: unknown[]) => Promise<T[]>;
+
+async function buildReports(query?: QueryRunner): Promise<Reports> {
+  const q: QueryRunner = query ?? (await db()).q;
   const NUMS = "long_guests,long_rate,long_total,short_guests,short_rate,short_total,rooms_occupied,room_revenue,other_revenue,rooms_available";
   const [figures, derived, days, co] = await Promise.all([
     q<{ id: number; section: Kind; y: number; mo: number; main: string; line: string; unit_type: string; v: number; sign?: 1 | -1 }>(
@@ -33,11 +35,16 @@ async function buildReports(query?: <T>(text: string) => Promise<T[]>): Promise<
        FROM (SELECT company_id, period, main, line, value FROM app.daily_sales_monthly
              UNION ALL SELECT r.company_id, date_trunc('month', r.date)::date AS period, 'REVENUE', 'Sales' AS line, SUM(r.value) AS value
              FROM app.daily_receipts r JOIN app.companies c ON c.id = r.company_id
-             WHERE r.line <> 'Bank deposits' AND c.sector = '${SECTOR.retail}' GROUP BY 1, 2) monthly
-       ORDER BY array_position(ARRAY['Long stay','Short stay','Room revenue','Other revenue','Occupied','Available'], line)`),
+             WHERE r.line <> 'Bank deposits' AND c.sector = $1 GROUP BY 1, 2) monthly
+       ORDER BY array_position(ARRAY['Long stay','Short stay','Room revenue','Other revenue','Occupied','Available'], line)`,
+      [SECTOR.retail],
+    ),
     q<Day & { id: number }>(`SELECT company_id AS id, to_char(date,'YYYY-MM-DD') AS date, ${NUMS.split(",").map((c) => `${c}::float8 AS ${c}`).join(",")} FROM app.daily_sales ORDER BY date`),
     // shortcut: the Al Manzil panels on /finance, /admin/finance and Ask find it by name; give them a company picker to drop this.
-    q<{ id: number }>(`SELECT id FROM app.companies WHERE lower(name) LIKE '${AL_MANZIL_NAME}%' AND active = 1 AND hidden = 0 ORDER BY id LIMIT 1`),
+    q<{ id: number }>(
+      `SELECT id FROM app.companies WHERE lower(name) LIKE $1 ESCAPE '\\' AND active = 1 AND hidden = 0 ORDER BY id LIMIT 1`,
+      [`${AL_MANZIL_NAME}%`],
+    ),
   ]);
   const rows = new Map<string, ReportRow[]>(), index = new Map<string, ReportRow>();
   const put = (id: number, kind: Kind, y: number, main: string, sub: string, mo: number, v: number, sign?: 1 | -1) => {
@@ -60,7 +67,7 @@ async function buildReports(query?: <T>(text: string) => Promise<T[]>): Promise<
 const loadCached = cache(() => buildReports());
 
 /** Load every company's figures from the database (cached per request). `query` is only passed by tests, to run without a database. */
-export const loadReports = (query?: <T>(text: string) => Promise<T[]>) => (query ? buildReports(query) : loadCached());
+export const loadReports = (query?: QueryRunner) => (query ? buildReports(query) : loadCached());
 
 /** Key of the company the Al Manzil panels show. */
 export const alManzilKey = (reports: Reports) => reports.alManzil;

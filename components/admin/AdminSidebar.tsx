@@ -19,6 +19,7 @@ const GROUPS = [
       { href: "/admin/sectors", title: "Sectors", icon: Layers },
       { href: "/admin/company-types", title: "Company types", icon: Home },
       { href: "/admin/sales-sectors", title: "Sales sectors", icon: Layers },
+      { href: "/admin/employees", title: "Staff lists", icon: Users },
     ],
   },
   { label: "Finance", items: [{ href: "/admin/accounts", title: "Chart of accounts", icon: BookOpen }] },

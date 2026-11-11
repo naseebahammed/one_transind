@@ -1,20 +1,28 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import { requireAdmin } from "@/lib/guard";
+import { GuardError, requireAdmin } from "@/lib/guard";
+import { cleanText } from "@/lib/input-validation";
 import { addUser, removeUser } from "@/lib/users";
 
 export type UserState = { error?: string };
 
 export async function addUserAction(_: UserState, f: FormData): Promise<UserState> {
-  await requireAdmin();
-  const res = await addUser(String(f.get("email") ?? "").slice(0, 200));
+  try {
+    await requireAdmin("mutation");
+  } catch (e) {
+    if (e instanceof GuardError) return { error: e.message };
+    throw e;
+  }
+  const res = await addUser(cleanText(f.get("email"), 200));
   if (res.error) return res;
   revalidatePath("/admin/users");
   return {};
 }
 
 export async function removeUserAction(f: FormData) {
-  await requireAdmin();
-  await removeUser(String(f.get("email") ?? ""));
+  await requireAdmin("mutation");
+  const email = cleanText(f.get("email"), 200);
+  if (!email) return;
+  await removeUser(email);
   revalidatePath("/admin/users");
 }

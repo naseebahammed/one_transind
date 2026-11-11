@@ -1,4 +1,5 @@
 import { signOut } from "@/auth";
+import { allowPublicAction } from "@/lib/guard";
 
 export const metadata = { title: "No access - One Transind" };
 
@@ -10,7 +11,7 @@ export default function NoAccess() {
     <main style={box}>
       <h1 style={{ color: "var(--ink)", fontSize: 22, marginBottom: 8 }}>No access</h1>
       <p style={{ marginBottom: 24 }}>Your account is not approved for One Transind. Ask an administrator to add you.</p>
-      <form action={async () => { "use server"; await signOut({ redirectTo: "/signin" }); }}>
+      <form action={async () => { "use server"; if (!(await allowPublicAction("signout"))) return; await signOut({ redirectTo: "/signin" }); }}>
         <button type="submit" style={button}>Sign out</button>
       </form>
     </main>

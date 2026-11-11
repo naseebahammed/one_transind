@@ -1,15 +1,21 @@
 "use server";
-import { requireAdmin } from "@/lib/guard";
+import { GuardError, requireAdmin } from "@/lib/guard";
+import { cleanText, parsePositiveIntId } from "@/lib/input-validation";
 import { revalidatePath } from "next/cache";
 import { createAccount, removeAccount, updateAccountById } from "@/lib/accounts";
 
 export type AccountState = { error?: string };
 
-const text = (f: FormData, k: string) => String(f.get(k) ?? "").trim().replace(/\s+/g, " ").slice(0, 80);
+const text = (f: FormData, k: string) => cleanText(f.get(k), 80);
 const done = () => revalidatePath("/", "layout");
 
 export async function addAccount(_: AccountState, f: FormData): Promise<AccountState> {
-  await requireAdmin();
+  try {
+    await requireAdmin("mutation");
+  } catch (e) {
+    if (e instanceof GuardError) return { error: e.message };
+    throw e;
+  }
   const main = text(f, "main"), sub = text(f, "sub");
   if (!main || !sub) return { error: "Main account and sub ledger account are required." };
   const res = await createAccount(main, sub);
@@ -19,9 +25,14 @@ export async function addAccount(_: AccountState, f: FormData): Promise<AccountS
 }
 
 export async function updateAccount(f: FormData): Promise<AccountState> {
-  await requireAdmin();
-  const id = Number(f.get("id")), main = text(f, "main"), sub = text(f, "sub");
-  if (!Number.isInteger(id) || id <= 0 || !main || !sub) return { error: "Main account and sub ledger account are required." };
+  try {
+    await requireAdmin("mutation");
+  } catch (e) {
+    if (e instanceof GuardError) return { error: e.message };
+    throw e;
+  }
+  const id = parsePositiveIntId(f.get("id")), main = text(f, "main"), sub = text(f, "sub");
+  if (!id || !main || !sub) return { error: "Main account and sub ledger account are required." };
   const res = await updateAccountById(id, main, sub);
   if (res.error) return res;
   done();
@@ -29,9 +40,9 @@ export async function updateAccount(f: FormData): Promise<AccountState> {
 }
 
 export async function deleteAccount(f: FormData) {
-  await requireAdmin();
-  const id = Number(f.get("id"));
-  if (!Number.isInteger(id)) return;
+  await requireAdmin("mutation");
+  const id = parsePositiveIntId(f.get("id"));
+  if (!id) return;
   await removeAccount(id);
   done();
 }

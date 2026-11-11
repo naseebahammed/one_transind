@@ -1,9 +1,20 @@
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { signIn } from "@/auth";
+import { allowPublicAction } from "@/lib/guard";
+import { issueBotChallenge } from "@/lib/rate-limit";
 import { hasAdminPasswordLogin, isDevLoginEnabled } from "@/lib/server-config";
 
 export const metadata = { title: "Sign in - One Transind" };
+
+const honeypotStyle = {
+  position: "absolute",
+  left: -9999,
+  width: 1,
+  height: 1,
+  opacity: 0,
+  pointerEvents: "none",
+} as const;
 
 const css = `
 .si { min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); background: var(--bg); }
@@ -48,7 +59,7 @@ export default function SignIn() {
           <h1 className="si-title">Sign in</h1>
           <p className="si-sub">Restricted to approved Transind staff. Use your Transind Microsoft account.</p>
           {/* The destination is fixed to "/" on purpose: never take it from the address bar. */}
-          <form action={async () => { "use server"; await signIn("microsoft-entra-id", { redirectTo: "/" }); }}>
+          <form action={async () => { "use server"; if (!(await allowPublicAction("signin"))) return; await signIn("microsoft-entra-id", { redirectTo: "/" }); }}>
             <button type="submit" className="si-btn">
               <svg width="20" height="20" viewBox="0 0 21 21" aria-hidden="true">
                 <rect width="10" height="10" fill="#f25022" />
@@ -74,19 +85,25 @@ async function OptionalSignInForms() {
   const showAdminPassword = hasAdminPasswordLogin();
   const showDevLogin = isDevLoginEnabled();
   if (!showAdminPassword && !showDevLogin) return null;
+  const adminChallenge = showAdminPassword ? issueBotChallenge() : "";
+  const devChallenge = showDevLogin ? issueBotChallenge() : "";
   return (
     <>
       {showAdminPassword && (
-        <form action={async (f: FormData) => { "use server"; if (!hasAdminPasswordLogin()) return; await signIn("admin-password", { email: String(f.get("email") ?? ""), password: String(f.get("password") ?? ""), redirectTo: "/" }); }} style={{ marginTop: 24 }}>
+        <form action={async (f: FormData) => { "use server"; if (!(await allowPublicAction("signin"))) return; if (!hasAdminPasswordLogin()) return; await signIn("admin-password", { email: String(f.get("email") ?? ""), password: String(f.get("password") ?? ""), formToken: String(f.get("formToken") ?? ""), website: String(f.get("website") ?? ""), redirectTo: "/" }); }} style={{ marginTop: 24, position: "relative" }}>
           <p className="si-note" style={{ marginTop: 0, marginBottom: 8 }}>Temporary administrator sign-in.</p>
+          <input type="hidden" name="formToken" value={adminChallenge} />
+          <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" style={honeypotStyle} />
           <input name="email" type="email" required placeholder="admin email" aria-label="Admin email" className="si-btn" style={{ marginBottom: 8, fontWeight: 400 }} />
           <input name="password" type="password" required placeholder="password" aria-label="Admin password" className="si-btn" style={{ marginBottom: 8, fontWeight: 400 }} />
           <button type="submit" className="si-btn">Admin sign in</button>
         </form>
       )}
       {showDevLogin && (
-        <form action={async (f: FormData) => { "use server"; if (!isDevLoginEnabled()) return; await signIn("credentials", { email: String(f.get("email") ?? ""), redirectTo: "/" }); }} style={{ marginTop: 24 }}>
+        <form action={async (f: FormData) => { "use server"; if (!(await allowPublicAction("signin"))) return; if (!isDevLoginEnabled()) return; await signIn("credentials", { email: String(f.get("email") ?? ""), formToken: String(f.get("formToken") ?? ""), website: String(f.get("website") ?? ""), redirectTo: "/" }); }} style={{ marginTop: 24, position: "relative" }}>
           <p className="si-note" style={{ marginTop: 0, marginBottom: 8 }}>Development only: test login (never shown in production).</p>
+          <input type="hidden" name="formToken" value={devChallenge} />
+          <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" style={honeypotStyle} />
           <input name="email" type="email" required placeholder="email on the approved list" aria-label="Test login email" className="si-btn" style={{ marginBottom: 8, fontWeight: 400 }} />
           <button type="submit" className="si-btn">Test sign in</button>
         </form>

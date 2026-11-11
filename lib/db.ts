@@ -2,8 +2,15 @@ import type { PoolClient } from "pg";
 import { SECTORS } from "@/lib/org";
 import { PROPERTY_TYPES } from "@/lib/company-input";
 import { ACCOUNT_SEED } from "@/lib/accounts-seed";
+import { cleanText } from "@/lib/input-validation";
 import { pg } from "@/lib/pg";
 import { migrate } from "@/lib/schema";
+
+const SEED_CHECK_SQL = {
+  sectors: "SELECT 1 FROM app.sectors LIMIT 1",
+  propertyTypes: "SELECT 1 FROM app.property_types LIMIT 1",
+  pnlAccounts: "SELECT 1 FROM app.accounts WHERE section='pnl' LIMIT 1",
+} as const;
 
 async function init() {
   const c = await pg.connect();
@@ -11,10 +18,10 @@ async function init() {
     await c.query("BEGIN");
     await c.query("SELECT pg_advisory_xact_lock(7451)"); // concurrent first requests/instances must not double-seed
     await migrate(c);
-    const empty = async (t: string, where = "") => !(await c.query(`SELECT 1 FROM app.${t} ${where} LIMIT 1`)).rowCount;
+    const empty = async (check: keyof typeof SEED_CHECK_SQL) => !(await c.query(SEED_CHECK_SQL[check])).rowCount;
     if (await empty("sectors")) for (const [k, v] of SECTORS) await c.query("INSERT INTO app.sectors VALUES($1,$2)", [k, v]);
-    if (await empty("property_types")) for (const [k, v] of PROPERTY_TYPES) await c.query("INSERT INTO app.property_types VALUES($1,$2)", [k, v]);
-    if (await empty("accounts", "WHERE section='pnl'")) {
+    if (await empty("propertyTypes")) for (const [k, v] of PROPERTY_TYPES) await c.query("INSERT INTO app.property_types VALUES($1,$2)", [k, v]);
+    if (await empty("pnlAccounts")) {
       let i = 0;
       for (const [m, subs] of Object.entries(ACCOUNT_SEED)) { i++; for (const s of subs) await c.query("INSERT INTO app.accounts(main,sub,main_order) VALUES($1,$2,$3)", [m, s, i]); }
     }
@@ -60,6 +67,8 @@ export const q1 = async <T = Record<string, unknown>>(text: string, params: unkn
 export const listLog = async () =>
   (await q<{ t: string; job: string; ok: number; n: number }>("SELECT to_char(at AT TIME ZONE 'Asia/Qatar','YYYY-MM-DD HH24:MI') AS t,job,ok,n FROM app.log ORDER BY id DESC LIMIT 50")).map((x) => ({ ...x, ok: !!x.ok }));
 export const addLog = async (job: string, ok = true, n = 1) => {
-  const [{ t }] = await q<{ t: string }>("INSERT INTO app.log(job,ok,n) VALUES($1,$2,$3) RETURNING to_char(at AT TIME ZONE 'Asia/Qatar','YYYY-MM-DD HH24:MI') AS t", [job, ok ? 1 : 0, n]);
-  return { t, job, ok, n };
+  const safeJob = cleanText(job, 300);
+  const safeCount = Number.isInteger(n) && n >= 0 ? n : 0;
+  const [{ t }] = await q<{ t: string }>("INSERT INTO app.log(job,ok,n) VALUES($1,$2,$3) RETURNING to_char(at AT TIME ZONE 'Asia/Qatar','YYYY-MM-DD HH24:MI') AS t", [safeJob, ok ? 1 : 0, safeCount]);
+  return { t, job: safeJob, ok, n: safeCount };
 };

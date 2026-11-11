@@ -7,6 +7,7 @@ import type { Masters } from "@/lib/fmcg-masters";
 import type { CogsRow, DailyRow, ImportIssue, ReceiptRow } from "@/lib/report-parsers";
 import { LINES, type Figure, type FigureSection } from "@/lib/company-data";
 import { branchClash, monthlySalesClash, takingsClash } from "@/lib/figure-rules";
+import { isValidFigureAmount } from "@/lib/input-validation";
 
 /** One uploaded file, kept with its import so it can be re-read or downloaded later. */
 export type Upload = { companyId: number; section: string; name: string; type: string; buf: Buffer; branchId?: number | null; uploadedBy?: string };
@@ -197,9 +198,9 @@ export const importDaily = (u: Upload, rows: DailyRow[]) =>
   }, u.companyId);
 
 /** One figure typed by hand: no import, so import_id is cleared. When branchId is omitted (company-wide grid), any branch rows for that cell are replaced so they do not double-count. Returns the reason when the save is refused, null when saved. */
-export function setFigure(companyId: number, section: string, year: number, month: number, main: string, line: string, unitType: string, value: number, branchId?: number | null) {
-  if (!Number.isFinite(value)) throw new Error("Value must be a number.");
-  if (!Number.isInteger(month) || month < 0 || month > 11) throw new Error("Month must be 0-11.");
+export async function setFigure(companyId: number, section: string, year: number, month: number, main: string, line: string, unitType: string, value: number, branchId?: number | null) {
+  if (!isValidFigureAmount(value)) return "Enter a valid amount.";
+  if (!Number.isInteger(month) || month < 0 || month > 11) return "Invalid month.";
   const p = period(year, month), v = Math.round(value * 100) / 100;
   return numbering(async (c) => {
     const clash = (branchId === undefined ? null : await branchClash(c, companyId, section, [p], branchId)) ?? (section === "sales" ? await monthlySalesClash(c, companyId, [p]) : null);

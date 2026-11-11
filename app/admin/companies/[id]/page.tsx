@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { BranchesCard } from "@/components/admin/BranchesCard";
+import { CompanyDepartments } from "@/components/admin/CompanyDepartments";
 import { CompanyForm } from "@/components/admin/CompanyForm";
 import { BranchLinks, CompanySectionNav, progress, YearLinks } from "@/components/admin/CompanySectionNav";
 import { FigureSectionView } from "@/components/admin/FigureSectionView";
@@ -16,6 +17,7 @@ import { listBranches } from "@/lib/branches";
 import { getCompany, listCompanyIds } from "@/lib/companies";
 import { isFigureSection, monthStatuses, profileGaps, SECTIONS, type Section } from "@/lib/company-data";
 import { listFilledMonths } from "@/lib/company-figures";
+import { parsePositiveIntId } from "@/lib/input-validation";
 import { listSectors } from "@/lib/sectors";
 import { listPropertyTypes } from "@/lib/property-types";
 import { link } from "@/lib/url";
@@ -32,8 +34,8 @@ export default function EditCompany({ params, searchParams }: { params: Params; 
 }
 
 async function Edit({ params, searchParams }: { params: Params; searchParams: Search }) {
-  const id = Number((await params).id);
-  if (!Number.isInteger(id)) notFound();
+  const id = parsePositiveIntId((await params).id);
+  if (!id) notFound();
   const { section: rawSection, year: rawYear, branch: rawBranch, month: rawMonth } = await searchParams;
   const [company, ids, sectors, propertyTypes, branches] = await Promise.all([getCompany(id), listCompanyIds(), listSectors(), listPropertyTypes(), listBranches(id)]);
   if (!company) notFound();
@@ -86,6 +88,7 @@ async function Edit({ params, searchParams }: { params: Params; searchParams: Se
       {/* Activity keeps this page's DOM across navigation, so remount when saved data changes or the inputs show stale values (and re-save them). */}
       <CompanyForm key={JSON.stringify(company)} company={company} sectors={sectors} propertyTypes={propertyTypes} />
       <BranchesCard key={JSON.stringify([company.has_branches, branches])} companyId={id} enabled={!!company.has_branches} branches={branches} />
+      <CompanyDepartments companyId={id} />
       </>}
     </div>
   );

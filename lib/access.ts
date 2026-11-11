@@ -5,6 +5,22 @@ export type Role = "admin" | "user";
 
 export const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
+/** Display name for the signed-in user: profile name when present, otherwise the username part of their email. */
+export function userDisplayName(name: string | null | undefined, email: string): string {
+  const trimmedName = name?.trim();
+  if (trimmedName) return trimmedName;
+  const trimmedEmail = email.trim();
+  return trimmedEmail.split("@")[0] || trimmedEmail;
+}
+
+/** One or two uppercase initials for the sidebar user badge. */
+export function userInitials(name: string | null | undefined, email: string): string {
+  const label = userDisplayName(name, email);
+  const parts = label.split(/[\s._-]+/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return (parts[0]?.[0] ?? "?").toUpperCase();
+}
+
 /** Reads the ADMIN_EMAILS setting: comma separated, any case or spacing. */
 export const parseAdminEmails = (value: string | undefined) =>
   (value ?? "").split(",").map(normalizeEmail).filter(Boolean);

@@ -1,4 +1,5 @@
 import { q, q1 } from "@/lib/db";
+import { parsePositiveIntId } from "@/lib/input-validation";
 
 export type Branch = { id: number; name: string; active: number; aliases?: string[] };
 
@@ -11,8 +12,8 @@ export const listBranchesForCompanies = (companyIds: number[]) =>
 /** Branch id from a form or URL: null = the whole company, undefined = not a branch of this company (refuse the request). */
 export async function branchOf(companyId: number, raw: unknown) {
   if (raw === null || raw === undefined || raw === "") return null;
-  const id = Number(raw);
-  if (!Number.isInteger(id)) return undefined;
+  const id = parsePositiveIntId(raw);
+  if (!id) return undefined;
   return (await q1("SELECT 1 FROM app.branches WHERE id=$1 AND company_id=$2", [id, companyId])) ? id : undefined;
 }
 
