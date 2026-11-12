@@ -3,6 +3,8 @@ import { SECTOR, SECTORS } from "@/lib/org";
 import { listSectors } from "@/lib/sectors";
 import { keyFor, plRows, report, years, loadReports } from "@/lib/reports";
 import { listCompanies, type Company } from "@/lib/companies";
+import { listEmployees } from "@/lib/employee-records";
+import { getAggregatedReceivables, getLogisticsOverview, listHrExpiringDocuments, listHrLeaveRequests } from "@/lib/manual-report-records";
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { getDrill, getOverview, type DrillRow } from "@/lib/data";
@@ -28,8 +30,9 @@ async function Content({ searchParams }: { searchParams: Params }) {
   const erpDrill = Promise.all([searchParams, overview]).then(([{ p }, o]) =>
     parsePath(p)[0] === SECTOR.trading ? getDrill(o.month, "p", []) : Promise.resolve([] as DrillRow[]),
   );
-  const [reports, { p, all }, o, adminSectors, allCompanies, erpRows] = await Promise.all([
+  const [reports, { p, all }, o, adminSectors, allCompanies, erpRows, ar, staff, logistics, leaves, expiringDocs] = await Promise.all([
     loadReports(), searchParams, overview, listSectors(), listCompanies(), erpDrill,
+    getAggregatedReceivables(), listEmployees(), getLogisticsOverview(), listHrLeaveRequests(), listHrExpiringDocuments(),
   ]);
   const fileSectorCompanies = FILE_SECTORS.map(([k]) => allCompanies.filter((c) => c.sector === k));
   const path = parsePath(p);
@@ -62,14 +65,17 @@ async function Content({ searchParams }: { searchParams: Params }) {
   const cur = o.months[o.month], ytd = sum(o.months.map((m) => m.value));
   const monthly = o.months.map((m) => m.value / 1e6);
   const label = `${MONTHS[o.month]} ${o.year} (1–${o.day})`;
+  const activeStaff = staff.filter((e) => !e.left).length;
+  const lateShipments = logistics.shipments.filter((s) => ["late", "delayed"].includes(s.status.toLowerCase())).length;
+  const pendingLeaves = leaves.filter((l) => l.status.toLowerCase() === "pending").length;
 
   return (
     <>
       <div className="kpis">
         <Kpi label="Sales this month" value={money(cur.value)} delta={label} spark={monthly} />
         <Kpi label="Revenue year to date" value={`${fmt(ytd / 1e6)} M`} spark={monthly} up />
-        <Kpi label="Receivables outstanding" value={<NotConnected />} />
-        <Kpi label="Employees" value={<NotConnected />} />
+        <Kpi label="Receivables outstanding" value={ar ? money(ar.total) : <NotConnected />} delta={ar ? `As of ${ar.latestAsOf}` : undefined} up />
+        <Kpi label="Employees" value={staff.length ? fmt(activeStaff) : <NotConnected />} delta={staff.length ? `${fmt(staff.length)} total on file` : undefined} up />
       </div>
       <div className="grid">
         <Drill
@@ -90,10 +96,10 @@ async function Content({ searchParams }: { searchParams: Params }) {
         ))}
         <Panel span={12} title="Needs follow-up">
           <div className="tw"><table><tbody>
-            <tr><td><span className="chip bad">Over 90 days</span></td><td>Receivables</td><td className="n"><NotConnected /></td></tr>
-            <tr><td><span className="chip warn">Late</span></td><td>Shipment tracking</td><td className="n"><NotConnected /></td></tr>
-            <tr><td><span className="chip warn">Pending</span></td><td>Leave requests awaiting approval</td><td className="n"><NotConnected /></td></tr>
-            <tr><td><span className="chip warn">Documents expiring</span></td><td>HR documents</td><td className="n"><NotConnected /></td></tr>
+            <tr><td><span className="chip bad">Over 90 days</span></td><td>Receivables</td><td className={`n${ar ? " num" : ""}`}>{ar ? `${money(ar.over90)} QAR` : <NotConnected />}</td></tr>
+            <tr><td><span className="chip warn">Late</span></td><td>Shipment tracking</td><td className={`n${logistics.shipments.length ? " num" : ""}`}>{logistics.shipments.length ? fmt(lateShipments) : <NotConnected />}</td></tr>
+            <tr><td><span className="chip warn">Pending</span></td><td>Leave requests awaiting approval</td><td className={`n${leaves.length ? " num" : ""}`}>{leaves.length ? fmt(pendingLeaves) : <NotConnected />}</td></tr>
+            <tr><td><span className="chip warn">Documents expiring</span></td><td>HR documents</td><td className={`n${expiringDocs.length ? " num" : ""}`}>{expiringDocs.length ? fmt(expiringDocs.length) : <NotConnected />}</td></tr>
           </tbody></table></div>
         </Panel>
       </div>

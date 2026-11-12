@@ -110,3 +110,39 @@ test("migrate applies 030_sales_clean_line_key: one row per sales line, only the
   // The five indexes dropped with the view come back.
   for (const index of ["doc_date", "dept_date", "date_cust", "cust_no", "item_code"]) assert.match(sql, new RegExp(`CREATE INDEX sales_clean_${index} ON app\\.sales_clean`));
 });
+
+test("migrate applies 031_manual_report_data additively for all manual report tables", async () => {
+  const executed: { sql: string; params?: unknown[] }[] = [];
+  const applied = new Set([
+    "001_baseline", "002_standard_data", "003_drop_report_files", "005_company_expenses",
+    "006_company_branches", "007_company_has_branches", "008_daily_receipts", "009_drop_deals",
+    "010_drop_invoices", "011_enterprise_foundation", "012_rejected_rows_loaded", "013_restaurant_cogs",
+    "014_drop_ownership_pct", "015_fmcg_masters", "016_data_standardization", "017_fmcg_sales_views",
+    "018_fmcg_balances", "019_fmcg_control", "020_app_optimizations", "021_app_users",
+    "022_erp_outstanding", "023_sales_clean", "024_employees", "025_company_departments",
+    "026_performance_indexes", "027_drop_balance_sheet", "028_financial_and_date_integrity",
+    "029_sales_department_targets", "030_sales_clean_line_key",
+  ]);
+
+  await migrate({
+    query: async (sql, params) => {
+      executed.push({ sql, params });
+      if (sql.startsWith("SELECT id FROM app.schema_migrations")) return { rows: [...applied].map((id) => ({ id })) };
+      return { rows: [] };
+    },
+  });
+
+  const recordStep = executed.find((step) => step.sql.startsWith("INSERT INTO app.schema_migrations"));
+  assert.ok(recordStep, "expected 031_manual_report_data to be recorded");
+  assert.deepEqual(recordStep.params, ["031_manual_report_data"]);
+
+  const sql = executed[executed.indexOf(recordStep) - 1].sql;
+  assert.doesNotMatch(sql, /\b(DROP\s|DELETE\s+FROM|TRUNCATE\s|UPDATE\s|ALTER\s)\b/i);
+  for (const table of [
+    "sales_sector_indicators", "receivables_snapshots", "overdue_invoices", "customer_opportunities",
+    "hr_leave_requests", "hr_expiring_documents", "logistics_kpis", "logistics_fleet",
+    "logistics_shipments", "logistics_warehouses", "logistics_customs",
+  ]) {
+    assert.match(sql, new RegExp(`CREATE TABLE IF NOT EXISTS app\\.${table}\\b`));
+  }
+});

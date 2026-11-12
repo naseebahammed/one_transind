@@ -4,10 +4,12 @@ import { getSalesSectors } from "@/lib/sales-sectors";
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { getOverview } from "@/lib/data";
-import { fmt, MONTHS, sum } from "@/lib/format";
+import { fmt, MONTHS, money, sum } from "@/lib/format";
 import { MonthBars } from "@/components/admin/FinanceCharts";
+import { getAggregatedReceivables, listOverdueInvoices } from "@/lib/manual-report-records";
 import { alManzilKey, report, years, loadReports } from "@/lib/reports";
-import { Empty, Kpi, NotConnected, Panel } from "@/components/ui";
+import { departmentYtdTargets, listSalesDepartmentTargets } from "@/lib/sales-targets";
+import { Empty, HBars, Kpi, NotConnected, Panel } from "@/components/ui";
 
 export const metadata = { title: "Finance · One Transind" };
 
@@ -18,7 +20,11 @@ export default function Page() {
 async function Content() {
   await connection();
   await requireUser();
-  const [reports, o, sectors] = await Promise.all([loadReports(), getOverview(), getSalesSectors(true)]);
+  const [reports, o, sectors, ar, overdueInvoices] = await Promise.all([
+    loadReports(), getOverview(), getSalesSectors(true), getAggregatedReceivables(), listOverdueInvoices(),
+  ]);
+  const deptTargets = await listSalesDepartmentTargets(o.year);
+  const ytdTargets = departmentYtdTargets(deptTargets, o.year, o.month);
   const alManzil = alManzilKey(reports), am = years(reports, alManzil).map((y) => [y, report(reports, y, alManzil)] as const), COLORS = ["#5b7cff", "#3ee08f", "#ffbe55", "#c084fc"];
   const rev = sum(sectors.map((s) => s.value)), cost = sum(sectors.map((s) => s.cost));
   return (
@@ -27,18 +33,27 @@ async function Content() {
       <div className="kpis">
         <Kpi label="Revenue year to date" value={`${fmt(rev / 1e6)} M`} up />
         <Kpi label="Gross margin" value={`${fmt(rev ? (1 - cost / rev) * 100 : 0, 1)}%`} />
-        <Kpi label="Receivables outstanding" value={<NotConnected />} />
-        <Kpi label="Days sales outstanding" value={<NotConnected />} />
+        <Kpi label="Receivables outstanding" value={ar ? money(ar.total) : <NotConnected />} delta={ar ? `As of ${ar.latestAsOf}` : undefined} up />
+        <Kpi label="Days sales outstanding" value={ar && ar.dsoDays !== null ? `${fmt(ar.dsoDays, 1)} d` : <NotConnected />} />
       </div>
       <div className="grid">
         <Panel span={7} title="Revenue by department">
           <div className="tw"><table>
             <thead><tr><th>Sector</th><th className="n">Actual</th><th className="n">Target</th></tr></thead>
-            <tbody>{sectors.map((s) => (
-              <tr key={s.key}><td>{s.label}</td><td className="n num">{fmt(s.value / 1e6, 1)}</td><td className="n"><NotConnected /></td></tr>
-            ))}</tbody>
+            <tbody>{sectors.map((s) => {
+              const target = ytdTargets.get(s.key);
+              return (
+                <tr key={s.key}>
+                  <td>{s.label}</td>
+                  <td className="n num">{fmt(s.value / 1e6, 1)}</td>
+                  <td className={`n${target !== undefined ? " num" : ""}`}>{target !== undefined ? fmt(target / 1e6, 1) : <NotConnected />}</td>
+                </tr>
+              );
+            })}</tbody>
           </table></div>
-          <p className="note" style={{ marginTop: 8 }}>Figures in QAR M, January to {MONTHS[o.month]} {o.year}. No target source is connected.</p>
+          <p className="note" style={{ marginTop: 8 }}>
+            Figures in QAR M, January to {MONTHS[o.month]} {o.year}.{ytdTargets.size === 0 ? " No target source is connected." : ""}
+          </p>
         </Panel>
         <Panel span={6} title="Al Manzil - revenue by year">
           <MonthBars label="Al Manzil revenue by year" months={MONTHS} series={am.map(([y, r], i) => ({ name: String(y), color: COLORS[i % 4], data: r.revenue }))} />
@@ -46,13 +61,37 @@ async function Content() {
         <Panel span={6} title="Al Manzil - net profit / loss by year">
           <MonthBars label="Al Manzil net profit or loss" months={MONTHS} series={am.map(([y, r], i) => ({ name: String(y), color: COLORS[i % 4], data: r.net }))} />
         </Panel>
-        <Panel span={5} title="Receivables aging">
-          <p className="empty">Not connected</p>
+        <Panel span={5} title="Receivables aging" src={ar ? `QAR · As of ${ar.latestAsOf}` : undefined}>
+          {ar ? (
+            <HBars
+              rows={[
+                { l: "Not due", v: ar.notDue },
+                { l: "1–30 days", v: ar.days1To30 },
+                { l: "31–60 days", v: ar.days31To60 },
+                { l: "61–90 days", v: ar.days61To90 },
+                { l: "Over 90 days", v: ar.over90 },
+              ]}
+              unit=" QAR"
+            />
+          ) : (
+            <p className="empty">Not connected</p>
+          )}
         </Panel>
         <Panel span={12} title="Overdue invoices">
           <div className="tw"><table>
             <thead><tr><th>Invoice</th><th>Account</th><th>Due</th><th className="n">Amount</th><th className="n">Balance</th><th>Status</th></tr></thead>
-            <tbody><Empty cols={6} text="Not connected" /></tbody>
+            <tbody>
+              {overdueInvoices.length ? overdueInvoices.map((inv) => (
+                <tr key={inv.id}>
+                  <td className="mono">{inv.invoiceNo}</td>
+                  <td>{inv.accountName}</td>
+                  <td className="mono">{inv.dueDate}</td>
+                  <td className="n num">{fmt(inv.amount)}</td>
+                  <td className="n num">{fmt(inv.balance)}</td>
+                  <td><span className={`chip ${inv.status === "Overdue" || inv.status === "Legal" ? "bad" : "warn"}`}>{inv.status}</span></td>
+                </tr>
+              )) : <Empty cols={6} text="Not connected" />}
+            </tbody>
           </table></div>
         </Panel>
       </div>

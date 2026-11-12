@@ -2,7 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Activity, BookOpen, Building2, ChevronRight, ClipboardCheck, ExternalLink, Home, Layers, Users } from "lucide-react";
+import { Activity, BookOpen, Building2, ChevronRight, ClipboardCheck, ExternalLink, Home, Layers, PenLine, Users } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupLabel, SidebarHeader, SidebarMenu,
   SidebarMenuButton, SidebarMenuItem, SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem, SidebarRail, useSidebar,
@@ -16,6 +16,7 @@ const GROUPS = [
     items: [
       { href: "/admin/companies", title: "Companies", icon: Building2 },
       { href: "/admin/data-status", title: "Data status", icon: ClipboardCheck },
+      { href: "/admin/manual-entry", title: "Manual data entry", icon: PenLine },
       { href: "/admin/sectors", title: "Sectors", icon: Layers },
       { href: "/admin/company-types", title: "Company types", icon: Home },
       { href: "/admin/sales-sectors", title: "Sales sectors", icon: Layers },

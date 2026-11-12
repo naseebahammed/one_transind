@@ -34,7 +34,16 @@ const STYLE = { ok: "text-emerald-600", part: "text-amber-600", none: "text-red-
 
 export default function DataStatus({ searchParams }: { searchParams: Search }) {
   return (
-    <Page title="Data status" description="What each company must provide, and what has been added so far." action={<PrintButton />}>
+    <Page
+      title="Data status"
+      description="What each company must provide, and what has been added so far."
+      action={
+        <div className="flex items-center gap-2">
+          <Button asChild variant="outline" size="sm"><Link href="/admin/manual-entry">Manual data entry</Link></Button>
+          <PrintButton />
+        </div>
+      }
+    >
       <Matrix searchParams={searchParams} />
     </Page>
   );

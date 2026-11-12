@@ -4,7 +4,8 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { getBreakdown, getDrill, getDrillLabels, getMonthly, getOverview } from "@/lib/data";
 import { getSalesSectors } from "@/lib/sales-sectors";
-import { fmt, MONTHS, pct, sum } from "@/lib/format";
+import { computeTargetAttainment, listSalesDepartmentTargets, listSalesSectorIndicators, resolveSectorIndicators } from "@/lib/sales-targets";
+import { fmt, MONTHS, money, pct, sum } from "@/lib/format";
 import { link, parsePath } from "@/lib/url";
 import { Drill } from "@/components/Drill";
 import { CompareChart } from "@/components/charts";
@@ -27,12 +28,15 @@ async function Content({ searchParams }: { searchParams: Params }) {
   const rawM = Number(m);
   const month = Math.min(o.month, Math.max(0, m && Number.isInteger(rawM) && rawM >= 1 ? rawM - 1 : o.month));
   const path = parsePath(p), dept = path[0] ?? "";
-  const [hist, top, subRows, labels, dep] = await Promise.all([
+  const periodIso = `${o.year}-${String(month + 1).padStart(2, "0")}-01`;
+  const [hist, top, subRows, labels, dep, deptTargets, indicatorRows] = await Promise.all([
     getMonthly(dept),
     getDrill(month, "p", []),
     path.length ? getDrill(month, "p", path) : Promise.resolve(null),
     getDrillLabels(month, "p", path),
     getBreakdown(month, "dept"),
+    listSalesDepartmentTargets(o.year),
+    listSalesSectorIndicators(periodIso),
   ]);
   const rows = subRows ?? top;
   const years = [o.year - 2, o.year - 1, o.year];
@@ -60,10 +64,22 @@ async function Content({ searchParams }: { searchParams: Params }) {
   const deptRow = dept ? top.find((r) => r.key === dept) : undefined;
   const credit = dept ? (dep.rows.find((r) => r.key === (deptRow?.label ?? dept))?.creditNotes ?? 0) : sum(dep.rows.map((r) => r.creditNotes));
   const sectorSales = dept ? (deptRow?.value ?? 0) : sum(top.map((r) => r.value));
+  const relevantCodes = dept ? new Set([dept]) : new Set(sectors.map((s) => s.key));
+  const monthTargetRows = deptTargets.filter((t) => t.month === month && relevantCodes.has(t.code));
+  const targetMonthQar = monthTargetRows.length ? sum(monthTargetRows.map((t) => t.target)) : null;
+  const attainment = computeTargetAttainment(val(o.year, month) ?? 0, targetMonthQar);
+  const indicators = resolveSectorIndicators(indicatorRows, dept);
+  const indMoney = (v: number | undefined) => (v !== undefined ? money(v) : undefined);
+  const indPct = (v: number | undefined) => (v !== undefined ? `${fmt(v, 1)}%` : undefined);
   const sectorKpis: [string, string?][] = [
-    ["Van sales"], ["Key accounts"], ["HORECA"], ["Wholesale"],
+    ["Van sales", indMoney(indicators.get("van_sales"))],
+    ["Key accounts", indMoney(indicators.get("key_accounts"))],
+    ["HORECA", indMoney(indicators.get("horeca"))],
+    ["Wholesale", indMoney(indicators.get("wholesale"))],
     ["Returns rate", `${fmt(sectorSales ? -credit / sectorSales * 100 : 0, 1)}%`],
-    ["Out-of-stock loss"], ["Price realisation"], ["Promo uplift"],
+    ["Out-of-stock loss", indMoney(indicators.get("out_of_stock_loss"))],
+    ["Price realisation", indPct(indicators.get("price_realisation"))],
+    ["Promo uplift", indPct(indicators.get("promo_uplift"))],
   ];
 
   return (
@@ -79,7 +95,12 @@ async function Content({ searchParams }: { searchParams: Params }) {
         <Kpi label={`Sales ${mn}${upTo}`} value={`${fmt(g26[month], 2)} M`} delta={<><Delta a={g26[month]} b={g25[month]} /> vs {mn} {years[1]}</>} spark={g26.slice(0, o.month + 1)} />
         <Kpi label={`vs ${mn} ${years[0]}`} value={`${fmt(g24[month], 2)} M`} delta={<Delta a={g26[month]} b={g24[month]} />} spark={g24} />
         <Kpi label="Year to date" value={`${fmt(ytd, 1)} M`} delta={<><Delta a={ytd} b={ytdL} /> vs same period last year</>} spark={g26.slice(0, month + 1)} />
-        <Kpi label="Target attainment" value={<NotConnected />} />
+        <Kpi
+          label="Target attainment"
+          value={attainment !== null ? `${fmt(attainment, 1)}%` : <NotConnected />}
+          delta={targetMonthQar !== null ? `Target ${fmt(M(targetMonthQar), 2)} M` : undefined}
+          up={attainment !== null ? attainment >= 100 : undefined}
+        />
       </div>
       <div className="grid">
         <Panel span={12} title={`Monthly comparison: ${years[2]} vs ${years[1]} and ${years[0]}${dept ? " · " + (sectors.find((s) => s.key === dept)?.label ?? dept) : ""}`}>

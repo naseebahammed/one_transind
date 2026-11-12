@@ -533,7 +533,140 @@ const SALES_CLEAN_LINE_KEY = [
   `CREATE INDEX sales_clean_item_code ON app.sales_clean("ITEM_CODE")`,
 ].map((sql) => ifTable("public.invs_fdd_fnb_sales_do_t", sql)).join("\n");
 
-const MIGRATIONS: readonly (readonly [string, string])[] = [["001_baseline", BASELINE], ["002_standard_data", STANDARD_DATA], ["003_drop_report_files", DROP_REPORT_FILES], ["005_company_expenses", COMPANY_EXPENSES], ["006_company_branches", COMPANY_BRANCHES], ["007_company_has_branches", COMPANY_HAS_BRANCHES], ["008_daily_receipts", DAILY_RECEIPTS], ["009_drop_deals", DROP_DEALS], ["010_drop_invoices", DROP_INVOICES], ["011_enterprise_foundation", ENTERPRISE_FOUNDATION], ["012_rejected_rows_loaded", REJECTED_ROWS_LOADED], ["013_restaurant_cogs", RESTAURANT_COGS], ["014_drop_ownership_pct", DROP_OWNERSHIP_PCT], ["015_fmcg_masters", FMCG_MASTERS], ["016_data_standardization", DATA_STANDARDIZATION], ["017_fmcg_sales_views", FMCG_SALES_VIEWS], ["018_fmcg_balances", FMCG_BALANCES], ["019_fmcg_control", FMCG_CONTROL], ["020_app_optimizations", APP_OPTIMIZATIONS], ["021_app_users", APP_USERS], ["022_erp_outstanding", ERP_OUTSTANDING], ["023_sales_clean", SALES_CLEAN], ["024_employees", EMPLOYEES], ["025_company_departments", COMPANY_DEPARTMENTS], ["026_performance_indexes", PERFORMANCE_INDEXES], ["027_drop_balance_sheet", DROP_BALANCE_SHEET], ["028_financial_and_date_integrity", FINANCIAL_AND_DATE_INTEGRITY], ["029_sales_department_targets", SALES_DEPARTMENT_TARGETS], ["030_sales_clean_line_key", SALES_CLEAN_LINE_KEY]];
+// Manual report records for dashboard, finance, sales, customers, HR and logistics sections that have no live feed yet.
+const MANUAL_REPORT_DATA = `
+CREATE TABLE IF NOT EXISTS app.sales_sector_indicators(
+  department_code TEXT NOT NULL DEFAULT '',
+  period DATE NOT NULL CHECK (EXTRACT(day FROM period) = 1),
+  indicator TEXT NOT NULL CHECK (indicator IN ('van_sales', 'key_accounts', 'horeca', 'wholesale', 'out_of_stock_loss', 'price_realisation', 'promo_uplift')),
+  value NUMERIC(18,2) NOT NULL,
+  updated TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY(department_code, period, indicator)
+);
+CREATE INDEX IF NOT EXISTS sales_sector_indicators_period ON app.sales_sector_indicators(period);
+
+CREATE TABLE IF NOT EXISTS app.receivables_snapshots(
+  id SERIAL PRIMARY KEY,
+  company_id INTEGER REFERENCES app.companies(id) ON DELETE CASCADE,
+  as_of DATE NOT NULL DEFAULT current_date,
+  dso_days NUMERIC(10,1) CHECK (dso_days IS NULL OR dso_days >= 0),
+  not_due NUMERIC(18,2) NOT NULL DEFAULT 0,
+  days_1_30 NUMERIC(18,2) NOT NULL DEFAULT 0,
+  days_31_60 NUMERIC(18,2) NOT NULL DEFAULT 0,
+  days_61_90 NUMERIC(18,2) NOT NULL DEFAULT 0,
+  over_90 NUMERIC(18,2) NOT NULL DEFAULT 0,
+  updated TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT receivables_snapshots_company_key UNIQUE NULLS NOT DISTINCT (company_id)
+);
+
+CREATE TABLE IF NOT EXISTS app.overdue_invoices(
+  id SERIAL PRIMARY KEY,
+  invoice_no TEXT NOT NULL UNIQUE,
+  account_name TEXT NOT NULL,
+  company_id INTEGER REFERENCES app.companies(id) ON DELETE SET NULL,
+  due_date DATE NOT NULL,
+  amount NUMERIC(18,2) NOT NULL CHECK (amount >= 0),
+  balance NUMERIC(18,2) NOT NULL CHECK (balance >= 0),
+  status TEXT NOT NULL DEFAULT 'Overdue',
+  updated TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS overdue_invoices_due_date ON app.overdue_invoices(due_date);
+
+CREATE TABLE IF NOT EXISTS app.customer_opportunities(
+  id SERIAL PRIMARY KEY,
+  customer_code TEXT NOT NULL DEFAULT '',
+  customer_name TEXT NOT NULL,
+  title TEXT NOT NULL,
+  stage TEXT NOT NULL DEFAULT 'Qualification',
+  value NUMERIC(18,2) NOT NULL DEFAULT 0 CHECK (value >= 0),
+  expected_close DATE,
+  owner TEXT NOT NULL DEFAULT '',
+  notes TEXT NOT NULL DEFAULT '',
+  updated TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS customer_opportunities_customer ON app.customer_opportunities(customer_code);
+
+CREATE TABLE IF NOT EXISTS app.hr_leave_requests(
+  id SERIAL PRIMARY KEY,
+  employee_id TEXT NOT NULL DEFAULT '',
+  employee_name TEXT NOT NULL,
+  company_id INTEGER REFERENCES app.companies(id) ON DELETE SET NULL,
+  leave_type TEXT NOT NULL DEFAULT 'Annual',
+  start_date DATE NOT NULL,
+  end_date DATE NOT NULL,
+  days NUMERIC(6,1) NOT NULL DEFAULT 1 CHECK (days > 0),
+  status TEXT NOT NULL DEFAULT 'Pending',
+  updated TIMESTAMPTZ NOT NULL DEFAULT now(),
+  CONSTRAINT hr_leave_dates_valid CHECK (end_date >= start_date)
+);
+CREATE INDEX IF NOT EXISTS hr_leave_requests_status ON app.hr_leave_requests(status);
+
+CREATE TABLE IF NOT EXISTS app.hr_expiring_documents(
+  id SERIAL PRIMARY KEY,
+  employee_id TEXT NOT NULL DEFAULT '',
+  holder_name TEXT NOT NULL,
+  company_id INTEGER REFERENCES app.companies(id) ON DELETE SET NULL,
+  document_type TEXT NOT NULL,
+  document_no TEXT NOT NULL DEFAULT '',
+  expiry_date DATE NOT NULL,
+  status TEXT NOT NULL DEFAULT 'Expiring soon',
+  updated TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS hr_expiring_documents_expiry ON app.hr_expiring_documents(expiry_date);
+
+CREATE TABLE IF NOT EXISTS app.logistics_kpis(
+  id INTEGER PRIMARY KEY DEFAULT 1 CHECK (id = 1),
+  fleet_count INTEGER CHECK (fleet_count IS NULL OR fleet_count >= 0),
+  on_route_count INTEGER CHECK (on_route_count IS NULL OR on_route_count >= 0),
+  outlets_reached INTEGER CHECK (outlets_reached IS NULL OR outlets_reached >= 0),
+  updated TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS app.logistics_fleet(
+  id SERIAL PRIMARY KEY,
+  vehicle_no TEXT NOT NULL UNIQUE,
+  vehicle_type TEXT NOT NULL DEFAULT '',
+  driver_name TEXT NOT NULL DEFAULT '',
+  route TEXT NOT NULL DEFAULT '',
+  temperature_mode TEXT NOT NULL DEFAULT 'Dry',
+  status TEXT NOT NULL DEFAULT 'On route',
+  updated TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS app.logistics_shipments(
+  id SERIAL PRIMARY KEY,
+  shipment_code TEXT NOT NULL UNIQUE,
+  destination TEXT NOT NULL,
+  temperature TEXT NOT NULL DEFAULT '',
+  vehicle TEXT NOT NULL DEFAULT '',
+  eta TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'In transit',
+  updated TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS app.logistics_warehouses(
+  id SERIAL PRIMARY KEY,
+  name TEXT NOT NULL UNIQUE,
+  location TEXT NOT NULL DEFAULT '',
+  temperature_zone TEXT NOT NULL DEFAULT 'Dry',
+  capacity_pallets INTEGER NOT NULL DEFAULT 0 CHECK (capacity_pallets >= 0),
+  occupied_pallets INTEGER NOT NULL DEFAULT 0 CHECK (occupied_pallets >= 0),
+  status TEXT NOT NULL DEFAULT 'Operational',
+  updated TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS app.logistics_customs(
+  id SERIAL PRIMARY KEY,
+  bol_no TEXT NOT NULL UNIQUE,
+  customer TEXT NOT NULL,
+  port TEXT NOT NULL DEFAULT '',
+  eta DATE,
+  status TEXT NOT NULL DEFAULT 'Pending',
+  updated TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+`;
+
+const MIGRATIONS: readonly (readonly [string, string])[] = [["001_baseline", BASELINE], ["002_standard_data", STANDARD_DATA], ["003_drop_report_files", DROP_REPORT_FILES], ["005_company_expenses", COMPANY_EXPENSES], ["006_company_branches", COMPANY_BRANCHES], ["007_company_has_branches", COMPANY_HAS_BRANCHES], ["008_daily_receipts", DAILY_RECEIPTS], ["009_drop_deals", DROP_DEALS], ["010_drop_invoices", DROP_INVOICES], ["011_enterprise_foundation", ENTERPRISE_FOUNDATION], ["012_rejected_rows_loaded", REJECTED_ROWS_LOADED], ["013_restaurant_cogs", RESTAURANT_COGS], ["014_drop_ownership_pct", DROP_OWNERSHIP_PCT], ["015_fmcg_masters", FMCG_MASTERS], ["016_data_standardization", DATA_STANDARDIZATION], ["017_fmcg_sales_views", FMCG_SALES_VIEWS], ["018_fmcg_balances", FMCG_BALANCES], ["019_fmcg_control", FMCG_CONTROL], ["020_app_optimizations", APP_OPTIMIZATIONS], ["021_app_users", APP_USERS], ["022_erp_outstanding", ERP_OUTSTANDING], ["023_sales_clean", SALES_CLEAN], ["024_employees", EMPLOYEES], ["025_company_departments", COMPANY_DEPARTMENTS], ["026_performance_indexes", PERFORMANCE_INDEXES], ["027_drop_balance_sheet", DROP_BALANCE_SHEET], ["028_financial_and_date_integrity", FINANCIAL_AND_DATE_INTEGRITY], ["029_sales_department_targets", SALES_DEPARTMENT_TARGETS], ["030_sales_clean_line_key", SALES_CLEAN_LINE_KEY], ["031_manual_report_data", MANUAL_REPORT_DATA]];
 
 /** Applies the migrations not yet recorded, optionally only up to and including one. Run it inside a transaction holding the init lock. */
 export async function migrate(c: { query: (text: string, params?: unknown[]) => Promise<{ rows: { id: string }[] }> }, upTo?: string) {

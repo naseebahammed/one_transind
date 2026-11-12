@@ -3,7 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 
-const NAMES: Record<string, string> = { admin: "Admin", companies: "Companies", accounts: "Chart of accounts", "data-status": "Data status", sectors: "Sectors", "sales-sectors": "Sales sectors", finance: "Finance", "al-manzil": "Al Manzil 2024 vs 2025", activity: "Activity log", new: "New" };
+const NAMES: Record<string, string> = { admin: "Admin", companies: "Companies", accounts: "Chart of accounts", "data-status": "Data status", "manual-entry": "Manual data entry", sectors: "Sectors", "company-types": "Company types", "sales-sectors": "Sales sectors", employees: "Staff lists", finance: "Finance", "al-manzil": "Al Manzil 2024 vs 2025", activity: "Activity log", users: "Users", new: "New" };
 
 export function Breadcrumbs() {
   const parts = usePathname().split("/").filter(Boolean);
