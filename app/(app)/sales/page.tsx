@@ -9,7 +9,7 @@ import {
   mergeSalesSectorIndicators,
 } from "@/lib/sales-indicators";
 import { getSalesSectors } from "@/lib/sales-sectors";
-import { getManagerTracking } from "@/lib/manager-tracking";
+import { getManagerTracking, getSalesmanTracking, type ManagerTrackingRow } from "@/lib/manager-tracking";
 import { computeTargetAttainment, listSalesSectorIndicators, resolveSectorIndicators } from "@/lib/sales-targets";
 import { fmt, MONTHS, money, pct, sum } from "@/lib/format";
 import { link, parsePath } from "@/lib/url";
@@ -27,6 +27,16 @@ export default function Page({ searchParams }: { searchParams: Params }) {
 
 const M = (x: number) => x / 1e6;
 
+function PaceCells({ pace }: { pace: Omit<ManagerTrackingRow, "manager"> }) {
+  return (
+    <>
+      <td className="n num">{pace.target ? fmt(pace.target) : "—"}</td><td className="n num">{fmt(pace.sales)}</td>
+      <td className="n num">{pace.achievedPct === null ? "—" : `${fmt(pace.achievedPct, 1)}%`}</td><td className="n num">{pace.target ? fmt(pace.balance) : "—"}</td>
+      <td className="n num">{pace.dailyRequired === null ? "—" : fmt(pace.dailyRequired)}</td><td className="n num">{pace.projectedPct === null ? "—" : `${fmt(pace.projectedPct, 1)}%`}</td>
+    </>
+  );
+}
+
 async function Content({ searchParams }: { searchParams: Params }) {
   await connection();
   await requireUser();
@@ -36,7 +46,7 @@ async function Content({ searchParams }: { searchParams: Params }) {
   const path = parsePath(p), dept = path[0] ?? "";
   const deptLabel = dept ? (sectors.find((s) => s.key === dept)?.label ?? dept) : "";
   const periodIso = `${o.year}-${String(month + 1).padStart(2, "0")}-01`;
-  const [hist, top, subRows, labels, dep, deptTargets, indicatorRows, computedIndicators, tracking] = await Promise.all([
+  const [hist, top, subRows, labels, dep, deptTargets, indicatorRows, computedIndicators, tracking, salesmanTracking] = await Promise.all([
     getMonthly(dept),
     getDrill(month, "p", []),
     path.length ? getDrill(month, "p", path) : Promise.resolve(null),
@@ -46,6 +56,7 @@ async function Content({ searchParams }: { searchParams: Params }) {
     listSalesSectorIndicators(periodIso),
     getComputedSalesIndicators(month, dept, deptLabel),
     getManagerTracking(periodIso).catch(() => null), // the ERP view only exists on the live server
+    getSalesmanTracking(periodIso).catch(() => null),
   ]);
   const rows = subRows ?? top;
   const years = [o.year - 2, o.year - 1, o.year];
@@ -130,8 +141,22 @@ async function Content({ searchParams }: { searchParams: Params }) {
             <p className="note" style={{ marginTop: 8 }}>QAR. Sales through {tracking.throughDate}; {tracking.daysGone} of {tracking.workingDays} working days gone, {tracking.daysLeft} left (Fridays off). Daily balance required = balance ÷ working days left. Projected % = current daily pace over the full month.</p>
           </Panel>
         )}
+        {!dept && salesmanTracking && salesmanTracking.supervisors.some((s) => s.total.target > 0) && (
+          <Panel span={12} title={`Salesman targets by supervisor · ${mn} ${o.year}`}>
+            <div className="tw"><table>
+              <thead><tr><th>Supervisor / salesman</th><th>Channel</th><th className="n">Target</th><th className="n">Sales</th><th className="n">%</th><th className="n">Balance</th><th className="n">Daily balance required</th><th className="n">Projected %</th></tr></thead>
+              {salesmanTracking.supervisors.map((s) => (
+                <tbody key={s.supervisor}>
+                  <tr style={{ fontWeight: 600 }}><td>{s.supervisor}</td><td /><PaceCells pace={s.total} /></tr>
+                  {s.salesmen.map((r) => <tr key={`${r.code}|${r.channel}|${r.department}`}><td style={{ paddingLeft: 20 }}>{r.salesman}</td><td>{[r.channel, r.department].filter(Boolean).join(" · ")}</td><PaceCells pace={r} /></tr>)}
+                </tbody>
+              ))}
+            </table></div>
+            <p className="note" style={{ marginTop: 8 }}>QAR. Same basis as the manager table above. Sales with no target set sit under their supervisor with no percentages; sales with no supervisor are under Unassigned.</p>
+          </Panel>
+        )}
         <Insights title="Analysis" items={out} />
-        <Panel span={6} title={`Sector indicators · ${dept ? deptLabel : "All"}`}>
+        <Panel span={12} title={`Sector indicators · ${dept ? deptLabel : "All"}`}>
           <div className="kpis" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))" }}>
             {sectorKpis.map(([l, v]) => <div className="kpi" key={l} style={{ padding: "10px 12px" }}><span className="l">{l}</span><span className="v" style={{ fontSize: 20 }}>{v ?? <NotConnected />}</span></div>)}
           </div>

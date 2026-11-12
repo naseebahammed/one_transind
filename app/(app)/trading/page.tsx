@@ -65,7 +65,7 @@ async function Content({ searchParams }: { searchParams: Params }) {
       </div>
       <div className="grid">
         <Drill span={6} title="Products drill-down" mode="margin" rows={prow} labels={plab} path={pp} levels={["Departments", "Brands", "Products"]} rootLabel="All" q={q} all={all === "p"} href={href("p")} />
-        <Drill span={6} title="Customers drill-down" mode="margin" rows={crow} labels={clab} path={cp} levels={["Groups", "Branches / customers", "Brands", "Products"]} rootLabel="All" q={q} all={all === "c"} href={href("c")} />
+        <Drill span={6} title="Customers drill-down" limit={10} mode="margin" rows={crow} labels={clab} path={cp} levels={["Groups", "Branches / customers", "Brands", "Products"]} rootLabel="All" q={q} all={all === "c"} href={href("c")} />
         <Insights title="Analysis" items={insights} />
         <Panel span={6} title="Top customer groups">
           <div className="tw"><table>

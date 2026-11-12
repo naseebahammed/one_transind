@@ -3,15 +3,12 @@ import { Trash2 } from "lucide-react";
 import { ConfirmButton } from "@/components/admin/ConfirmButton";
 import {
   ManualCogsForm,
-  ManualCustomerOpportunityForm,
   ManualCustomsForm,
   ManualDailyStayForm,
   ManualDailyTakingsForm,
   ManualEmployeeForm,
-  ManualExpiringDocumentForm,
   ManualFleetVehicleForm,
   ManualFmcgForms,
-  ManualLeaveRequestForm,
   ManualLogisticsKpisForm,
   ManualMonthlySectionForm,
   ManualOverdueInvoiceForm,
@@ -40,11 +37,8 @@ import { isManualTab, MANUAL_TABS, SALES_INDICATORS, type ManualTab } from "@/li
 import {
   getLogisticsOverview,
   listCompanySectionYear,
-  listCustomerOpportunities,
   listDailyStayMonth,
   listFmcgManualOverview,
-  listHrExpiringDocuments,
-  listHrLeaveRequests,
   listOverdueInvoices,
   listReceivablesSnapshots,
 } from "@/lib/manual-report-records";
@@ -248,7 +242,7 @@ async function Content({ searchParams }: { searchParams: Search }) {
         <FinanceCustomersTab companies={allCompanies} defaultDate={todayIso} />
       )}
       {tab === "hr" && (
-        <HrTab companies={allCompanies} defaultDate={todayIso} />
+        <HrTab defaultDate={todayIso} />
       )}
       {tab === "logistics" && <LogisticsTab />}
     </div>
@@ -1117,10 +1111,9 @@ async function SalesFmcgTab({
 }
 
 async function FinanceCustomersTab({ companies, defaultDate }: { companies: Company[]; defaultDate: string }) {
-  const [snapshots, overdue, opportunities] = await Promise.all([
+  const [snapshots, overdue] = await Promise.all([
     listReceivablesSnapshots(),
     listOverdueInvoices(),
-    listCustomerOpportunities(),
   ]);
   const companyOptions = companies.map((c) => ({ id: c.id, name: c.name }));
 
@@ -1221,65 +1214,15 @@ async function FinanceCustomersTab({ companies, defaultDate }: { companies: Comp
           </Table>
         </CardContent>
       </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">Customer opportunities (Customers page)</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4">
-          <ManualCustomerOpportunityForm />
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Customer</TableHead>
-                <TableHead>Opportunity</TableHead>
-                <TableHead>Stage</TableHead>
-                <TableHead>Owner</TableHead>
-                <TableHead>Expected close</TableHead>
-                <TableHead className="text-right">Value (QAR)</TableHead>
-                <TableHead className="w-12 text-right">Remove</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {opportunities.map((op) => (
-                <TableRow key={op.id}>
-                  <TableCell>
-                    <span className="font-medium">{op.customerName}</span>
-                    {op.customerCode && <span className="ml-1 font-mono text-xs text-muted-foreground">({op.customerCode})</span>}
-                  </TableCell>
-                  <TableCell>{op.title}</TableCell>
-                  <TableCell><Badge variant="neutral">{op.stage}</Badge></TableCell>
-                  <TableCell>{op.owner || "—"}</TableCell>
-                  <TableCell className="font-mono text-xs">{op.expectedClose ?? "—"}</TableCell>
-                  <TableCell className="text-right tabular-nums">{fmt(op.value, 2, 0)}</TableCell>
-                  <TableCell className="text-right">
-                    <DeleteIconForm
-                      label={`Delete ${op.title}`}
-                      message={`Delete opportunity "${op.title}"?`}
-                      fields={{ deleteKind: "customerOpportunity", id: op.id }}
-                    />
-                  </TableCell>
-                </TableRow>
-              ))}
-              {!opportunities.length && (
-                <TableRow><TableCell colSpan={7} className="h-16 text-center text-muted-foreground">No customer opportunities recorded yet.</TableCell></TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
     </div>
   );
 }
 
-async function HrTab({ companies, defaultDate }: { companies: Company[]; defaultDate: string }) {
-  const [staff, sourceDepts, leaves, docs] = await Promise.all([
+async function HrTab({ defaultDate }: { defaultDate: string }) {
+  const [staff, sourceDepts] = await Promise.all([
     listEmployees(),
     listSourceNames(),
-    listHrLeaveRequests(),
-    listHrExpiringDocuments(),
   ]);
-  const companyOptions = companies.map((c) => ({ id: c.id, name: c.name }));
   const recentStaff = [...staff].sort((a, b) => b.joined.localeCompare(a.joined)).slice(0, 25);
 
   return (
@@ -1325,94 +1268,6 @@ async function HrTab({ companies, defaultDate }: { companies: Company[]; default
               ))}
               {!recentStaff.length && (
                 <TableRow><TableCell colSpan={7} className="h-16 text-center text-muted-foreground">No employees recorded yet.</TableCell></TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">Leave requests awaiting approval (Dashboard &amp; HR)</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4">
-          <ManualLeaveRequestForm companies={companyOptions} defaultDate={defaultDate} />
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Employee</TableHead>
-                <TableHead>Company</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Dates</TableHead>
-                <TableHead className="text-right">Days</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="w-12 text-right">Remove</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {leaves.map((l) => (
-                <TableRow key={l.id}>
-                  <TableCell className="font-medium">{l.employeeName} {l.employeeId && <span className="font-mono text-xs text-muted-foreground">({l.employeeId})</span>}</TableCell>
-                  <TableCell>{l.companyName ?? "—"}</TableCell>
-                  <TableCell>{l.leaveType}</TableCell>
-                  <TableCell className="font-mono text-xs">{l.startDate} → {l.endDate}</TableCell>
-                  <TableCell className="text-right tabular-nums">{fmt(l.days, 1, 0)}</TableCell>
-                  <TableCell><Badge variant={l.status === "Pending" ? "secondary" : "neutral"}>{l.status}</Badge></TableCell>
-                  <TableCell className="text-right">
-                    <DeleteIconForm
-                      label={`Delete leave for ${l.employeeName}`}
-                      message={`Delete leave request for ${l.employeeName}?`}
-                      fields={{ deleteKind: "leaveRequest", id: l.id }}
-                    />
-                  </TableCell>
-                </TableRow>
-              ))}
-              {!leaves.length && (
-                <TableRow><TableCell colSpan={7} className="h-16 text-center text-muted-foreground">No leave requests recorded yet.</TableCell></TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">Expiring HR &amp; company documents (Dashboard &amp; HR)</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4">
-          <ManualExpiringDocumentForm companies={companyOptions} />
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Holder</TableHead>
-                <TableHead>Company</TableHead>
-                <TableHead>Document</TableHead>
-                <TableHead>Number</TableHead>
-                <TableHead>Expiry date</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="w-12 text-right">Remove</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {docs.map((d) => (
-                <TableRow key={d.id}>
-                  <TableCell className="font-medium">{d.holderName}</TableCell>
-                  <TableCell>{d.companyName ?? "—"}</TableCell>
-                  <TableCell>{d.documentType}</TableCell>
-                  <TableCell className="font-mono text-xs">{d.documentNo || "—"}</TableCell>
-                  <TableCell className="font-mono text-xs">{d.expiryDate}</TableCell>
-                  <TableCell><Badge variant="neutral">{d.status}</Badge></TableCell>
-                  <TableCell className="text-right">
-                    <DeleteIconForm
-                      label={`Delete ${d.documentType}`}
-                      message={`Delete ${d.documentType} record for ${d.holderName}?`}
-                      fields={{ deleteKind: "expiringDocument", id: d.id }}
-                    />
-                  </TableCell>
-                </TableRow>
-              ))}
-              {!docs.length && (
-                <TableRow><TableCell colSpan={7} className="h-16 text-center text-muted-foreground">No expiring documents recorded yet.</TableCell></TableRow>
               )}
             </TableBody>
           </Table>

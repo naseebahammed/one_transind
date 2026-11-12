@@ -19,16 +19,17 @@ type Props = {
   yoyLabels?: [string, string]; // e.g. ["Oct 2025", "Oct 2024"]
   momLabel?: string;
   span?: number;
+  limit?: number;          // rows shown before the "Show all" button
 };
 
 /** Click-through drill panel: rows link to the next level, breadcrumbs link back. State lives in the URL. */
-export function Drill({ title, src, mode, rows, labels, path, levels, rootLabel, href, all, q, yoyLabels, momLabel, span = 12 }: Props) {
+export function Drill({ title, src, mode, rows, labels, path, levels, rootLabel, href, all, q, yoyLabels, momLabel, span = 12, limit = 25 }: Props) {
   const shown = q ? rows.filter((r) => (r.label + " " + r.sub).toLowerCase().includes(q.toLowerCase())) : rows;
   const leaf = path.length >= levels.length - 1;
   const tot = shown.reduce((a, r) => a + r.value, 0), cost = shown.reduce((a, r) => a + r.cost, 0);
   const lm = shown.reduce((a, r) => a + r.lastMonth, 0), ly = shown.reduce((a, r) => a + r.lastYear, 0), ly2 = shown.reduce((a, r) => a + r.twoYearsAgo, 0);
   const mx = Math.max(1, ...shown.map((r) => Math.abs(r.value)));
-  const list = all ? shown : shown.slice(0, 25);
+  const list = all ? shown : shown.slice(0, limit);
   const base = mode === "mom" ? "lastMonth" : "lastYear";
   return (
     <section className={`panel c${span}`}>

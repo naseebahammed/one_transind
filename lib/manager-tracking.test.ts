@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { targetManager, trackManagers, workingDaysThrough } from "./manager-tracking.ts";
+import { targetManager, trackManagers, trackSalesmen, workingDaysThrough } from "./manager-tracking.ts";
 
 test("November 2026 has 26 working days (Fridays off) and 10 of them are gone by the 11th", () => {
   assert.equal(workingDaysThrough(2026, 10, 30), 26);
@@ -33,4 +33,23 @@ test("targetManager maps salesmen to the team names the targets use, splitting S
   assert.equal(targetManager("SALEEM", "SALEEM-GT/PS"), "SALEEM & ZUHAIR");
   assert.equal(targetManager("GIRISH", null), "GIRISH");
   assert.equal(targetManager(null, null), "Unassigned");
+});
+
+test("trackSalesmen matches the DSR workbook row for salesman 368 and rolls up per supervisor", () => {
+  const base = { supervisor: "ADIL", channel: "SALEEM GT/PS", department: "FNB" };
+  const r = trackSalesmen([
+    { ...base, code: "368", salesman: "SANKARATHAS", target: 110250, sales: 0 },
+    { ...base, code: "368", salesman: "SANKARATHAS", target: 0, sales: 45381.13216 },
+    { ...base, code: "518", salesman: "ABDUR RAHAMAN", target: 80500, sales: 20472.85668 },
+    { code: "999", salesman: "NO TARGET", supervisor: null, channel: null, department: null, target: 0, sales: 10 },
+  ], 2026, 10, 11);
+  const adil = r.supervisors[0];
+  assert.equal(adil.supervisor, "ADIL");
+  assert.equal(adil.salesmen.length, 2);
+  const [first] = adil.salesmen;
+  assert.equal(first.achievedPct, 41.16);
+  assert.equal(first.projectedPct, 107.02);
+  assert.equal(adil.total.target, 190750);
+  assert.equal(r.supervisors[1].supervisor, "Unassigned");
+  assert.equal(r.supervisors[1].salesmen[0].achievedPct, null);
 });

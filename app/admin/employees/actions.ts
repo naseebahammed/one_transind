@@ -4,6 +4,8 @@ import { readWorkbook, gridFromWorkbook, MAX_UPLOAD_BYTES } from "@/lib/company-
 import { addLog } from "@/lib/db";
 import { addDepartment, addStaffDepartment, linkSourceName, listSourceNames, removeDepartment, renameDepartment, saveEmployees } from "@/lib/employee-records";
 import { mergeEmployees, parseEmployees, type Employee } from "@/lib/employees";
+import { saveSettlements } from "@/lib/settlement-records";
+import { parseSettlements } from "@/lib/settlements";
 import { GuardError, requireAdmin, withUploadSlot } from "@/lib/guard";
 import { cleanText, parsePositiveIntId } from "@/lib/input-validation";
 import { sanitizeUploadFileName } from "@/lib/upload-security";
@@ -92,4 +94,37 @@ export async function renameDepartmentAction(f: FormData) {
   if (!id || !name) return;
   await renameDepartment(id, name);
   refresh();
+}
+
+/** Reads the settlements ledger (one file). Any bad row refuses the file; dates already on file are replaced. */
+export async function uploadSettlements(_: EmployeeUploadState, f: FormData): Promise<EmployeeUploadState> {
+  let admin: Awaited<ReturnType<typeof requireAdmin>>;
+  try {
+    admin = await requireAdmin("upload");
+  } catch (e) {
+    if (e instanceof GuardError) return { error: e.message };
+    throw e;
+  }
+  try {
+    return await withUploadSlot(admin.email, async () => {
+      const file = f.get("file");
+      if (!(file instanceof File) || !file.size) return { error: "Choose the settlements .xlsx file." };
+      if (file.size > MAX_UPLOAD_BYTES) return { error: "The file must be under 7 MB." };
+      try {
+        const { settlements, errors } = parseSettlements(gridFromWorkbook(await readWorkbook(Buffer.from(await file.arrayBuffer()))));
+        if (errors.length) throw new Error(`${sanitizeUploadFileName(file.name)}: ${errors.slice(0, 5).join(" ")}${errors.length > 5 ? ` (and ${errors.length - 5} more)` : ""}`);
+        const n = await saveSettlements(settlements);
+        await addLog("Settlements uploaded", true, n);
+        revalidatePath("/hr/settlements"); revalidatePath("/admin/activity");
+        return { ok: `Saved ${n} settlement payments.` };
+      } catch (e) {
+        await addLog("Settlements rejected", false, 0);
+        revalidatePath("/admin/activity");
+        return { error: (e as Error).message };
+      }
+    });
+  } catch (e) {
+    if (e instanceof GuardError) return { error: e.message };
+    throw e;
+  }
 }

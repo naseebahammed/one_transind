@@ -7,9 +7,8 @@ import { fmt, MONTHS } from "@/lib/format";
 import { listCompanies } from "@/lib/companies";
 import { listEmployees } from "@/lib/employee-records";
 import { departmentMovements, monthlyMovements } from "@/lib/employees";
-import { listHrExpiringDocuments, listHrLeaveRequests } from "@/lib/manual-report-records";
 import { link, parsePath } from "@/lib/url";
-import { Empty, Kpi, NotConnected, Panel } from "@/components/ui";
+import { Empty, Kpi, Panel } from "@/components/ui";
 
 export const metadata = { title: "Human resources · One Transind" };
 type Params = Promise<{ h?: string }>;
@@ -27,13 +26,11 @@ async function Content({ searchParams }: { searchParams: Params }) {
   const o = await getOverview();
   const team = await getSalesmen(o.month);
   const year = new Date().getFullYear();
-  const [staff, registry, leaves, expiringDocs] = await Promise.all([
+  const [staff, registry] = await Promise.all([
     listEmployees(),
     listCompanies(),
-    listHrLeaveRequests(),
-    listHrExpiringDocuments(),
   ]);
-  const pendingLeaves = leaves.filter((l) => l.status.toLowerCase() === "pending").length;
+  const activeEmployees = staff.filter((e) => !e.left).length;
   const moves = monthlyMovements(staff, year), byCompany = departmentMovements(staff.map((e) => ({ ...e, department: e.company })), year);
   const countBy = (rows: typeof staff, key: "company" | "unit") => {
     const counts = new Map<string, number>();
@@ -53,11 +50,11 @@ async function Content({ searchParams }: { searchParams: Params }) {
 
   return (
     <>
+      <p><Link href="/hr/settlements">Settlement payments ›</Link></p>
       <div className="kpis">
+        <Kpi label="Active employees" value={fmt(activeEmployees)} delta={staff.length ? `${fmt(staff.length)} total on file` : undefined} up />
         <Kpi label={`Joined ${year}`} value={fmt(moves.joiners.reduce((x, y) => x + y, 0))} />
         <Kpi label={`Left ${year}`} value={fmt(moves.leavers.reduce((x, y) => x + y, 0))} />
-        <Kpi label="Pending leave requests" value={leaves.length ? fmt(pendingLeaves) : <NotConnected />} />
-        <Kpi label="Documents expiring" value={expiringDocs.length ? fmt(expiringDocs.length) : <NotConnected />} />
       </div>
       <div className="grid">
         <section className="panel c12">
@@ -99,37 +96,6 @@ async function Content({ searchParams }: { searchParams: Params }) {
           <div className="tw"><table>
             <thead><tr><th>Company</th><th className="n">Joined</th><th className="n">Left</th></tr></thead>
             <tbody>{byCompany.length ? byCompany.map((d) => <tr key={d.department}><td>{d.department}</td><td className="n num">{d.joiners}</td><td className="n num">{d.leavers}</td></tr>) : <Empty cols={3} text="—" />}</tbody>
-          </table></div>
-        </Panel>
-        <Panel span={6} title="Leave requests">
-          <div className="tw"><table>
-            <thead><tr><th>Employee</th><th>Type</th><th>Dates</th><th className="n">Days</th><th>Status</th></tr></thead>
-            <tbody>
-              {leaves.length ? leaves.map((l) => (
-                <tr key={l.id}>
-                  <td>{l.employeeName}{l.companyName ? <small style={{ display: "block", color: "var(--muted)" }}>{l.companyName}</small> : null}</td>
-                  <td>{l.leaveType}</td>
-                  <td className="mono">{l.startDate} → {l.endDate}</td>
-                  <td className="n num">{fmt(l.days, 1, 0)}</td>
-                  <td><span className={`chip ${l.status === "Approved" ? "good" : l.status === "Rejected" ? "bad" : "warn"}`}>{l.status}</span></td>
-                </tr>
-              )) : <Empty cols={5} text="Not connected" />}
-            </tbody>
-          </table></div>
-        </Panel>
-        <Panel span={6} title="Expiring documents">
-          <div className="tw"><table>
-            <thead><tr><th>Holder</th><th>Document</th><th>Expiry</th><th>Status</th></tr></thead>
-            <tbody>
-              {expiringDocs.length ? expiringDocs.map((d) => (
-                <tr key={d.id}>
-                  <td>{d.holderName}{d.companyName ? <small style={{ display: "block", color: "var(--muted)" }}>{d.companyName}</small> : null}</td>
-                  <td>{d.documentType}{d.documentNo ? <small className="mono" style={{ display: "block", color: "var(--muted)" }}>{d.documentNo}</small> : null}</td>
-                  <td className="mono">{d.expiryDate}</td>
-                  <td><span className={`chip ${d.status === "Expired" ? "bad" : d.status === "Valid" ? "good" : "warn"}`}>{d.status}</span></td>
-                </tr>
-              )) : <Empty cols={4} text="Not connected" />}
-            </tbody>
           </table></div>
         </Panel>
       </div>

@@ -11,7 +11,7 @@ export type StaffRow = Employee & { company: string; unit: string };
 const HEADERS: Record<string, keyof Employee> = { "emp id": "id", "employee name": "name", "joining date": "joined", "department": "department", "designation": "designation", "nationality_desc": "nationality", "resign_date": "left" };
 
 const text = (c: Cell, maxLength = 200) => cleanText(c, maxLength);
-const day = (c: Cell): string | null => {
+export const day = (c: Cell): string | null => {
   if (c === null) return null;
   if (typeof c === "number") return excelSerialToIsoDate(c);
   const raw = text(c, 40);

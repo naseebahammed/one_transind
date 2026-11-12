@@ -84,11 +84,18 @@ export async function getOverviewBrands() {
 }
 
 /** Top customers by year-to-date sales, with monthly series and brand split for the latest month (up to the latest data day). */
-export async function getCustomers() {
+export async function getCustomers(pickYear?: number, pickMonth?: number) {
   "use cache";
   cacheLife("hours");
   const table = salesSource();
-  const { year, month, day, cur, before } = await getPeriod(table);
+  const latest = await getPeriod(table);
+  let { year, month, day } = latest;
+  // Another month (never later than the latest data) is shown whole, not cut at the latest data day.
+  if (pickYear !== undefined && pickMonth !== undefined && (pickYear !== year || pickMonth !== month) && pickYear * 12 + pickMonth < year * 12 + month) {
+    year = pickYear; month = pickMonth; day = 31;
+  }
+  const monthKey = (y: number, m: number) => `${y + Math.floor(m / 12)}-${String((m % 12 + 12) % 12 + 1).padStart(2, "0")}`;
+  const cur = monthKey(year, month), before = monthKey(year, month - 1);
   const curStart = `${cur}-01`, beforeStart = `${before}-01`;
   // vd = the month's first `day` days, so last month is compared over the same days as this month.
   const { rows } = await pg.query<{ id: string; name: string; cat: string; grp: string; m: number; v: number; vd: number }>(
@@ -118,7 +125,7 @@ export async function getCustomers() {
     m.set(r.b, b); tmp.set(r.id, m);
   }
   for (const [id, m] of tmp) idx.get(id)!.brands = [...m.values()].filter((b) => b.value || b.lastMonth).sort((a, b) => b.value - a.value);
-  return { year, month, customers: top, customerCount: byId.size };
+  return { year, month, latest: { year: latest.year, month: latest.month }, customers: top, customerCount: byId.size };
 }
 
 const DIMENSIONS = {

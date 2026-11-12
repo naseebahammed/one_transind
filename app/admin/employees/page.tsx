@@ -2,6 +2,7 @@ import { Page } from "@/components/admin/Page";
 import { DepartmentMapping } from "@/components/admin/DepartmentMapping";
 import { Card } from "@/components/admin/ui/card";
 import { UploadEmployees } from "@/components/admin/UploadEmployees";
+import { UploadSettlements } from "@/components/admin/UploadSettlements";
 
 export const metadata = { title: "Staff lists · One Transind" };
 
@@ -11,6 +12,11 @@ export default function Employees() {
       <Card className="space-y-3 p-4">
         <p className="text-sm text-muted-foreground">Columns: Emp ID, Employee Name, Joining Date, Department, Designation, NATIONALITY_DESC, RESIGN_DATE. Both files can be chosen together.</p>
         <UploadEmployees />
+      </Card>
+      <Card className="space-y-3 p-4">
+        <h2 className="text-sm font-medium">Settlements</h2>
+        <p className="text-sm text-muted-foreground">Columns: UPLOAD DATE, EMP #, EMP NAME, DIVISION, SETTLEMENT TYPE, ACCOUNT, AMOUNT, SCHEDULED DATE, CARD TYPE. Re-uploading replaces the payments for the dates in the file.</p>
+        <UploadSettlements />
       </Card>
       <DepartmentMapping />
     </Page>

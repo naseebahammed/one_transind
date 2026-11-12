@@ -9,11 +9,14 @@ type Key = (typeof COLUMNS)[number][0];
 /** Click a heading to sort by it; click again to reverse. Starts on the biggest overdue amount. */
 export function OutstandingTable({ rows }: { rows: CustomerOutstanding[] }) {
   const [sort, setSort] = useState<{ key: Key; down: boolean }>({ key: "overdue", down: true });
+  const [showAll, setShowAll] = useState(false);
   const sorted = [...rows].sort((a, b) => {
     const x = a[sort.key], y = b[sort.key];
     return (typeof x === "string" ? x.localeCompare(y as string) : x - (y as number)) * (sort.down ? -1 : 1);
   });
+  const visible = showAll ? sorted : sorted.slice(0, 10);
   return (
+    <>
     <div className="tw"><table>
       <thead><tr>{COLUMNS.map(([key, label]) => (
         <th key={key} className={key === "name" ? undefined : "n"} aria-sort={sort.key === key ? (sort.down ? "descending" : "ascending") : "none"}>
@@ -22,7 +25,9 @@ export function OutstandingTable({ rows }: { rows: CustomerOutstanding[] }) {
           </button>
         </th>
       ))}</tr></thead>
-      <tbody>{sorted.map((o) => <tr key={o.name}><td>{o.name}</td><td className="n num">{fmt(o.overdue)}</td><td className="n num">{o.oldestOverdueDays || "—"}</td><td className="n num">{fmt(o.balance)}</td></tr>)}</tbody>
+      <tbody>{visible.map((o) => <tr key={o.name}><td>{o.name}</td><td className="n num">{fmt(o.overdue)}</td><td className="n num">{o.oldestOverdueDays || "—"}</td><td className="n num">{fmt(o.balance)}</td></tr>)}</tbody>
     </table></div>
+    {!showAll && sorted.length > 10 && <button type="button" className="btn sm" onClick={() => setShowAll(true)} style={{ marginTop: 10 }}>Show all ({fmt(sorted.length)})</button>}
+    </>
   );
 }

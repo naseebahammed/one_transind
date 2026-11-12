@@ -31,9 +31,9 @@ async function Content({ searchParams }: { searchParams: Params }) {
   const allBranches = await listBranchesForCompanies(companies.map((c) => c.id));
   const branchLists = companies.map((c) => allBranches.filter((b) => b.company_id === c.id));
   const chosen = companies.findIndex((c) => String(c.id) === rawCompany);
-  // With no choice in the link, open on the company with the most branches, so adding a smaller restaurant company does not change the opening view.
+  // With no company in the link, open on all companies. An unknown company id falls back to the one with the most branches.
   const pick = chosen >= 0 ? chosen : branchLists.reduce((best, list, i) => (list.length > branchLists[best].length ? i : best), 0);
-  const all = rawCompany === "all";
+  const all = rawCompany === "all" || rawCompany === undefined;
   const company = companies[pick];
   const shown = all ? companies : [company];
   const branches = all ? allBranches : branchLists[pick];
@@ -79,7 +79,7 @@ async function Content({ searchParams }: { searchParams: Params }) {
     return active.map((b, i) => {
       const summaries = perMonth.map((tables) => branchSummary(tables[i]));
       const summary = { gross: sum(summaries.map((s) => s.gross)), cash: sum(summaries.map((s) => s.cash)), card: sum(summaries.map((s) => s.card)), deliveryApps: sum(summaries.map((s) => s.deliveryApps)), days: sum(summaries.map((s) => s.days)) };
-      return { name: b.name, table: perMonth[0][i], summary };
+      return { id: b.id, name: b.name, table: perMonth[0][i], summary };
     });
   };
   const current = load(year), before = load(previous.year), cogsRows = loadCogs(year), cogsBefore = loadCogs(previous.year);
@@ -142,7 +142,7 @@ async function Content({ searchParams }: { searchParams: Params }) {
             <div className="tw"><table>
               <thead><tr><th>Branch</th><th className="n">Gross sales</th><th className="n">Cash</th><th className="n">Card</th><th className="n">Delivery apps</th><th className="n">Days</th></tr></thead>
               <tbody>
-                {current.filter((b) => b.summary.gross !== 0).map((b) => <tr key={b.name}><td>{b.name}</td><td className="n num">{fmt(b.summary.gross)}</td><td className="n num">{fmt(b.summary.cash)}</td><td className="n num">{fmt(b.summary.card)}</td><td className="n num">{fmt(b.summary.deliveryApps)}</td><td className="n num">{b.summary.days}</td></tr>)}
+                {current.filter((b) => b.summary.gross !== 0).map((b) => <tr key={b.id}><td>{b.name}</td><td className="n num">{fmt(b.summary.gross)}</td><td className="n num">{fmt(b.summary.cash)}</td><td className="n num">{fmt(b.summary.card)}</td><td className="n num">{fmt(b.summary.deliveryApps)}</td><td className="n num">{b.summary.days}</td></tr>)}
                 <tr><td><strong>Total</strong></td><td className="n num"><strong>{fmt(gross)}</strong></td><td className="n num">{fmt(cash)}</td><td className="n num">{fmt(card)}</td><td className="n num">{fmt(apps)}</td><td className="n num" /></tr>
               </tbody>
             </table></div>
@@ -155,7 +155,7 @@ async function Content({ searchParams }: { searchParams: Params }) {
         <Panel span={12} title={`Daily gross sales · ${mn}`}>
           {allMonths ? <p className="empty">Pick a single month to see daily sales.</p> : !hasData ? <p className="empty">No daily sales uploaded for {mn}.</p> : (
             <div className="tw"><table>
-              <thead><tr><th>Day</th>{withSales.map((b) => <th key={b.name} className="n">{b.name}</th>)}<th className="n">Total</th></tr></thead>
+              <thead><tr><th>Day</th>{withSales.map((b) => <th key={b.id} className="n">{b.name}</th>)}<th className="n">Total</th></tr></thead>
               <tbody>
                 {withSales[0].table.days.map((d, i) => d.day > lastDay ? null : (() => {
                   const values = withSales.map((b) => b.table.days[i].gross);

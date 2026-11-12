@@ -9,7 +9,7 @@ export const MANUAL_TABS = [
   ["real-estate", "Real estate"],
   ["restaurants-retail", "Restaurants & retail"],
   ["sales-fmcg", "Sales & FMCG"],
-  ["finance-customers", "Finance & customers"],
+  ["finance-customers", "Finance"],
   ["hr", "HR & staff"],
   ["logistics", "Logistics"],
 ] as const;
