@@ -12,7 +12,6 @@ import {
   isDevLoginEnabled,
   openAiConfig,
   receiptsFromYear,
-  salesPeriod,
   salesTable,
   trustProxy,
   verifyAdminPassword,
@@ -82,8 +81,6 @@ test("authSigningSecret, configuredAuthHost, and trustProxy enforce safe default
 
   assert.equal(salesTable({ SALES_TABLE: " app.sales_clean " }), "app.sales_clean");
   assert.throws(() => salesTable({ SALES_TABLE: "app.sales_clean; DROP TABLE app.users" }), /SALES_TABLE/);
-  assert.equal(salesPeriod({ SALES_PERIOD: " 2026-08 " }), "2026-08");
-  assert.equal(salesPeriod({ SALES_PERIOD: "  " }), undefined);
 
   assert.equal(receiptsFromYear({}), 2026);
   assert.equal(receiptsFromYear({ RECEIPTS_FROM_YEAR: "2025" }), 2025);

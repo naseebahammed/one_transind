@@ -16,6 +16,7 @@ async function init() {
   const c = await pg.connect();
   try {
     await c.query("BEGIN");
+    await c.query("SET LOCAL statement_timeout = 0"); // the pool's 30 s limit is for page queries; a migration (e.g. rebuilding app.sales_clean) takes minutes
     await c.query("SELECT pg_advisory_xact_lock(7451)"); // concurrent first requests/instances must not double-seed
     await migrate(c);
     const empty = async (check: keyof typeof SEED_CHECK_SQL) => !(await c.query(SEED_CHECK_SQL[check])).rowCount;

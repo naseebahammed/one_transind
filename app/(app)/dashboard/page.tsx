@@ -40,11 +40,11 @@ async function Content({ searchParams }: { searchParams: Params }) {
     return { key: String(c.id), label: c.name, sub: "", value: now[m], lastMonth: m ? now[m - 1] : salesOf(c, o.year - 1)[11], lastYear: salesOf(c, o.year - 1)[m], twoYearsAgo: salesOf(c, o.year - 2)[m], cost: 0, units: 0 };
   };
   // Transind Trading and Distribution is the ERP daily sales view: its figure is the ERP total, and its rows are the ERP departments.
-  const erp = o.months[o.month], erpBefore = o.months[o.month - 1];
+  const erp = o.months[o.month];
   const sectorCompanies = (k: string) => allCompanies.filter((c) => c.sector === k && c.active && !c.hidden);
   const rows: DrillRow[] = path.length === 0
     ? adminSectors.map(([k, name]) => {
-        if (k === SECTOR.trading) return { key: k, label: name, sub: "ERP daily sales", value: erp.value, lastMonth: erpBefore?.value ?? 0, lastYear: 0, twoYearsAgo: 0, cost: 0, units: 0 };
+        if (k === SECTOR.trading) return { key: k, label: name, sub: "ERP daily sales", value: erp.value, lastMonth: o.beforeToDate, lastYear: 0, twoYearsAgo: 0, cost: 0, units: 0 };
         const cos = sectorCompanies(k).map(companyRow);
         const total = (f: keyof DrillRow) => sum(cos.map((r) => r[f] as number));
         return { key: k, label: name, sub: `${cos.length} companies`, value: total("value"), lastMonth: total("lastMonth"), lastYear: total("lastYear"), twoYearsAgo: total("twoYearsAgo"), cost: 0, units: 0 };
@@ -61,7 +61,7 @@ async function Content({ searchParams }: { searchParams: Params }) {
   const sectors = adminSectors.map(([k, name]) => ({ label: name, v: k === SECTOR.trading ? sum(o.months.map((m) => m.value)) : sum(sectorCompanies(k).map((c) => sum(salesOf(c, o.year).slice(0, o.month + 1)))) }));
   const cur = o.months[o.month], ytd = sum(o.months.map((m) => m.value));
   const monthly = o.months.map((m) => m.value / 1e6);
-  const label = `${MONTHS[o.month]} ${o.year}`;
+  const label = `${MONTHS[o.month]} ${o.year} (1–${o.day})`;
 
   return (
     <>

@@ -2,7 +2,6 @@ import { cacheLife } from "next/cache";
 import { validateSqlTableIdentifier } from "@/lib/input-validation";
 import { periodOf } from "@/lib/period-calc";
 import { pg } from "@/lib/pg";
-import { salesPeriod } from "@/lib/server-config";
 
 async function maxDate(tableIdentifier: string) {
   "use cache";
@@ -12,10 +11,9 @@ async function maxDate(tableIdentifier: string) {
   return mx.d;
 }
 
-// "This month" = latest complete month in the sales table; SALES_PERIOD=YYYY-MM pins it.
+// "This month" = the month of the latest date in the sales table, counted up to that day.
 export async function getPeriod(table: string) {
   const strippedAlias = table.trim().replace(/\s+s$/, "");
   const safeTable = validateSqlTableIdentifier(strippedAlias);
-  const pin = salesPeriod();
-  return periodOf(pin ? null : await maxDate(safeTable), pin);
+  return periodOf(await maxDate(safeTable));
 }

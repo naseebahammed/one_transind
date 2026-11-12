@@ -28,7 +28,7 @@ async function Content({ searchParams }: { searchParams: Params }) {
   const rows = plRows(reports, picked, key), summary = report(reports, picked, key);
   const groups = new Map<string, ReportRow[]>();
   for (const r of rows) groups.set(r.main, [...(groups.get(r.main) ?? []), r]);
-  const cell = (v: number) => <td className={`n num${v < 0 ? " down" : ""}`}>{v ? fmt(v) : "–"}</td>;
+  const cell = (v: number, key?: number) => <td key={key} className={`n num${v < 0 ? " down" : ""}`}>{v ? fmt(v) : "–"}</td>;
   const line = (label: string, m: number[], strong = false) => (
     <tr style={strong ? { fontWeight: 600 } : undefined}><td>{label}</td>{m.map((v, i) => <td key={i} className="n num">{fmt(v)}</td>)}<td className="n num">{fmt(sum(m))}</td></tr>
   );
@@ -49,7 +49,7 @@ async function Content({ searchParams }: { searchParams: Params }) {
           <thead><tr><th>Account</th>{MONTHS.map((m) => <th key={m} className="n">{m}</th>)}<th className="n">Total</th></tr></thead>
           {[...groups].map(([main, list]) => (
             <tbody key={main}>
-              <tr style={{ fontWeight: 600 }}><td>{main}</td>{MONTHS.map((_, i) => cell(sum(list.map((r) => r.m[i]))))}{cell(sum(list.flatMap((r) => r.m)))}</tr>
+              <tr style={{ fontWeight: 600 }}><td>{main}</td>{MONTHS.map((_, i) => cell(sum(list.map((r) => r.m[i])), i))}{cell(sum(list.flatMap((r) => r.m)))}</tr>
               {list.filter((r) => sum(r.m.map(Math.abs))).map((r) => <tr key={r.sub}><td style={{ paddingLeft: 18 }}>{r.sub}</td>{r.m.map((v, i) => <td key={i} className={`n num${v < 0 ? " down" : ""}`}>{v ? fmt(v) : "–"}</td>)}{cell(sum(r.m))}</tr>)}
             </tbody>
           ))}

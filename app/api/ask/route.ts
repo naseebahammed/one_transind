@@ -15,7 +15,8 @@ async function context() {
   const avail = sum(occ.map((m) => m.avail)) || 1, sold = sum(occ.map((m) => m.sold)) || 1;
   return JSON.stringify({
     year: o.year,
-    latestCompleteMonth: o.month + 1,
+    latestMonth: o.month + 1,
+    latestMonthCoversDays: o.day, // the latest month is partial: brands, customers and last-month figures use the same days of the month before
     monthly: o.months.map(({ month, value, cost }) => ({ month, sales: Math.round(value), cost: Math.round(cost) })),
     brands: brands.map(({ name, value, lastMonth }) => ({ brand: name, thisMonth: Math.round(value), lastMonth: Math.round(lastMonth) })),
     topCustomers: c.customers.slice(0, 20).map((x) => ({ name: x.name, group: x.group, ytd: Math.round(x.ytd), thisMonth: Math.round(x.mtd), lastMonth: Math.round(x.lastMonth) })),

@@ -17,7 +17,6 @@ Settings go in `.env.local`:
 | `PGHOST`, `PGPORT`, `PGDATABASE`, `PGUSER`, `PGPASSWORD` | yes | Postgres connection. `PGPORT` defaults to 5432. |
 | `PGSSL` | no | `true` turns on SSL. |
 | `SALES_TABLE` | yes | The sales view the dashboard reads (columns `DOC_DATE`, `NET_AMOUNT`, `NET_COST`, ...). |
-| `SALES_PERIOD` | no | `YYYY-MM` pins "this month". Default: the latest complete month in the table. |
 | `OPENAI_API_KEY` | no | Turns on the "Ask" box. `OPENAI_MODEL` picks the model (default `gpt-4o-mini`). |
 | `DB_INIT` | production only | `true` creates the `app` schema and loads seed data when the server starts. |
 

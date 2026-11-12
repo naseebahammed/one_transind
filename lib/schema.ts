@@ -503,7 +503,37 @@ UPDATE app.employees SET left_on = NULL, updated = now() WHERE left_on IS NOT NU
 DO 'BEGIN IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = ''employees_dates_valid'' AND conrelid = ''app.employees''::regclass) THEN ALTER TABLE app.employees ADD CONSTRAINT employees_dates_valid CHECK (left_on IS NULL OR left_on >= joined); END IF; END';
 `;
 
-const MIGRATIONS: readonly (readonly [string, string])[] = [["001_baseline", BASELINE], ["002_standard_data", STANDARD_DATA], ["003_drop_report_files", DROP_REPORT_FILES], ["005_company_expenses", COMPANY_EXPENSES], ["006_company_branches", COMPANY_BRANCHES], ["007_company_has_branches", COMPANY_HAS_BRANCHES], ["008_daily_receipts", DAILY_RECEIPTS], ["009_drop_deals", DROP_DEALS], ["010_drop_invoices", DROP_INVOICES], ["011_enterprise_foundation", ENTERPRISE_FOUNDATION], ["012_rejected_rows_loaded", REJECTED_ROWS_LOADED], ["013_restaurant_cogs", RESTAURANT_COGS], ["014_drop_ownership_pct", DROP_OWNERSHIP_PCT], ["015_fmcg_masters", FMCG_MASTERS], ["016_data_standardization", DATA_STANDARDIZATION], ["017_fmcg_sales_views", FMCG_SALES_VIEWS], ["018_fmcg_balances", FMCG_BALANCES], ["019_fmcg_control", FMCG_CONTROL], ["020_app_optimizations", APP_OPTIMIZATIONS], ["021_app_users", APP_USERS], ["022_erp_outstanding", ERP_OUTSTANDING], ["023_sales_clean", SALES_CLEAN], ["024_employees", EMPLOYEES], ["025_company_departments", COMPANY_DEPARTMENTS], ["026_performance_indexes", PERFORMANCE_INDEXES], ["027_drop_balance_sheet", DROP_BALANCE_SHEET], ["028_financial_and_date_integrity", FINANCIAL_AND_DATE_INTEGRITY]];
+// Monthly QAR sales targets per ERP sales department (managed under Admin -> Sales sectors) for Target attainment on Sales and Finance.
+const SALES_DEPARTMENT_TARGETS = `
+CREATE TABLE app.sales_department_targets(
+  code TEXT NOT NULL,
+  period DATE NOT NULL CHECK (EXTRACT(day FROM period) = 1),
+  target NUMERIC(18,2) NOT NULL CHECK (target >= 0),
+  updated TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY(code, period)
+);
+CREATE INDEX sales_department_targets_period ON app.sales_department_targets(period);
+CREATE OR REPLACE VIEW rpt.sales_department_targets AS
+  SELECT code AS department_code, period, target AS target_qar, updated
+  FROM app.sales_department_targets;
+`;
+
+// app.sales_clean counted some ERP lines twice: the ERP re-posts a line with a different CREATED_DATE, balance or LPO_NO, or repeats it once per supervisor, and DISTINCT over every column keeps both.
+// One row per sales line instead: the key is the posting, document, item, customer, date, quantity, amounts, location, return reason and price. Of the copies, the latest CREATED_DATE is kept.
+// Rebuilds the view (the first refresh after this takes a few minutes), so its indexes are created again too. The ERP table is only read.
+const SALES_LINE_KEY = ["DOC_TYPE", "DOC_NO", "PROV_NO", "ITEM_CODE", "CUST_NO", "DOC_DATE", "QTY_PCS", "NET_AMOUNT_WOT", "NET_COST_WOT", "LOC_CODE", "SALES_RET_REASON_CODE", "PRICE_ID"].map((c) => `s."${c}"`).join(", ");
+const SALES_CLEAN_LINE_KEY = [
+  `DROP MATERIALIZED VIEW IF EXISTS app.sales_clean`,
+  `CREATE MATERIALIZED VIEW app.sales_clean AS SELECT DISTINCT ON (${SALES_LINE_KEY}) s."DOC_DATE", s."DOC_TYPE", s."DOC_NO", s."CUST_NO", s."CUST_NAME", s."CUST_CATEGORY", s."GROUP_NAME", s."BRAND", s."ITEM_CODE", s."ITEM_NAME", s."SUPPLIER_NAME", s."SMAN_NAME", s."DEPT_CODE", s."ROUTE_DESC", s."DRIVER_NAME", s."QTY_PCS", s."NET_AMOUNT_WOT" AS "NET_AMOUNT", s."NET_COST_WOT" AS "NET_COST"
+     FROM public.invs_fdd_fnb_sales_do_t s WHERE s."DOC_TYPE" IN ('IN-DTS','IN-OT','CR') ORDER BY ${SALES_LINE_KEY}, s."CREATED_DATE" DESC NULLS LAST`,
+  `CREATE INDEX sales_clean_doc_date ON app.sales_clean("DOC_DATE")`,
+  `CREATE INDEX sales_clean_dept_date ON app.sales_clean("DEPT_CODE", "DOC_DATE") INCLUDE ("NET_AMOUNT", "NET_COST")`,
+  `CREATE INDEX sales_clean_date_cust ON app.sales_clean("DOC_DATE", "CUST_NO") INCLUDE ("BRAND", "NET_AMOUNT")`,
+  `CREATE INDEX sales_clean_cust_no ON app.sales_clean("CUST_NO")`,
+  `CREATE INDEX sales_clean_item_code ON app.sales_clean("ITEM_CODE")`,
+].map((sql) => ifTable("public.invs_fdd_fnb_sales_do_t", sql)).join("\n");
+
+const MIGRATIONS: readonly (readonly [string, string])[] = [["001_baseline", BASELINE], ["002_standard_data", STANDARD_DATA], ["003_drop_report_files", DROP_REPORT_FILES], ["005_company_expenses", COMPANY_EXPENSES], ["006_company_branches", COMPANY_BRANCHES], ["007_company_has_branches", COMPANY_HAS_BRANCHES], ["008_daily_receipts", DAILY_RECEIPTS], ["009_drop_deals", DROP_DEALS], ["010_drop_invoices", DROP_INVOICES], ["011_enterprise_foundation", ENTERPRISE_FOUNDATION], ["012_rejected_rows_loaded", REJECTED_ROWS_LOADED], ["013_restaurant_cogs", RESTAURANT_COGS], ["014_drop_ownership_pct", DROP_OWNERSHIP_PCT], ["015_fmcg_masters", FMCG_MASTERS], ["016_data_standardization", DATA_STANDARDIZATION], ["017_fmcg_sales_views", FMCG_SALES_VIEWS], ["018_fmcg_balances", FMCG_BALANCES], ["019_fmcg_control", FMCG_CONTROL], ["020_app_optimizations", APP_OPTIMIZATIONS], ["021_app_users", APP_USERS], ["022_erp_outstanding", ERP_OUTSTANDING], ["023_sales_clean", SALES_CLEAN], ["024_employees", EMPLOYEES], ["025_company_departments", COMPANY_DEPARTMENTS], ["026_performance_indexes", PERFORMANCE_INDEXES], ["027_drop_balance_sheet", DROP_BALANCE_SHEET], ["028_financial_and_date_integrity", FINANCIAL_AND_DATE_INTEGRITY], ["029_sales_department_targets", SALES_DEPARTMENT_TARGETS], ["030_sales_clean_line_key", SALES_CLEAN_LINE_KEY]];
 
 /** Applies the migrations not yet recorded, optionally only up to and including one. Run it inside a transaction holding the init lock. */
 export async function migrate(c: { query: (text: string, params?: unknown[]) => Promise<{ rows: { id: string }[] }> }, upTo?: string) {

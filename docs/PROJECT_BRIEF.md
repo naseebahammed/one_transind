@@ -134,4 +134,4 @@ company_id, period (month start), main, line, value: sums of daily_sales into GU
 - `public.invs_departments`: `department_code`, `department_name`.
 
 ## 8. Environment
-`.env.local`: `PGHOST, PGPORT, PGDATABASE, PGUSER, PGPASSWORD, PGSSL, SALES_TABLE, SALES_PERIOD, OPENAI_API_KEY, OPENAI_MODEL, DB_INIT`. **`.env.local` points at the live database**, and dev start runs migrations: use a DB copy for experiments. Never paste its values to another AI.
+`.env.local`: `PGHOST, PGPORT, PGDATABASE, PGUSER, PGPASSWORD, PGSSL, SALES_TABLE, OPENAI_API_KEY, OPENAI_MODEL, DB_INIT`. **`.env.local` points at the live database**, and dev start runs migrations: use a DB copy for experiments. Never paste its values to another AI.

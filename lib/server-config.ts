@@ -84,11 +84,6 @@ export function salesTable(env: ServerEnv = process.env): string {
   return validateSqlTableIdentifier(env.SALES_TABLE);
 }
 
-/** Optional pinned `YYYY-MM` period (`SALES_PERIOD`) from server configuration. */
-export function salesPeriod(env: ServerEnv = process.env): string | undefined {
-  return env.SALES_PERIOD?.trim() || undefined;
-}
-
 function parseCutoffYear(raw: string | undefined, fallback: number): number {
   if (!raw?.trim()) return fallback;
   const year = Number(raw.trim());

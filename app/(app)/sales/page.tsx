@@ -40,7 +40,7 @@ async function Content({ searchParams }: { searchParams: Params }) {
   const series = years.map((y) => Array.from({ length: 12 }, (_, i) => { const v = val(y, i); return v == null ? null : M(v); }));
   const [g24, g25, g26] = series.map((s) => s.map((v) => v ?? 0));
   const ytd = sum(g26.slice(0, month + 1)), ytdL = sum(g25.slice(0, month + 1));
-  const mn = MONTHS[month];
+  const mn = MONTHS[month], upTo = month === o.month ? ` (1–${o.day})` : ""; // the month still running is counted up to the latest data day, and so are its comparisons
   const q = (patch: Record<string, string | undefined>) => link("/sales", { m: String(month + 1), p: path.join("|"), ...patch });
 
   // analysis: growth by department (or by brand inside a department), peak season, YTD
@@ -76,7 +76,7 @@ async function Content({ searchParams }: { searchParams: Params }) {
         </div>
       </div>
       <div className="kpis">
-        <Kpi label={`Sales ${mn}`} value={`${fmt(g26[month], 2)} M`} delta={<><Delta a={g26[month]} b={g25[month]} /> vs {mn} {years[1]}</>} spark={g26.slice(0, o.month + 1)} />
+        <Kpi label={`Sales ${mn}${upTo}`} value={`${fmt(g26[month], 2)} M`} delta={<><Delta a={g26[month]} b={g25[month]} /> vs {mn} {years[1]}</>} spark={g26.slice(0, o.month + 1)} />
         <Kpi label={`vs ${mn} ${years[0]}`} value={`${fmt(g24[month], 2)} M`} delta={<Delta a={g26[month]} b={g24[month]} />} spark={g24} />
         <Kpi label="Year to date" value={`${fmt(ytd, 1)} M`} delta={<><Delta a={ytd} b={ytdL} /> vs same period last year</>} spark={g26.slice(0, month + 1)} />
         <Kpi label="Target attainment" value={<NotConnected />} />
@@ -84,6 +84,7 @@ async function Content({ searchParams }: { searchParams: Params }) {
       <div className="grid">
         <Panel span={12} title={`Monthly comparison: ${years[2]} vs ${years[1]} and ${years[0]}${dept ? " · " + (sectors.find((s) => s.key === dept)?.label ?? dept) : ""}`}>
           <CompareChart years={years} series={series} sel={month} href={(i) => q({ m: String(i + 1) })} />
+          <p className="note" style={{ marginTop: 8 }}>{MONTHS[o.month]} {o.year} has data for days 1–{o.day} only; every other bar is a full month.</p>
         </Panel>
         <Drill
           title={`Sales breakdown · ${mn} ${o.year}`} mode="yoy" rows={rows} labels={labels} path={path}
