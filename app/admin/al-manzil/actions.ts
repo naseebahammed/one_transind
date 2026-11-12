@@ -6,9 +6,9 @@ import { inspectWorkbookArchive, sanitizeUploadFileName } from "@/lib/upload-sec
 import { revalidatePath, updateTag } from "next/cache";
 import { listAccounts } from "@/lib/accounts";
 import { branchName, branchOf, listBranches } from "@/lib/branches";
-import { getCompany } from "@/lib/companies";
+import { getCompany, listCompanies } from "@/lib/companies";
 import { parseGrid, sectionName } from "@/lib/company-data";
-import { deleteDailyYearRows, deleteFigureYear, importBalances, importCogs, importControl, importDaily, importFigures, importMasters, importReceipts, linesOf, recordRejected, setFigure, type Upload } from "@/lib/company-figures";
+import { deleteDailyYearRows, deleteFigureYear, importBalances, importCogs, importControl, importDaily, importFigures, importMasters, importReceipts, importTenancies, linesOf, recordRejected, setFigure, type Upload } from "@/lib/company-figures";
 import { gridFromWorkbook, MAX_UPLOAD_BYTES, readWorkbook } from "@/lib/company-template";
 import { addLog } from "@/lib/db";
 import { checkDaily, cogsForCompany, cogsFromWorkbook, dailyFromWorkbook, dukanFromWorkbook, matchAccounts, pnlFromWorkbook, receiptsFromWorkbook, unitsFromWorkbook } from "@/lib/report-parsers";
@@ -16,13 +16,14 @@ import { REPORTS_CACHE_TAG } from "@/lib/reports";
 import { balancesFromWorkbook } from "@/lib/fmcg-balances";
 import { controlFromWorkbook } from "@/lib/fmcg-control";
 import { mastersFromWorkbook } from "@/lib/fmcg-masters";
+import { buildingKey, tenanciesFromWorkbook } from "@/lib/tenancy";
 import { MONTHS } from "@/lib/format";
 import { cogsFromYear, receiptsFromYear } from "@/lib/server-config";
 
 export type UploadState = { error?: string; ok?: string };
 type Company = NonNullable<Awaited<ReturnType<typeof getCompany>>>;
 
-const LABEL: Record<string, string> = { pnl: "P&L", daily: "Daily sales", units: "Unit types", sales: "Monthly sales", receipts: "Daily sales deposit", cogs: "COGS summary", dukan: "Dukan Food monthly sales", masters: "FMCG reference data", balances: "FMCG stock and control reports" };
+const LABEL: Record<string, string> = { pnl: "P&L", daily: "Daily sales", units: "Unit types", sales: "Monthly sales", receipts: "Daily sales deposit", cogs: "COGS summary", dukan: "Dukan Food monthly sales", masters: "FMCG reference data", tenancy: "Tenancy and occupancy", balances: "FMCG stock and control reports" };
 
 function refresh() {
   updateTag(REPORTS_CACHE_TAG);
@@ -76,6 +77,17 @@ async function loadFile(type: string, company: Company, u: Upload, formYear: num
     if (!b.rowsRead) throw new Error("No stock rows found. Upload the Stock Report workbook (TC outstanding now comes straight from the database).");
     await importBalances(u, b);
     return { rows: b.rowsRead, ok: `Loaded ${b.stock.length} stock rows for ${b.stockDate}.${b.issues.length ? ` ${b.issues.length} to check, first: ${b.issues[0].reason}` : ""}` };
+  }
+  if (type === "tenancy") {
+    const { sheets, issues } = tenanciesFromWorkbook(wb);
+    const companies = await listCompanies("", SECTOR.realEstate);
+    const matched = sheets.map((s) => ({ s, company: companies.find((c) => buildingKey(c.name) === buildingKey(s.sheet)) }));
+    const groups = matched.flatMap(({ s, company }) => (company ? [{ companyId: company.id, name: company.name, rows: s.rows }] : []));
+    if (!groups.length) throw new Error("No sheet matches a real estate company. Name each sheet like the company (BALASEM 1 for Balasem Gardens 1).");
+    const rowsRead = groups.reduce((n, g) => n + g.rows.length, 0);
+    await importTenancies(u, groups, { rowsRead, controlTotal: null, issues });
+    const skipped = matched.filter((m) => !m.company).map((m) => m.s.sheet);
+    return { rows: rowsRead, ok: `Loaded ${rowsRead} units for ${groups.map((g) => g.name).join(", ")}.${skipped.length ? ` No company for sheet ${skipped.join(", ")}.` : ""}${issues.length ? ` ${issues.length} to check, first: ${issues[0].reason}` : ""}` };
   }
   if (type === "masters") {
     const m = mastersFromWorkbook(wb);

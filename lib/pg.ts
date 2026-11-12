@@ -12,5 +12,5 @@ export const pg = (g._pg ??= new Pool({
   max: 10, // sales pages run ~8 heavy ERP queries in parallel; 4 made the rest queue and time out
   connectionTimeoutMillis: 30_000, // also covers waiting for a free pool slot, not just the TCP connect
   idleTimeoutMillis: 30_000,
-  statement_timeout: 30_000, // aborts runaway queries so pool connections are never pinned indefinitely
+  statement_timeout: 90_000, // aborts runaway queries so pool connections are never pinned indefinitely; 90 s because the cached sales queries take up to ~50 s when the database is slow
 }));

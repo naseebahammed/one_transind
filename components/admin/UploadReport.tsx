@@ -14,11 +14,12 @@ const TYPES = {
   receipts: { label: "Daily sales deposit", accept: ".xlsx", hint: "The branch's Daily Sales Deposit workbook, all months. Pick the branch first. Days in the file replace the same days; days after the last figure are ignored." },
   cogs: { label: "COGS summary", accept: ".xlsx", hint: "The group Restaurants COGS Summary workbook. Only this company's columns are loaded, so upload it once on each company. Months in the file replace the same months on file." },
   dukan: { label: "Dukan Food monthly sales", accept: ".xlsx", hint: "DUKAN-TOTAL for the month, re-saved from .xls as .xlsx. Pick the branch first. The month in the file replaces the same month on file." },
+  tenancy: { label: "Tenancy and occupancy", accept: ".xlsx", hint: "The monthly occupancy workbook, one sheet per building (unit, tenant, contract start and end, rent). A tenant written EMPTY is a vacant unit. Each building in the file gets its whole unit list replaced." },
   masters: { label: "FMCG reference data", accept: ".xlsx", hint: "The Market Audit (salesmen, customers), Stock Report (items, brands) or Daily Sales Report (monthly targets) workbook. Existing records are updated, never removed. A month's targets replace that month." },
   balances: { label: "FMCG stock and control reports", accept: ".xlsx", hint: "The daily Stock Report (keep the date in the file name, like 08-11-2026), Variance, Consignment or Ageing workbook. Each day is kept; uploading the same day again replaces it." },
   sales: { label: "Monthly sales", accept: ".xlsx,.csv", hint: "The downloaded template, as Excel or CSV, one sales figure per month. Months you fill in replace the same months on file." },
 } as const;
-const FOR_REAL_ESTATE = ["pnl", "daily", "units"], FOR_FOOD_BEVERAGE = ["pnl", "receipts", "cogs"], FOR_RETAIL = ["pnl", "sales", "dukan"], FOR_FMCG = ["pnl", "sales", "masters", "balances"], NO_TEMPLATE: string[] = ["receipts", "cogs", "dukan", "masters", "balances"], FOR_OTHERS = ["pnl", "sales"];
+const FOR_REAL_ESTATE = ["pnl", "daily", "units", "tenancy"], FOR_FOOD_BEVERAGE = ["pnl", "receipts", "cogs"], FOR_RETAIL = ["pnl", "sales", "dukan"], FOR_FMCG = ["pnl", "sales", "masters", "balances"], NO_TEMPLATE: string[] = ["tenancy", "receipts", "cogs", "dukan", "masters", "balances"], FOR_OTHERS = ["pnl", "sales"];
 
 export function UploadReport({ companyId, sector, branchId, initialType = "pnl" }: { companyId: number; sector: string; branchId?: number | null; initialType?: keyof typeof TYPES }) {
   const [s, act, pending] = useActionState<UploadState, FormData>(uploadReport, {});

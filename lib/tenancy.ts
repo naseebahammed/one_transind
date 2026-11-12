@@ -31,15 +31,17 @@ export function tenanciesFromWorkbook(wb: ExcelJS.Workbook) {
     const rows: TenancyRow[] = [];
     ws.eachRow({ includeEmpty: false }, (row, i) => {
       if (i <= head) return;
-      const tenantText = text(row.getCell(tenantCol).value), where = `${ws.name.trim()}, row ${i}`;
+      // A merged cell (a title across the sheet, or a staff-accommodation name across the date and rent columns) counts only in its first cell.
+      const own = (n: number) => { const c = row.getCell(n); return c.isMerged && c.master !== c ? null : c.value; };
+      const tenantText = text(own(tenantCol)), where = `${ws.name.trim()}, row ${i}`;
       if (!tenantText) return; // totals and spacer rows have no tenant
-      const unit = text(row.getCell(unitCol).value);
+      const unit = text(own(unitCol));
       if (!unit) { issues.push({ sheet: ws.name.trim(), row: i, reason: `"${tenantText}" has no unit number.`, loaded: false }); return; }
       const vacant = /^empty\b/i.test(tenantText);
       try {
-        const contractStart = cellDate(row.getCell(startCol).value, where), contractEnd = cellDate(row.getCell(endCol).value, where);
+        const contractStart = cellDate(own(startCol), where), contractEnd = cellDate(own(endCol), where);
         if (!vacant && !contractEnd) issues.push({ sheet: ws.name.trim(), row: i, reason: `Unit ${unit} (${tenantText}) has no contract end date, so it is never counted as ending.`, loaded: true });
-        rows.push({ line: rows.length + 1, unit, tenant: vacant ? null : tenantText, contractStart, contractEnd, rent: num(row.getCell(rentCol).value, where) });
+        rows.push({ line: rows.length + 1, unit, tenant: vacant ? null : tenantText, contractStart, contractEnd, rent: num(own(rentCol), where) });
       } catch (e) { issues.push({ sheet: ws.name.trim(), row: i, reason: (e as Error).message, loaded: false }); }
     });
     sheets.push({ sheet: ws.name.trim(), rows });

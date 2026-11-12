@@ -4,6 +4,7 @@ import { numbering, q, q1 } from "@/lib/db";
 import type { Balances } from "@/lib/fmcg-balances";
 import type { Control } from "@/lib/fmcg-control";
 import type { Masters } from "@/lib/fmcg-masters";
+import type { TenancyRow } from "@/lib/tenancy";
 import type { CogsRow, DailyRow, ImportIssue, ReceiptRow } from "@/lib/report-parsers";
 import { LINES, type Figure, type FigureSection } from "@/lib/company-data";
 import { branchClash, monthlySalesClash, takingsClash } from "@/lib/figure-rules";
@@ -172,6 +173,18 @@ export const importBalances = (u: Upload, b: Balances) =>
       await c.query(`INSERT INTO app.items(code,name,brand,packing,size,item_type,department,manager,import_id) SELECT a,b,d,e,f,g,h,i,$9 FROM unnest($1::text[],$2::text[],$3::text[],$4::text[],$5::text[],$6::text[],$7::text[],$8::text[]) AS t(a,b,d,e,f,g,h,i) ON CONFLICT (code) DO NOTHING`, [...pick(b.items, "code", "name", "brand", "packing", "size", "itemType", "department", "manager"), id]);
       await c.query("DELETE FROM app.stock_snapshots WHERE as_of=$1", [b.stockDate]);
       await c.query("INSERT INTO app.stock_snapshots(as_of,item_code,location,qty_current,qty_allocated,qty_balance,value,import_id) SELECT $1::date,a,b,d,e,f,g,$8 FROM unnest($2::text[],$3::text[],$4::numeric[],$5::numeric[],$6::numeric[],$7::numeric[]) AS t(a,b,d,e,f,g)", [b.stockDate, ...pick(b.stock, "itemCode", "location", "qtyCurrent", "qtyAllocated", "qtyBalance", "value"), id]);
+    }
+  }, u.companyId);
+
+/** All or nothing: each building in the file gets its whole unit list replaced, every other building stays as it is. */
+export const importTenancies = (u: Upload, groups: { companyId: number; rows: TenancyRow[] }[], quality: ImportQuality) =>
+  numbering(async (c) => {
+    const id = await addImport(c, u, groups.reduce((n, g) => n + g.rows.length, 0), [], quality);
+    for (const g of groups) {
+      const pick = <K extends keyof TenancyRow>(key: K) => g.rows.map((r) => r[key]);
+      await c.query("DELETE FROM app.tenancies WHERE company_id=$1", [g.companyId]);
+      await c.query("INSERT INTO app.tenancies(company_id,line_no,unit,tenant,contract_start,contract_end,rent,import_id) SELECT $1,a,b,d,e::date,f::date,g,$8 FROM unnest($2::int[],$3::text[],$4::text[],$5::text[],$6::text[],$7::numeric[]) AS t(a,b,d,e,f,g)",
+        [g.companyId, pick("line"), pick("unit"), pick("tenant"), pick("contractStart"), pick("contractEnd"), pick("rent"), id]);
     }
   }, u.companyId);
 

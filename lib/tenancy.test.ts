@@ -13,6 +13,8 @@ function workbook() {
     [4, 8, "OLD TENANT", new Date(Date.UTC(2025, 0, 1)), new Date(Date.UTC(2026, 7, 31)), 5000],
     [5, 9, "STAFF", null, null, 3000],
     [null, null, null, null, null, 369200]].forEach((r, i) => r.forEach((v, n) => { a.getCell(1 + i, 1 + n).value = v as ExcelJS.CellValue; }));
+  a.getCell(8, 1).value = "SECOND BLOCK"; // a title merged across the sheet is not a unit
+  a.mergeCells("A8:F8");
   wb.addWorksheet("PVT").getCell("A1").value = "not a tenancy sheet";
   return wb;
 }

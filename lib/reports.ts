@@ -41,9 +41,9 @@ export async function buildReports(query?: QueryRunner): Promise<Reports> {
        FROM (SELECT company_id, period, main, line, value FROM app.daily_sales_monthly
              UNION ALL SELECT r.company_id, date_trunc('month', r.date)::date AS period, 'REVENUE', 'Sales' AS line, SUM(r.value) AS value
              FROM app.daily_receipts r JOIN app.companies c ON c.id = r.company_id
-             WHERE lower(regexp_replace(btrim(r.line), '\\s+', ' ', 'g')) NOT IN ('bank deposits', 'bank deposit') AND c.sector = $1 GROUP BY 1, 2) monthly
+             WHERE lower(regexp_replace(btrim(r.line), '\\s+', ' ', 'g')) NOT IN ('bank deposits', 'bank deposit') AND c.sector = ANY($1::text[]) GROUP BY 1, 2) monthly
        ORDER BY array_position(ARRAY['Long stay','Short stay','Room revenue','Other revenue','Occupied','Available'], line)`,
-      [SECTOR.retail],
+      [[SECTOR.retail, SECTOR.healthBeauty]],
     ),
     q<Day & { id: number }>(`SELECT company_id AS id, to_char(date,'YYYY-MM-DD') AS date, ${NUMS.split(",").map((c) => `${c}::float8 AS ${c}`).join(",")} FROM app.daily_sales ORDER BY date`),
     // shortcut: the Al Manzil panels on /finance, /admin/finance and Ask find it by name (override with FEATURED_PROPERTY_NAME); give them a company picker to drop this.

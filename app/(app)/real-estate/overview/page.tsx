@@ -10,6 +10,7 @@ import { listCompanies } from "@/lib/companies";
 import { listPropertyTypes } from "@/lib/property-types";
 import { YearSelect } from "@/components/YearSelect";
 import { Panel } from "@/components/ui";
+import { TenancyPanels } from "@/components/TenancyPanels";
 
 export const metadata = { title: "Real Estate overview · One Transind" };
 type Params = Promise<{ year?: string }>;
@@ -168,6 +169,7 @@ async function Content({ searchParams }: { searchParams: Params }) {
             </tr></tfoot>
           </table></div>
         </Panel>
+        <TenancyPanels />
       </div>
     </div>
   );

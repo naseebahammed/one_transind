@@ -4,7 +4,7 @@ import { getPeriod } from "@/lib/period";
 import { pg } from "@/lib/pg";
 import { salesTable } from "@/lib/server-config";
 
-// Sales value = IN-DTS and IN-OT invoices plus CR credit notes (already negative), from app.sales_clean: de-duplicated, without tax (migration 023). Data starts 2026-08-09.
+// Sales value = IN-DTS and IN-OT invoices plus CR credit notes (already negative), from app.sales_clean: every ERP row of those types, without tax (migrations 023, 033). Data starts 2026-08-09.
 // Validated via salesTable() so only strict identifier syntax (schema.table or table) can ever be interpolated; trailing "s" is the table alias.
 const salesSource = () => `${salesTable()} s`;
 const clampMonth = (month: number) => (Number.isInteger(month) && month >= 0 && month <= 11 ? month : 0);
