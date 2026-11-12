@@ -167,7 +167,7 @@ export async function getRoutes(month: number) {
   const safeMonth = clampMonth(month);
   const period = await getPeriod(table), { year } = period, days = daysOf(period, safeMonth);
   const cur = ymOf(year, safeMonth), before = ymOf(year, safeMonth - 1);
-  const [{ rows: routes }, { rows: drivers }] = await Promise.all([
+  const [{ rows: routes }, { rows: drivers }, { rows: [reach] }] = await Promise.all([
     pg.query<{ k: string; ym: string; v: number; drivers: number; docs: number }>(
       `SELECT COALESCE("ROUTE_DESC",'-') AS k, (CASE WHEN "DOC_DATE" >= $1::date THEN $1 ELSE $2 END)::text AS ym, SUM("NET_AMOUNT")::float8 AS v,
               COUNT(DISTINCT "DRIVER_NAME")::int AS drivers, COUNT(DISTINCT "DOC_NO")::int AS docs
@@ -175,6 +175,10 @@ export async function getRoutes(month: number) {
     pg.query<{ name: string; value: number; customers: number; docs: number }>(
       `SELECT "DRIVER_NAME" AS name, SUM("NET_AMOUNT")::float8 AS value, COUNT(DISTINCT "CUST_NO")::int AS customers, COUNT(DISTINCT "DOC_NO")::int AS docs
        FROM ${table} WHERE ${inMonth('"DOC_DATE"', "$1", days)} AND "DRIVER_NAME" IS NOT NULL GROUP BY 1 ORDER BY 2 DESC LIMIT 20`, [cur]),
+    pg.query<{ outletsReached: number; activeDrivers: number }>(
+      `SELECT COUNT(DISTINCT "CUST_NO") FILTER (WHERE "DRIVER_NAME" IS NOT NULL)::int AS "outletsReached",
+              COUNT(DISTINCT "DRIVER_NAME")::int AS "activeDrivers"
+       FROM ${table} WHERE ${inMonth('"DOC_DATE"', "$1", days)}`, [cur]),
   ]);
   const map = new Map<string, { key: string; value: number; lastMonth: number; drivers: number; docs: number }>();
   for (const r of routes) {
@@ -182,7 +186,13 @@ export async function getRoutes(month: number) {
     if (r.ym === cur) { x.value = r.v; x.drivers = r.drivers; x.docs = r.docs; } else x.lastMonth = r.v;
     map.set(r.k, x);
   }
-  return { year, routes: [...map.values()].filter((r) => r.value || r.lastMonth).sort((a, b) => b.value - a.value), drivers };
+  return {
+    year,
+    routes: [...map.values()].filter((r) => r.value || r.lastMonth).sort((a, b) => b.value - a.value),
+    drivers,
+    outletsReached: reach?.outletsReached ?? 0,
+    activeDrivers: reach?.activeDrivers ?? 0,
+  };
 }
 
 export type DrillRow = { key: string; label: string; sub: string; value: number; lastMonth: number; lastYear: number; twoYearsAgo: number; cost: number; units: number };

@@ -262,3 +262,4 @@ export async function getCompanyReceivablesSnapshot(companyId: number): Promise<
   const snapshots = await manualMod.listReceivablesSnapshots();
   return snapshots.find((s) => s.companyId === companyId) ?? null;
 }
+

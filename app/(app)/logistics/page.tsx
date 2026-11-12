@@ -2,8 +2,9 @@ import { requireUser } from "@/lib/guard";
 import { Suspense } from "react";
 import { connection } from "next/server";
 import { getOverview, getRoutes } from "@/lib/data";
-import { fmt, MONTHS, pct } from "@/lib/format";
+import { fmt, MONTHS, money, pct } from "@/lib/format";
 import { getLogisticsOverview } from "@/lib/manual-report-records";
+import { getWarehouseSummary } from "@/lib/warehouse-summary";
 import { Empty, Kpi, NotConnected, Panel } from "@/components/ui";
 
 export const metadata = { title: "Logistics · One Transind" };
@@ -15,20 +16,30 @@ export default function Page() {
 async function Content() {
   await connection();
   await requireUser();
-  const [o, logistics] = await Promise.all([getOverview(), getLogisticsOverview()]);
+  const [o, logistics, warehouseSummary] = await Promise.all([
+    getOverview(),
+    getLogisticsOverview(),
+    getWarehouseSummary(),
+  ]);
   const d = await getRoutes(o.month);
   const label = `${MONTHS[o.month]} ${d.year}`;
   const { kpis, fleet, shipments, warehouses, customs } = logistics;
   const fleetVal = kpis?.fleetCount ?? (fleet.length ? fleet.length : null);
   const onRouteVal = kpis?.onRouteCount ?? (fleet.length ? fleet.filter((v) => v.status.toLowerCase() === "on route").length : null);
-  const outletsVal = kpis?.outletsReached ?? null;
+  const outletsFromErp = d.outletsReached > 0 ? d.outletsReached : null;
+  const outletsVal = kpis?.outletsReached ?? outletsFromErp;
+  const hasFmcgStock = warehouseSummary.locations.length > 0;
 
   return (
     <>
       <div className="kpis">
         <Kpi label="Fleet" value={fleetVal !== null ? fmt(fleetVal) : <NotConnected />} />
         <Kpi label="On route" value={onRouteVal !== null ? fmt(onRouteVal) : <NotConnected />} />
-        <Kpi label="Outlets reached" value={outletsVal !== null ? fmt(outletsVal) : <NotConnected />} />
+        <Kpi
+          label="Outlets reached"
+          value={outletsVal !== null ? fmt(outletsVal) : <NotConnected />}
+          delta={kpis?.outletsReached == null && outletsFromErp !== null ? `Delivered · ${label}` : undefined}
+        />
       </div>
       <div className="grid">
         <Panel span={12} title="Shipments">
@@ -52,9 +63,37 @@ async function Content() {
             </tbody>
           </table></div>
         </Panel>
-        <Panel span={6} title="Warehouses">
-          {warehouses.length ? (
+        <Panel
+          span={6}
+          title="Warehouses"
+          src={hasFmcgStock && warehouseSummary.latestAsOf ? `FMCG stock · As of ${warehouseSummary.latestAsOf}` : undefined}
+        >
+          {hasFmcgStock && (
             <div className="tw"><table>
+              <thead>
+                <tr>
+                  <th>Location</th>
+                  <th className="n">SKUs</th>
+                  <th className="n">Balance qty</th>
+                  <th className="n">Value (QAR)</th>
+                  <th className="n">Expiring ≤90d</th>
+                </tr>
+              </thead>
+              <tbody>
+                {warehouseSummary.locations.map((loc) => (
+                  <tr key={loc.location}>
+                    <td>{loc.location}</td>
+                    <td className="n num">{fmt(loc.itemCount)}</td>
+                    <td className="n num">{fmt(loc.qtyBalance)}</td>
+                    <td className="n num">{money(loc.stockValue)}</td>
+                    <td className="n num">{loc.expiringCost90d > 0 ? money(loc.expiringCost90d) : "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table></div>
+          )}
+          {warehouses.length > 0 && (
+            <div className="tw" style={hasFmcgStock ? { marginTop: 14 } : undefined}><table>
               <thead><tr><th>Warehouse</th><th>Zone</th><th className="n">Pallets</th><th>Status</th></tr></thead>
               <tbody>{warehouses.map((w) => (
                 <tr key={w.id}>
@@ -65,9 +104,8 @@ async function Content() {
                 </tr>
               ))}</tbody>
             </table></div>
-          ) : (
-            <p className="empty">Not connected</p>
           )}
+          {!hasFmcgStock && warehouses.length === 0 && <p className="empty">Not connected</p>}
         </Panel>
         <Panel span={6} title="Fleet">
           {fleet.length ? (

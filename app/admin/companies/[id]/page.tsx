@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { BranchesCard } from "@/components/admin/BranchesCard";
 import { CompanyDepartments } from "@/components/admin/CompanyDepartments";
 import { CompanyForm } from "@/components/admin/CompanyForm";
+import { CompanyReceivablesCard } from "@/components/admin/CompanyReceivablesCard";
 import { BranchLinks, CompanySectionNav, progress, YearLinks } from "@/components/admin/CompanySectionNav";
 import { FigureSectionView } from "@/components/admin/FigureSectionView";
 import { PnlSectionView } from "@/components/admin/PnlSectionView";
@@ -18,6 +19,7 @@ import { getCompany, listCompanyIds } from "@/lib/companies";
 import { isFigureSection, monthStatuses, profileGaps, SECTIONS, type Section } from "@/lib/company-data";
 import { listFilledMonths } from "@/lib/company-figures";
 import { parsePositiveIntId } from "@/lib/input-validation";
+import { getCompanyReceivablesSnapshot } from "@/lib/receivables-rollup";
 import { listSectors } from "@/lib/sectors";
 import { listPropertyTypes } from "@/lib/property-types";
 import { link } from "@/lib/url";
@@ -48,7 +50,10 @@ async function Edit({ params, searchParams }: { params: Params; searchParams: Se
   const year = yearOptions.includes(Number(rawYear)) ? Number(rawYear) : thisYear;
   const activeBranches = company.has_branches ? branches.filter((b) => b.active) : [];
   const branchId = activeBranches.find((b) => String(b.id) === rawBranch)?.id ?? null;
-  const filled = await listFilledMonths(id, year, branchId);
+  const [filled, receivablesSnapshot] = await Promise.all([
+    listFilledMonths(id, year, branchId),
+    company.sector !== SECTOR.trading && section === "profile" ? getCompanyReceivablesSnapshot(id) : Promise.resolve(null),
+  ]);
   const pnlStatuses = monthStatuses("pnl", year, filled.pnl, today);
   const figureStatuses = { budget: monthStatuses("budget", year, filled.budget, today), people: monthStatuses("people", year, filled.people, today), expenses: monthStatuses("expenses", year, filled.expenses, today) };
   const gaps = profileGaps(company).length;
@@ -87,6 +92,14 @@ async function Edit({ params, searchParams }: { params: Params; searchParams: Se
       {section === "profile" && <>
       {/* Activity keeps this page's DOM across navigation, so remount when saved data changes or the inputs show stale values (and re-save them). */}
       <CompanyForm key={JSON.stringify(company)} company={company} sectors={sectors} propertyTypes={propertyTypes} />
+      {company.sector !== SECTOR.trading && (
+        <CompanyReceivablesCard
+          key={JSON.stringify(receivablesSnapshot)}
+          companyId={id}
+          companyName={company.name}
+          snapshot={receivablesSnapshot}
+        />
+      )}
       <BranchesCard key={JSON.stringify([company.has_branches, branches])} companyId={id} enabled={!!company.has_branches} branches={branches} />
       <CompanyDepartments companyId={id} />
       </>}

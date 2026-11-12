@@ -3,8 +3,14 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { connection } from "next/server";
 import { getBreakdown, getDrill, getDrillLabels, getMonthly, getOverview } from "@/lib/data";
+import {
+  getComputedSalesIndicators,
+  listEffectiveDepartmentTargets,
+  mergeSalesSectorIndicators,
+} from "@/lib/sales-indicators";
 import { getSalesSectors } from "@/lib/sales-sectors";
-import { computeTargetAttainment, listSalesDepartmentTargets, listSalesSectorIndicators, resolveSectorIndicators } from "@/lib/sales-targets";
+import { getManagerTracking } from "@/lib/manager-tracking";
+import { computeTargetAttainment, listSalesSectorIndicators, resolveSectorIndicators } from "@/lib/sales-targets";
 import { fmt, MONTHS, money, pct, sum } from "@/lib/format";
 import { link, parsePath } from "@/lib/url";
 import { Drill } from "@/components/Drill";
@@ -28,15 +34,18 @@ async function Content({ searchParams }: { searchParams: Params }) {
   const rawM = Number(m);
   const month = Math.min(o.month, Math.max(0, m && Number.isInteger(rawM) && rawM >= 1 ? rawM - 1 : o.month));
   const path = parsePath(p), dept = path[0] ?? "";
+  const deptLabel = dept ? (sectors.find((s) => s.key === dept)?.label ?? dept) : "";
   const periodIso = `${o.year}-${String(month + 1).padStart(2, "0")}-01`;
-  const [hist, top, subRows, labels, dep, deptTargets, indicatorRows] = await Promise.all([
+  const [hist, top, subRows, labels, dep, deptTargets, indicatorRows, computedIndicators, tracking] = await Promise.all([
     getMonthly(dept),
     getDrill(month, "p", []),
     path.length ? getDrill(month, "p", path) : Promise.resolve(null),
     getDrillLabels(month, "p", path),
     getBreakdown(month, "dept"),
-    listSalesDepartmentTargets(o.year),
+    listEffectiveDepartmentTargets(o.year),
     listSalesSectorIndicators(periodIso),
+    getComputedSalesIndicators(month, dept, deptLabel),
+    getManagerTracking(periodIso).catch(() => null), // the ERP view only exists on the live server
   ]);
   const rows = subRows ?? top;
   const years = [o.year - 2, o.year - 1, o.year];
@@ -68,7 +77,7 @@ async function Content({ searchParams }: { searchParams: Params }) {
   const monthTargetRows = deptTargets.filter((t) => t.month === month && relevantCodes.has(t.code));
   const targetMonthQar = monthTargetRows.length ? sum(monthTargetRows.map((t) => t.target)) : null;
   const attainment = computeTargetAttainment(val(o.year, month) ?? 0, targetMonthQar);
-  const indicators = resolveSectorIndicators(indicatorRows, dept);
+  const indicators = mergeSalesSectorIndicators(computedIndicators, resolveSectorIndicators(indicatorRows, dept));
   const indMoney = (v: number | undefined) => (v !== undefined ? money(v) : undefined);
   const indPct = (v: number | undefined) => (v !== undefined ? `${fmt(v, 1)}%` : undefined);
   const sectorKpis: [string, string?][] = [
@@ -103,7 +112,7 @@ async function Content({ searchParams }: { searchParams: Params }) {
         />
       </div>
       <div className="grid">
-        <Panel span={12} title={`Monthly comparison: ${years[2]} vs ${years[1]} and ${years[0]}${dept ? " · " + (sectors.find((s) => s.key === dept)?.label ?? dept) : ""}`}>
+        <Panel span={12} title={`Monthly comparison: ${years[2]} vs ${years[1]} and ${years[0]}${dept ? " · " + deptLabel : ""}`}>
           <CompareChart years={years} series={series} sel={month} href={(i) => q({ m: String(i + 1) })} />
           <p className="note" style={{ marginTop: 8 }}>{MONTHS[o.month]} {o.year} has data for days 1–{o.day} only; every other bar is a full month.</p>
         </Panel>
@@ -112,8 +121,17 @@ async function Content({ searchParams }: { searchParams: Params }) {
           levels={["Departments", "Brands", "Products"]} rootLabel="All" all={all === "1"} yoyLabels={[`${mn} ${years[1]}`, `${mn} ${years[0]}`]}
           href={(pp, a) => link("/sales", { m: String(month + 1), p: pp.join("|"), all: a ? "1" : undefined })}
         />
+        {!dept && tracking && tracking.rows.some((r) => r.target > 0) && (
+          <Panel span={12} title={`Manager targets · ${mn} ${o.year}`}>
+            <div className="tw"><table>
+              <thead><tr><th>Manager</th><th className="n">Target</th><th className="n">Sales</th><th className="n">%</th><th className="n">Balance</th><th className="n">Daily balance required</th><th className="n">Projected %</th></tr></thead>
+              <tbody>{tracking.rows.map((r) => <tr key={r.manager}><td>{r.manager}</td><td className="n num">{r.target ? fmt(r.target) : "—"}</td><td className="n num">{fmt(r.sales)}</td><td className="n num">{r.achievedPct === null ? "—" : `${fmt(r.achievedPct, 1)}%`}</td><td className="n num">{r.target ? fmt(r.balance) : "—"}</td><td className="n num">{r.dailyRequired === null ? "—" : fmt(r.dailyRequired)}</td><td className="n num">{r.projectedPct === null ? "—" : `${fmt(r.projectedPct, 1)}%`}</td></tr>)}</tbody>
+            </table></div>
+            <p className="note" style={{ marginTop: 8 }}>QAR. Sales through {tracking.throughDate}; {tracking.daysGone} of {tracking.workingDays} working days gone, {tracking.daysLeft} left (Fridays off). Daily balance required = balance ÷ working days left. Projected % = current daily pace over the full month.</p>
+          </Panel>
+        )}
         <Insights title="Analysis" items={out} />
-        <Panel span={6} title={`Sector indicators · ${dept ? (sectors.find((s) => s.key === dept)?.label ?? dept) : "All"}`}>
+        <Panel span={6} title={`Sector indicators · ${dept ? deptLabel : "All"}`}>
           <div className="kpis" style={{ gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))" }}>
             {sectorKpis.map(([l, v]) => <div className="kpi" key={l} style={{ padding: "10px 12px" }}><span className="l">{l}</span><span className="v" style={{ fontSize: 20 }}>{v ?? <NotConnected />}</span></div>)}
           </div>
