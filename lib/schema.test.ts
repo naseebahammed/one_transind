@@ -137,8 +137,12 @@ test("migrate applies 033_sales_clean_all_lines: no de-duplication, only the sal
   assert.deepEqual(recordStep.params, ["033_sales_clean_all_lines"]);
 
   const sql = executed[executed.indexOf(recordStep) - 1].sql;
-  assert.equal((sql.match(/^DO 'BEGIN IF to_regclass\(''public\.invs_fdd_fnb_sales_do_t''\) IS NOT NULL THEN EXECUTE ''/gm) ?? []).length, 7);
+  assert.equal((sql.match(/^DO 'BEGIN IF to_regclass\(''public\.invs_fdd_fnb_sales_do_t''\) IS NOT NULL THEN EXECUTE ''/gm) ?? []).length, 10); // 2 drops, create, 5 indexes, sales_monthly and its index
   assert.match(sql, /DROP MATERIALIZED VIEW IF EXISTS app\.sales_clean/);
+  // sales_monthly reads sales_clean: dropped before it, created after it.
+  assert.ok(sql.indexOf("DROP MATERIALIZED VIEW IF EXISTS app.sales_monthly") < sql.indexOf("DROP MATERIALIZED VIEW IF EXISTS app.sales_clean"));
+  assert.ok(sql.indexOf("CREATE MATERIALIZED VIEW app.sales_clean") < sql.indexOf("CREATE MATERIALIZED VIEW app.sales_monthly"));
+  assert.match(sql, /CREATE INDEX sales_monthly_month_idx ON app\.sales_monthly/);
   assert.match(sql, /WHERE "DOC_TYPE" IN \(''''IN-DTS'''',''''IN-OT'''',''''CR''''\)/);
   assert.doesNotMatch(sql, /DISTINCT/);
   assert.doesNotMatch(sql, /DELETE|TRUNCATE|UPDATE|ALTER|DROP TABLE|CASCADE/i);

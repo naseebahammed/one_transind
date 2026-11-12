@@ -676,7 +676,10 @@ CREATE TABLE app.tenancies(company_id INTEGER NOT NULL REFERENCES app.companies(
 
 // The line key of 030 merged real lines that look the same (same item and quantity twice on one invoice), so September 2026 came out 4,786.90 QAR below the ERP total.
 // No de-duplication any more: every ERP row of IN-DTS, IN-OT and CR counts, so the view equals the ERP sum for those types. The ERP table is only read.
+// app.sales_monthly (a monthly summary made by hand in the live database, not used by the app) reads app.sales_clean, so it is dropped first and created again as it was.
+// shortcut: it is created on every database that has the ERP table, even one that never had it, remove it here if that ever matters.
 const SALES_CLEAN_ALL_LINES = [
+  `DROP MATERIALIZED VIEW IF EXISTS app.sales_monthly`,
   `DROP MATERIALIZED VIEW IF EXISTS app.sales_clean`,
   `CREATE MATERIALIZED VIEW app.sales_clean AS SELECT "DOC_DATE", "DOC_TYPE", "DOC_NO", "CUST_NO", "CUST_NAME", "CUST_CATEGORY", "GROUP_NAME", "BRAND", "ITEM_CODE", "ITEM_NAME", "SUPPLIER_NAME", "SMAN_NAME", "DEPT_CODE", "ROUTE_DESC", "DRIVER_NAME", "QTY_PCS", "NET_AMOUNT_WOT" AS "NET_AMOUNT", "NET_COST_WOT" AS "NET_COST"
      FROM public.invs_fdd_fnb_sales_do_t WHERE "DOC_TYPE" IN ('IN-DTS','IN-OT','CR')`,
@@ -685,6 +688,9 @@ const SALES_CLEAN_ALL_LINES = [
   `CREATE INDEX sales_clean_date_cust ON app.sales_clean("DOC_DATE", "CUST_NO") INCLUDE ("BRAND", "NET_AMOUNT")`,
   `CREATE INDEX sales_clean_cust_no ON app.sales_clean("CUST_NO")`,
   `CREATE INDEX sales_clean_item_code ON app.sales_clean("ITEM_CODE")`,
+  `CREATE MATERIALIZED VIEW app.sales_monthly AS SELECT date_trunc('month', "DOC_DATE")::date AS month, "DEPT_CODE", "GROUP_NAME", "BRAND", sum("NET_AMOUNT") AS net_amount, sum("NET_COST") AS net_cost, count(*) AS lines
+     FROM app.sales_clean GROUP BY 1, "DEPT_CODE", "GROUP_NAME", "BRAND"`,
+  `CREATE INDEX sales_monthly_month_idx ON app.sales_monthly (month)`,
 ].map((sql) => ifTable("public.invs_fdd_fnb_sales_do_t", sql)).join("\n");
 
 const MIGRATIONS: readonly (readonly [string, string])[] = [["001_baseline", BASELINE], ["002_standard_data", STANDARD_DATA], ["003_drop_report_files", DROP_REPORT_FILES], ["005_company_expenses", COMPANY_EXPENSES], ["006_company_branches", COMPANY_BRANCHES], ["007_company_has_branches", COMPANY_HAS_BRANCHES], ["008_daily_receipts", DAILY_RECEIPTS], ["009_drop_deals", DROP_DEALS], ["010_drop_invoices", DROP_INVOICES], ["011_enterprise_foundation", ENTERPRISE_FOUNDATION], ["012_rejected_rows_loaded", REJECTED_ROWS_LOADED], ["013_restaurant_cogs", RESTAURANT_COGS], ["014_drop_ownership_pct", DROP_OWNERSHIP_PCT], ["015_fmcg_masters", FMCG_MASTERS], ["016_data_standardization", DATA_STANDARDIZATION], ["017_fmcg_sales_views", FMCG_SALES_VIEWS], ["018_fmcg_balances", FMCG_BALANCES], ["019_fmcg_control", FMCG_CONTROL], ["020_app_optimizations", APP_OPTIMIZATIONS], ["021_app_users", APP_USERS], ["022_erp_outstanding", ERP_OUTSTANDING], ["023_sales_clean", SALES_CLEAN], ["024_employees", EMPLOYEES], ["025_company_departments", COMPANY_DEPARTMENTS], ["026_performance_indexes", PERFORMANCE_INDEXES], ["027_drop_balance_sheet", DROP_BALANCE_SHEET], ["028_financial_and_date_integrity", FINANCIAL_AND_DATE_INTEGRITY], ["029_sales_department_targets", SALES_DEPARTMENT_TARGETS], ["030_sales_clean_line_key", SALES_CLEAN_LINE_KEY], ["031_manual_report_data", MANUAL_REPORT_DATA], ["032_tenancy", TENANCY], ["033_sales_clean_all_lines", SALES_CLEAN_ALL_LINES]];
