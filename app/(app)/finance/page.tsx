@@ -7,24 +7,33 @@ import { getOverview } from "@/lib/data";
 import { fmt, MONTHS, money, sum } from "@/lib/format";
 import { MonthBars } from "@/components/admin/FinanceCharts";
 import { getCombinedReceivables } from "@/lib/receivables-rollup";
-import { alManzilKey, report, years, loadReports } from "@/lib/reports";
+import { keyFor, report, years, loadReports } from "@/lib/reports";
+import { listCompanies } from "@/lib/companies";
+import { link } from "@/lib/url";
+import { MonthSelect } from "@/components/MonthSelect";
+import { YearSelect } from "@/components/YearSelect";
+import { CompanySelect } from "@/components/CompanySelect";
 import { listEffectiveDepartmentTargets } from "@/lib/sales-indicators";
 import { departmentYtdTargets } from "@/lib/sales-targets";
 import { Empty, HBars, Kpi, NotConnected, Panel } from "@/components/ui";
 
 export const metadata = { title: "Finance · One Transind" };
 
-export default function Page() {
-  return <Suspense fallback={<p className="empty">Loading…</p>}><Content /></Suspense>;
+type Params = Promise<{ company?: string; year?: string; m?: string }>;
+
+export default function Page({ searchParams }: { searchParams: Params }) {
+  return <Suspense fallback={<p className="empty">Loading…</p>}><Content searchParams={searchParams} /></Suspense>;
 }
 
-async function Content() {
+async function Content({ searchParams }: { searchParams: Params }) {
   await connection();
   await requireUser();
-  const [reports, o, sectors] = await Promise.all([
+  const [reports, o, sectors, { company, year, m }, allCompanies] = await Promise.all([
     loadReports(),
     getOverview(),
     getSalesSectors(true),
+    searchParams,
+    listCompanies(),
   ]);
   const rev = sum(sectors.map((s) => s.value)), cost = sum(sectors.map((s) => s.cost));
   const [ar, deptTargets] = await Promise.all([
@@ -38,41 +47,61 @@ async function Content() {
     listEffectiveDepartmentTargets(o.year),
   ]);
   const ytdTargets = departmentYtdTargets(deptTargets, o.year, o.month);
-  const alManzil = alManzilKey(reports), am = years(reports, alManzil).map((y) => [y, report(reports, y, alManzil)] as const), COLORS = ["#5b7cff", "#3ee08f", "#ffbe55", "#c084fc"];
+  const companies = allCompanies.filter((c) => c.active && !c.hidden && years(reports, keyFor(c)).length);
+  // No (or unknown) choice means all companies.
+  const selected = companies.find((c) => String(c.id) === company);
+  const isAll = !selected;
+  const name = isAll ? "All companies" : selected?.name ?? "Company";
+  const key = isAll ? companies.map(keyFor) : selected ? keyFor(selected) : [];
+  const allYears = years(reports, key);
+  // "all" (or anything unknown) shows every year / every month.
+  const pickedYear = allYears.includes(Number(year)) ? Number(year) : undefined;
+  const pickedMonth = Number(m) >= 1 && Number(m) <= 12 ? Number(m) - 1 : undefined;
+  const am = (pickedYear ? [pickedYear] : allYears).map((y) => [y, report(reports, y, key)] as const), COLORS = ["#5b7cff", "#3ee08f", "#ffbe55", "#c084fc"];
+  // With no month picked, stop at the last month that has any figure (till date) instead of showing empty future months.
+  const lastDataMonth = Math.max(0, ...am.flatMap(([, r]) => r.revenue.map((v, i) => (v || r.totalCost[i] ? i : 0))));
+  const monthNames = pickedMonth === undefined ? MONTHS.slice(0, lastDataMonth + 1) : [MONTHS[pickedMonth]];
+  const pick = (data: number[]) => (pickedMonth === undefined ? data.slice(0, lastDataMonth + 1) : [data[pickedMonth]]);
+
+  const netProfit = sum(am.flatMap(([, r]) => pick(r.net)));
 
   return (
     <>
-      <p style={{ marginBottom: 10 }}><Link href="/finance/pnl">Monthly P&amp;L by company →</Link></p>
+      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", marginBottom: 10 }}>
+        <CompanySelect companies={companies} value={selected?.id ?? "all"} base={link("/finance", { year, m })} allLabel="All companies" />
+        <YearSelect years={allYears} value={pickedYear ?? "all"} base={link("/finance", { company, m })} allLabel="All years" />
+        <MonthSelect value={pickedMonth ?? "all"} max={11} names={MONTHS} year={pickedYear} base={link("/finance", { company, year })} allLabel="All months" />
+        <Link href="/finance/pnl" className="btn primary" style={{ marginLeft: "auto", textDecoration: "none" }}>Monthly P&amp;L by company →</Link>
+      </div>
       <div className="kpis">
         <Kpi label="Revenue year to date" value={`${fmt(rev / 1e6)} M`} up />
         <Kpi label="Gross margin" value={`${fmt(rev ? (1 - cost / rev) * 100 : 0, 1)}%`} />
-        <Kpi label="Receivables outstanding" value={ar ? money(ar.total) : <NotConnected />} delta={ar ? ar.sourceLabel : undefined} up />
-        <Kpi label="Days sales outstanding" value={ar && ar.dsoDays !== null ? `${fmt(ar.dsoDays, 1)} d` : <NotConnected />} delta={ar && ar.dsoDays !== null ? ar.sourceLabel : undefined} />
+        <Kpi label="Net profit / loss" value={`${fmt(netProfit / 1e6, 2)} M`} delta={name} up={netProfit >= 0} />
+        <Kpi label="Receivables outstanding" value={ar ? money(ar.total) : <NotConnected />} up />
       </div>
       <div className="grid">
-        <Panel span={7} title="Revenue by department">
+        <Panel span={6} title={`${name} - revenue by year`}>
+          <MonthBars label={`${name} revenue by year`} months={monthNames} series={am.map(([y, r], i) => ({ name: String(y), color: COLORS[i % 4], data: pick(r.revenue) }))} />
+        </Panel>
+        <Panel span={6} title={`${name} - net profit / loss by year`}>
+          <MonthBars label={`${name} net profit or loss`} months={monthNames} series={am.map(([y, r], i) => ({ name: String(y), color: COLORS[i % 4], data: pick(r.net) }))} />
+        </Panel>
+        <Panel span={12} title={`${name} - P&L`} src={`QAR · ${monthNames[0]}${monthNames.length > 1 ? ` to ${monthNames.at(-1)}` : ""}`}>
           <div className="tw"><table>
-            <thead><tr><th>Sector</th><th className="n">Actual</th><th className="n">Target</th></tr></thead>
-            <tbody>{sectors.map((s) => {
-              const target = ytdTargets.get(s.key);
+            <thead><tr><th>Year</th><th className="n">Revenue</th><th className="n">Total cost</th><th className="n">Net profit / loss</th></tr></thead>
+            <tbody>{am.map(([y, r]) => {
+              const net = sum(pick(r.net));
               return (
-                <tr key={s.key}>
-                  <td>{s.label}</td>
-                  <td className="n num">{fmt(s.value / 1e6, 1)}</td>
-                  <td className={`n${target !== undefined ? " num" : ""}`}>{target !== undefined ? fmt(target / 1e6, 1) : <NotConnected />}</td>
+                <tr key={y}>
+                  <td>{y}</td>
+                  <td className="n num">{fmt(sum(pick(r.revenue)))}</td>
+                  <td className="n num">{fmt(sum(pick(r.totalCost)))}</td>
+                  <td className={`n num${net < 0 ? " down" : ""}`}>{fmt(net)}</td>
                 </tr>
               );
             })}</tbody>
           </table></div>
-          <p className="note" style={{ marginTop: 8 }}>
-            Figures in QAR M, January to {MONTHS[o.month]} {o.year}.{ytdTargets.size === 0 ? " No target source is connected." : ""}
-          </p>
-        </Panel>
-        <Panel span={6} title="Al Manzil - revenue by year">
-          <MonthBars label="Al Manzil revenue by year" months={MONTHS} series={am.map(([y, r], i) => ({ name: String(y), color: COLORS[i % 4], data: r.revenue }))} />
-        </Panel>
-        <Panel span={6} title="Al Manzil - net profit / loss by year">
-          <MonthBars label="Al Manzil net profit or loss" months={MONTHS} series={am.map(([y, r], i) => ({ name: String(y), color: COLORS[i % 4], data: r.net }))} />
+          <p className="note" style={{ marginTop: 8 }}><Link href="/finance/pnl">Monthly P&amp;L by company →</Link></p>
         </Panel>
         <Panel span={5} title="Receivables aging" src={ar ? `${ar.sourceLabel} · As of ${ar.latestAsOf}` : undefined}>
           {ar ? (
@@ -89,6 +118,24 @@ async function Content() {
           ) : (
             <p className="empty">Not connected</p>
           )}
+        </Panel>
+        <Panel span={7} title="Revenue by department">
+          <div className="tw"><table>
+            <thead><tr><th>Sector</th><th className="n">Actual</th><th className="n">Target</th></tr></thead>
+            <tbody>{sectors.map((s) => {
+              const target = ytdTargets.get(s.key);
+              return (
+                <tr key={s.key}>
+                  <td>{s.label}</td>
+                  <td className="n num">{fmt(s.value / 1e6, 1)}</td>
+                  <td className={`n${target !== undefined ? " num" : ""}`}>{target !== undefined ? fmt(target / 1e6, 1) : <NotConnected />}</td>
+                </tr>
+              );
+            })}</tbody>
+          </table></div>
+          <p className="note" style={{ marginTop: 8 }}>
+            Figures in QAR M, January to {MONTHS[o.month]} {o.year}.
+          </p>
         </Panel>
         <Panel span={12} title="Overdue invoices" src={ar?.overdueInvoices.length ? `${ar.sourceLabel} · QAR` : undefined}>
           <div className="tw"><table>

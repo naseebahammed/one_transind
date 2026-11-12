@@ -1,0 +1,2524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>One Transind — Executive Portal Mockup (All Front Pages)</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body.ot-app {
+    --bg: #070b18;
+    --bg-subtle: #0a1022;
+    --surface: #0e162d;
+    --surface-2: #141f3d;
+    --surface-hover: #19274d;
+    --rail-bg: #090f21;
+    --top-bg: rgba(9, 15, 33, 0.86);
+    --ink: #f3f6ff;
+    --text: #cbd5f0;
+    --muted: #8492b8;
+    --line: rgba(148, 168, 235, 0.13);
+    --line-strong: rgba(148, 168, 235, 0.26);
+    --brand: #4f73ff;
+    --brand-2: #38bdf8;
+    --brand-soft: rgba(79, 115, 255, 0.15);
+    --brand-grad: linear-gradient(135deg, #4f73ff 0%, #38bdf8 100%);
+    --good: #34d399;
+    --good-bg: rgba(52, 211, 153, 0.13);
+    --warn: #fbbf24;
+    --warn-bg: rgba(251, 191, 36, 0.14);
+    --bad: #fb7185;
+    --bad-bg: rgba(251, 113, 133, 0.14);
+    --neutral-bg: rgba(148, 168, 235, 0.10);
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    --shadow-lg: 0 18px 42px -16px rgba(0, 0, 0, 0.65);
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --rail-w: 248px;
+    --font-sans: "Inter", "IBM Plex Sans Arabic", "Segoe UI", system-ui, -apple-system, sans-serif;
+    --font-mono: "IBM Plex Mono", "Cascadia Mono", ui-monospace, Consolas, monospace;
+
+    background: radial-gradient(960px 440px at 88% -10%, rgba(79, 115, 255, 0.14), transparent 60%), var(--bg);
+    color: var(--text);
+    font-family: var(--font-sans);
+    font-size: 13.5px;
+    line-height: 1.5;
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body.ot-app[data-mode="light"] {
+    --bg: #f3f5fb;
+    --bg-subtle: #eaeff9;
+    --surface: #ffffff;
+    --surface-2: #f6f8fd;
+    --surface-hover: #eef2fb;
+    --rail-bg: #0c142c;
+    --top-bg: rgba(255, 255, 255, 0.88);
+    --ink: #0f172a;
+    --text: #334155;
+    --muted: #64748b;
+    --line: rgba(15, 23, 42, 0.09);
+    --line-strong: rgba(15, 23, 42, 0.18);
+    --brand: #2563eb;
+    --brand-2: #0284c7;
+    --brand-soft: rgba(37, 99, 235, 0.10);
+    --brand-grad: linear-gradient(135deg, #2563eb 0%, #0ea5e9 100%);
+    --good: #059669;
+    --good-bg: rgba(5, 150, 105, 0.11);
+    --warn: #d97706;
+    --warn-bg: rgba(217, 119, 6, 0.12);
+    --bad: #e11d48;
+    --bad-bg: rgba(225, 29, 72, 0.11);
+    --neutral-bg: rgba(15, 23, 42, 0.06);
+    --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06);
+    --shadow-lg: 0 18px 40px -14px rgba(15, 23, 42, 0.18);
+    background: var(--bg);
+  }
+
+  /* Global link styling — fixes raw browser #0000EE links on dark surfaces */
+  a { color: var(--brand-2); text-decoration: none; transition: color 0.15s; }
+  body.ot-app[data-mode="light"] a { color: var(--brand); }
+  a:hover { text-decoration: underline; }
+
+  .num, .mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  .num-sans { font-variant-numeric: tabular-nums; }
+
+  /* Shell Layout */
+  .shell {
+    display: grid;
+    grid-template-columns: var(--rail-w) minmax(0, 1fr);
+    min-height: 100vh;
+    transition: grid-template-columns 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .shell.collapsed { --rail-w: 72px; }
+
+  /* Sidebar Rail (stays deep executive navy in both dark & light themes for strong anchor) */
+  .rail {
+    background: linear-gradient(180deg, #0d1530 0%, #080d1f 100%);
+    color: #dbe4ff;
+    border-right: 1px solid rgba(148, 168, 235, 0.14);
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 14px 10px;
+    gap: 10px;
+    z-index: 30;
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+
+  .brand-box {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 8px 10px;
+    border-bottom: 1px solid rgba(148, 168, 235, 0.12);
+  }
+  .brand-mark {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    background: #ffffff;
+    display: grid;
+    place-items: center;
+    flex: none;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
+  }
+  .brand-mark svg { width: 26px; height: 26px; }
+  .brand-txt { min-width: 0; flex: 1; overflow: hidden; }
+  .brand-txt strong { display: block; font-size: 14.5px; font-weight: 700; color: #ffffff; white-space: nowrap; letter-spacing: -0.01em; }
+  .brand-txt span { display: block; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: #67e8f9; white-space: nowrap; }
+  .rail-collapse-btn {
+    background: transparent;
+    border: 1px solid rgba(148, 168, 235, 0.16);
+    color: #94a3b8;
+    width: 28px;
+    height: 28px;
+    border-radius: 7px;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    flex: none;
+  }
+  .rail-collapse-btn:hover { color: #ffffff; background: rgba(255, 255, 255, 0.06); }
+
+  .nav-section { display: flex; flex-direction: column; gap: 2px; }
+  .nav-heading {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(165, 180, 225, 0.52);
+    padding: 6px 10px 3px;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .nav-btn {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    color: #b4c2e8;
+    width: 100%;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 9px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.15s, color 0.15s;
+  }
+  .nav-btn svg { width: 17px; height: 17px; flex: none; opacity: 0.85; }
+  .nav-btn:hover { background: rgba(255, 255, 255, 0.06); color: #ffffff; }
+  .nav-btn.active {
+    background: linear-gradient(90deg, rgba(79, 115, 255, 0.26), rgba(56, 189, 248, 0.08));
+    color: #ffffff;
+    font-weight: 600;
+    box-shadow: inset 0 0 0 1px rgba(99, 138, 255, 0.32);
+  }
+  .nav-btn.active::before {
+    content: "";
+    position: absolute;
+    left: -6px;
+    top: 7px;
+    bottom: 7px;
+    width: 3px;
+    border-radius: 3px;
+    background: #38bdf8;
+  }
+  .nav-btn.active svg { color: #38bdf8; opacity: 1; }
+  .nav-badge {
+    margin-left: auto;
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    padding: 1px 6px;
+    border-radius: 99px;
+    background: rgba(251, 191, 36, 0.18);
+    color: #fcd34d;
+  }
+  .nav-badge.info { background: rgba(56, 189, 248, 0.16); color: #7dd3fc; }
+
+  .rail-footer {
+    margin-top: auto;
+    border-top: 1px solid rgba(148, 168, 235, 0.14);
+    padding-top: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .rail-util {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 7px 10px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(148, 168, 235, 0.12);
+    color: #cbd5f0;
+    font-size: 12px;
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .rail-util:hover { background: rgba(255, 255, 255, 0.08); color: #ffffff; text-decoration: none; }
+  .user-pill {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 6px 8px;
+  }
+  .user-av {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4f73ff, #38bdf8);
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+    display: grid;
+    place-items: center;
+    flex: none;
+  }
+  .user-meta { min-width: 0; flex: 1; overflow: hidden; }
+  .user-meta b { display: block; font-size: 12.5px; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .user-meta small { display: block; font-size: 11px; color: #8b9bc4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .shell.collapsed .brand-txt,
+  .shell.collapsed .nav-heading,
+  .shell.collapsed .nav-lbl,
+  .shell.collapsed .nav-badge,
+  .shell.collapsed .rail-util span,
+  .shell.collapsed .user-meta { display: none; }
+  .shell.collapsed .nav-btn { justify-content: center; padding: 10px; }
+  .shell.collapsed .brand-box { flex-direction: column; gap: 8px; padding-inline: 2px; }
+  .shell.collapsed .rail-util { justify-content: center; }
+  .shell.collapsed .user-pill { justify-content: center; }
+
+  /* Workspace & Sticky Context Topbar */
+  .workspace { min-width: 0; display: flex; flex-direction: column; }
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--top-bg);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--line);
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .topbar-title { display: flex; flex-direction: column; gap: 1px; }
+  .topbar-crumb { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  .topbar-title h1 { font-size: 19px; font-weight: 700; color: var(--ink); letter-spacing: -0.015em; line-height: 1.25; }
+
+  .topbar-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .ctl-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-sm);
+    padding: 4px 9px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .ctl-group select, .inline-select {
+    background: transparent;
+    border: 0;
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    outline: none;
+  }
+  .ctl-group select option, .inline-select option { background: var(--surface); color: var(--ink); }
+
+  .unit-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: 99px;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    font-weight: 600;
+    background: var(--brand-soft);
+    color: var(--brand-2);
+    border: 1px solid rgba(79, 115, 255, 0.24);
+  }
+  body.ot-app[data-mode="light"] .unit-pill { color: var(--brand); }
+
+  .sync-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 10px;
+    border-radius: 99px;
+    font-size: 11.5px;
+    font-weight: 600;
+    background: var(--good-bg);
+    color: var(--good);
+  }
+  .sync-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--good); }
+
+  .btn {
+    appearance: none;
+    border: 1px solid var(--line-strong);
+    background: var(--surface);
+    color: var(--ink);
+    border-radius: var(--radius-sm);
+    padding: 6px 11px;
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .btn:hover { background: var(--surface-hover); border-color: var(--brand); text-decoration: none; }
+  .btn.primary { background: var(--brand-grad); color: #ffffff; border-color: transparent; }
+  .btn.primary:hover { opacity: 0.94; }
+  .btn.sm { padding: 4px 9px; font-size: 11.5px; }
+
+  /* Main Content Area */
+  .page-body {
+    padding: 20px 24px 48px;
+    max-width: 1480px;
+    width: 100%;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .view { display: none; flex-direction: column; gap: 16px; animation: fadeView 0.18s ease-out; }
+  .view.active { display: flex; }
+  @keyframes fadeView { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+  /* Sub-navigation / Segmented Tabs (Consistent across ALL pages!) */
+  .subbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .seg-tabs {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 3px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+  }
+  .seg-tab {
+    appearance: none;
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 6px 13px;
+    border-radius: 7px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+  }
+  .seg-tab:hover { color: var(--ink); }
+  .seg-tab.active { background: var(--brand); color: #ffffff; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25); }
+
+  .filter-pills { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .pill-btn {
+    appearance: none;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--muted);
+    padding: 4px 10px;
+    border-radius: 99px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .pill-btn:hover { color: var(--ink); border-color: var(--line-strong); }
+  .pill-btn.active { background: var(--brand-soft); color: var(--ink); border-color: var(--brand); font-weight: 600; }
+
+  .search-input {
+    background: var(--surface);
+    border: 1px solid var(--line-strong);
+    color: var(--ink);
+    border-radius: var(--radius-sm);
+    padding: 6px 11px;
+    font-family: inherit;
+    font-size: 12.5px;
+    min-width: 220px;
+    outline: none;
+  }
+  .search-input:focus { border-color: var(--brand); }
+
+  /* KPI Grid & 3-State Badges (Fixes the red-subtitle bug!) */
+  .kpi-row {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(195px, 1fr));
+  }
+  .kpi-row.hero-5 {
+    grid-template-columns: 1.35fr repeat(4, minmax(0, 1fr));
+  }
+  .kpi-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    padding: 14px 16px;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 0;
+  }
+  .kpi-card.hero {
+    background: linear-gradient(140deg, var(--brand-soft), var(--surface) 68%);
+    border-color: var(--line-strong);
+  }
+  .kpi-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    font-size: 11.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+  }
+  .kpi-unit {
+    font-family: var(--font-mono);
+    font-size: 10.5px;
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: var(--neutral-bg);
+    color: var(--muted);
+  }
+  .kpi-val {
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+    font-size: 25px;
+    font-weight: 600;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+  }
+  .kpi-card.hero .kpi-val { font-size: 29px; }
+  .kpi-foot {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: auto;
+    padding-top: 2px;
+    font-size: 12px;
+  }
+
+  /* 3 distinct semantic states: up, down, neutral */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 7px;
+    border-radius: 99px;
+    font-size: 11.5px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .badge.up { background: var(--good-bg); color: var(--good); }
+  .badge.down { background: var(--bad-bg); color: var(--bad); }
+  .badge.warn { background: var(--warn-bg); color: var(--warn); }
+  .badge.neutral { background: var(--neutral-bg); color: var(--text); }
+  .badge.info { background: var(--brand-soft); color: var(--brand-2); }
+  body.ot-app[data-mode="light"] .badge.info { color: var(--brand); }
+  .meta-note { font-size: 11.5px; color: var(--muted); }
+
+  .progress-mini {
+    height: 6px;
+    border-radius: 99px;
+    background: var(--neutral-bg);
+    overflow: hidden;
+    margin-top: 4px;
+  }
+  .progress-mini > span { display: block; height: 100%; border-radius: 99px; background: var(--brand-grad); }
+
+  .ring-kpi { display: flex; align-items: center; gap: 14px; }
+  .ring-kpi svg { width: 56px; height: 56px; flex: none; }
+
+  /* 12-Column Panel Grid (Strictly balanced row math!) */
+  .grid-12 {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 14px;
+  }
+  .col-12 { grid-column: span 12; }
+  .col-8 { grid-column: span 8; }
+  .col-7 { grid-column: span 7; }
+  .col-6 { grid-column: span 6; }
+  .col-5 { grid-column: span 5; }
+  .col-4 { grid-column: span 4; }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    box-shadow: var(--shadow-sm);
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .panel-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .panel-head h2 {
+    font-size: 14.5px;
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: -0.01em;
+  }
+  .panel-sub { font-size: 11.5px; color: var(--muted); margin-top: 1px; }
+
+  /* Tables & Sticky First Column for 12-Month Matrices */
+  .table-wrap { overflow-x: auto; border-radius: 8px; }
+  table.data-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .data-table th {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--muted);
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--line-strong);
+    white-space: nowrap;
+    background: var(--surface);
+  }
+  .data-table td {
+    padding: 9px 10px;
+    border-bottom: 1px solid var(--line);
+    vertical-align: middle;
+  }
+  .data-table tbody tr:last-child td { border-bottom: 0; }
+  .data-table tbody tr.clickable { cursor: pointer; transition: background 0.12s; }
+  .data-table tbody tr.clickable:hover td { background: var(--surface-hover); }
+  .data-table tbody tr.selected td { background: var(--brand-soft); }
+  .data-table tfoot td {
+    font-weight: 700;
+    color: var(--ink);
+    border-top: 1px solid var(--line-strong);
+    padding: 9px 10px;
+    background: var(--surface-2);
+  }
+  .data-table th.r, .data-table td.r { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+  .data-table th.r { font-family: var(--font-sans); }
+  .data-table .sticky-col {
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    background: var(--surface);
+    box-shadow: 1px 0 0 var(--line);
+  }
+  .data-table tr.group-row td { background: var(--surface-2); font-weight: 700; color: var(--ink); }
+  .data-table tr.group-row td.sticky-col { background: var(--surface-2); }
+  .neg { color: var(--bad); }
+  .pos { color: var(--good); }
+
+  /* Horizontal Bars & Drill Rows */
+  .bar-list { display: flex; flex-direction: column; gap: 9px; }
+  .bar-row {
+    display: grid;
+    grid-template-columns: minmax(120px, 185px) 1fr auto;
+    gap: 10px;
+    align-items: center;
+    padding: 6px 8px;
+    border-radius: 8px;
+    transition: background 0.14s;
+  }
+  .bar-row.interactive { cursor: pointer; }
+  .bar-row.interactive:hover { background: var(--surface-hover); }
+  .bar-label { font-weight: 600; color: var(--ink); font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar-label small { display: block; font-weight: 400; font-size: 11px; color: var(--muted); }
+  .bar-track { height: 9px; border-radius: 99px; background: var(--neutral-bg); overflow: hidden; position: relative; }
+  .bar-fill { display: block; height: 100%; border-radius: 99px; background: var(--brand-grad); }
+  .bar-fill.good { background: var(--good); }
+  .bar-fill.warn { background: var(--warn); }
+  .bar-fill.bad { background: var(--bad); }
+  .bar-val { text-align: right; font-family: var(--font-mono); font-size: 12px; color: var(--ink); min-width: 84px; }
+  .bar-val small { display: block; font-family: var(--font-sans); font-size: 11px; }
+
+  /* Stacked Bar & Legend */
+  .stacked-bar { display: flex; height: 12px; border-radius: 99px; overflow: hidden; gap: 2px; background: var(--neutral-bg); }
+  .stacked-bar > span { display: block; height: 100%; }
+  .legend-row { display: flex; flex-wrap: wrap; gap: 12px; font-size: 11.5px; color: var(--muted); align-items: center; }
+  .legend-item { display: inline-flex; align-items: center; gap: 6px; }
+  .swatch { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+
+  /* Pace Bar with Elapsed Working-Day Marker */
+  .pace-wrap { width: 110px; display: inline-flex; flex-direction: column; gap: 3px; vertical-align: middle; }
+  .pace-track { height: 7px; border-radius: 99px; background: var(--neutral-bg); position: relative; overflow: visible; }
+  .pace-fill { height: 100%; border-radius: 99px; display: block; }
+  .pace-marker { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--ink); border-radius: 1px; opacity: 0.75; }
+
+  /* Master-Detail Split for Customers */
+  .master-detail { display: grid; grid-template-columns: minmax(290px, 0.9fr) minmax(0, 1.35fr); gap: 14px; align-items: start; }
+  .cust-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 9px 10px;
+    border-radius: 8px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: background 0.14s;
+  }
+  .cust-item:hover { background: var(--surface-hover); }
+  .cust-item.active { background: var(--brand-soft); border-color: rgba(79, 115, 255, 0.35); }
+
+  /* Insights Grid */
+  .insight-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+  .insight-box {
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 11px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    font-size: 12.5px;
+  }
+
+  /* Floating Chart Tooltip */
+  .chart-tip {
+    position: fixed;
+    z-index: 80;
+    pointer-events: none;
+    background: #0f172a;
+    color: #f1f5f9;
+    border: 1px solid rgba(148, 168, 235, 0.3);
+    border-radius: 10px;
+    padding: 9px 12px;
+    font-size: 12px;
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
+    display: none;
+    min-width: 175px;
+  }
+  .chart-tip.show { display: block; }
+
+  /* Slide-Over Ask AI Copilot & Sign-In Modal */
+  .drawer-backdrop, .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(3, 7, 18, 0.55);
+    backdrop-filter: blur(4px);
+    z-index: 60;
+    display: none;
+  }
+  .drawer-backdrop.open, .modal-backdrop.open { display: flex; }
+  .ai-drawer {
+    margin-left: auto;
+    width: min(400px, 100vw);
+    height: 100%;
+    background: var(--surface);
+    border-left: 1px solid var(--line-strong);
+    box-shadow: var(--shadow-lg);
+    display: flex;
+    flex-direction: column;
+  }
+  .ai-messages { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .ai-msg { padding: 10px 12px; border-radius: 11px; font-size: 12.5px; line-height: 1.5; max-width: 90%; }
+  .ai-msg.bot { background: var(--surface-2); border: 1px solid var(--line); color: var(--ink); align-self: flex-start; }
+  .ai-msg.usr { background: var(--brand-grad); color: #ffffff; align-self: flex-end; }
+
+  .modal-backdrop { align-items: center; justify-content: center; padding: 20px; }
+  .modal-card {
+    width: min(920px, 100%);
+    max-height: 90vh;
+    overflow-y: auto;
+    background: var(--surface);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* Responsive */
+  @media (max-width: 1120px) {
+    .kpi-row.hero-5 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .kpi-card.hero { grid-column: span 2; }
+    .col-8, .col-7, .col-6, .col-5, .col-4 { grid-column: span 12; }
+    .master-detail { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 760px) {
+    .shell { grid-template-columns: 1fr; }
+    .rail { position: static; height: auto; flex-direction: row; flex-wrap: wrap; align-items: center; padding: 10px 14px; }
+    .nav-section { flex-direction: row; flex-wrap: wrap; }
+    .nav-heading, .rail-footer, .rail-collapse-btn { display: none; }
+    .kpi-row.hero-5 { grid-template-columns: 1fr; }
+    .kpi-card.hero { grid-column: auto; }
+    .topbar { padding: 10px 14px; }
+    .page-body { padding: 14px 14px 36px; }
+  }
+</style>
+</head>
+<body class="ot-app" data-mode="dark">
+
+<div class="shell" id="appShell">
+  <!-- REORGANIZED GROUPED SIDEBAR RAIL -->
+  <aside class="rail" aria-label="Primary navigation">
+    <div class="brand-box">
+      <div class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 256 256" fill="none" stroke-linecap="round">
+          <path d="M16 200 Q 120 10 240 150" stroke="#E02828" stroke-width="12"/>
+          <path d="M44 200 Q 132 45 230 162" stroke="#EE5A2A" stroke-width="10"/>
+          <path d="M76 200 Q 144 85 218 176" stroke="#F58220" stroke-width="9"/>
+          <path d="M110 200 Q 158 128 206 192" stroke="#FBB52A" stroke-width="8"/>
+        </svg>
+      </div>
+      <div class="brand-txt">
+        <strong>One Transind</strong>
+        <span>Holding · QAR</span>
+      </div>
+      <button type="button" class="rail-collapse-btn" id="collapseBtn" title="Toggle compact rail" aria-label="Toggle compact rail">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 3v18"/></svg>
+      </button>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-heading">Executive</div>
+      <button type="button" class="nav-btn active" data-target="dashboard">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="3" y="3" width="8" height="9" rx="1.5"/><rect x="13" y="3" width="8" height="5" rx="1.5"/><rect x="13" y="10" width="8" height="11" rx="1.5"/><rect x="3" y="14" width="8" height="7" rx="1.5"/></svg>
+        <span class="nav-lbl">Group Overview</span>
+        <span class="nav-badge">6</span>
+      </button>
+      <button type="button" class="nav-btn" data-target="finance">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+        <span class="nav-lbl">Finance &amp; P&amp;L</span>
+      </button>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-heading">Commercial · ERP</div>
+      <button type="button" class="nav-btn" data-target="sales">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M3 17l6-6 4 4 8-8M15 7h6v6"/></svg>
+        <span class="nav-lbl">Sales, Margin &amp; Pace</span>
+        <span class="nav-badge info">Live</span>
+      </button>
+      <button type="button" class="nav-btn" data-target="customers">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span class="nav-lbl">Customers &amp; AR</span>
+      </button>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-heading">Subsidiary Sectors</div>
+      <button type="button" class="nav-btn" data-target="realestate">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"/></svg>
+        <span class="nav-lbl">Real Estate</span>
+      </button>
+      <button type="button" class="nav-btn" data-target="restaurants">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2M7 2v20M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3zm0 0v7"/></svg>
+        <span class="nav-lbl">Restaurants (F&amp;B)</span>
+      </button>
+      <button type="button" class="nav-btn" data-target="retail">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18M16 10a4 4 0 0 1-8 0"/></svg>
+        <span class="nav-lbl">Retail &amp; Beauty</span>
+      </button>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-heading">Operations &amp; People</div>
+      <button type="button" class="nav-btn" data-target="logistics">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 3v5h-7"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+        <span class="nav-lbl">Logistics &amp; Fleet</span>
+      </button>
+      <button type="button" class="nav-btn" data-target="hr">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+        <span class="nav-lbl">Human Resources</span>
+      </button>
+    </div>
+
+    <div class="rail-footer">
+      <button type="button" class="rail-util" id="openAuthBtn" title="Preview redesigned Sign-in &amp; No-Access screens">
+        <span>Auth &amp; Gate Preview</span>
+        <b class="mono" style="font-size:11px;color:#7dd3fc">SSO</b>
+      </button>
+      <div class="rail-util" title="Direct bridge to Admin Console &amp; Data Status (missing in current UI)" onclick="switchView('dashboard'); byId('subsidiaryMatrixPanel').scrollIntoView({behavior:'smooth'});">
+        <span>Admin · Data Status</span>
+        <b class="mono" style="font-size:11px;color:#34d399">15/17</b>
+      </div>
+      <div class="user-pill">
+        <span class="user-av">na</span>
+        <div class="user-meta">
+          <b>Executive Leadership</b>
+          <small>Transind Holding · Doha</small>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN WORKSPACE -->
+  <div class="workspace">
+    <!-- UNIFIED CONTEXTUAL TOP BAR -->
+    <header class="topbar">
+      <div class="topbar-title">
+        <div class="topbar-crumb"><span id="topGroup">Executive</span> <span>›</span> <span id="topSub">Consolidated Holding View</span></div>
+        <h1 id="topHeading">Group Overview</h1>
+      </div>
+
+      <div class="topbar-controls">
+        <label class="ctl-group" title="Global reporting period">
+          <span>Period</span>
+          <select id="globalPeriod">
+            <option value="nov26" selected>Nov 2026 (1–12 MTD)</option>
+            <option value="oct26">Oct 2026 (Full Month)</option>
+            <option value="ytd26">Jan–Nov 2026 (YTD)</option>
+            <option value="fy25">Full Year 2025</option>
+          </select>
+        </label>
+        <span class="unit-pill" title="All monetary figures in Qatari Riyals">QAR · Tabular</span>
+        <span class="sync-pill" title="Read-only ERP sales view synced"><span class="sync-dot"></span>ERP Live</span>
+        <button type="button" class="btn" id="themeToggle" title="Switch between Executive Dark and Boardroom Light">
+          <span id="themeLabel">Light mode</span>
+        </button>
+        <button type="button" class="btn primary" id="openAiBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.8 5.4L19 9l-5.2 1.6L12 16l-1.8-5.4L5 9l5.2-1.6L12 2z"/></svg>
+          Ask AI
+        </button>
+      </div>
+    </header>
+
+    <main class="page-body">
+
+      <!-- =====================================================================
+           VIEW 1: GROUP OVERVIEW (/dashboard — PRIMARY FRONT PAGE)
+           ===================================================================== -->
+      <section class="view active" id="view-dashboard">
+        <!-- 5-Card Hero Row: Elevates YTD vs Budget, MTD Pace, Net Profit Ring, AR Risk, Workforce -->
+        <div class="kpi-row hero-5">
+          <div class="kpi-card hero">
+            <div class="kpi-head"><span>Group Revenue YTD</span><span class="kpi-unit">QAR</span></div>
+            <div class="kpi-val" id="dashYtdVal">142.84 M</div>
+            <div class="kpi-foot">
+              <span class="badge up">▲ 8.4% vs Jan–Nov 2025</span>
+              <span class="meta-note">94.6% of 151.0 M budget</span>
+            </div>
+            <div class="progress-mini" title="94.6% of YTD Budget achieved"><span style="width:94.6%"></span></div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-head"><span id="dashMtdLbl">Sales · Nov (1–12)</span><span class="kpi-unit">QAR</span></div>
+            <div class="kpi-val" id="dashMtdVal">6.42 M</div>
+            <div class="kpi-foot">
+              <span class="badge up">▲ 5.1% YoY</span>
+              <!-- Neutral metadata instead of false alarm-red! -->
+              <span class="meta-note">10/26 workdays</span>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-head"><span>Consolidated Net</span><span class="kpi-unit">QAR</span></div>
+            <div class="ring-kpi">
+              <svg viewBox="0 0 36 36" aria-label="Net margin 13.3 percent">
+                <circle cx="18" cy="18" r="15.5" fill="none" stroke="var(--neutral-bg)" stroke-width="3.8"/>
+                <circle cx="18" cy="18" r="15.5" fill="none" stroke="var(--good)" stroke-width="3.8" stroke-linecap="round" stroke-dasharray="48 100" transform="rotate(-90 18 18)"/>
+              </svg>
+              <div>
+                <div class="kpi-val" style="font-size:22px">18.94 M</div>
+                <span class="badge up">13.3% margin</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-head"><span>Receivables (AR)</span><span class="kpi-unit">QAR</span></div>
+            <div class="kpi-val">19.40 M</div>
+            <div class="kpi-foot">
+              <!-- Warning badge for >90d debt instead of misleading green! -->
+              <span class="badge warn">2.18 M &gt; 90d</span>
+              <span class="meta-note">DSO 41d</span>
+            </div>
+          </div>
+
+          <div class="kpi-card">
+            <div class="kpi-head"><span>Active Workforce</span><span class="kpi-unit">Staff</span></div>
+            <div class="kpi-val">1,284</div>
+            <div class="kpi-foot">
+              <span class="badge neutral">+46 net YTD</span>
+              <span class="meta-note">17 companies</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Primary Visual Row (7 + 5 = 12): Trend Chart ABOVE the fold + Interactive Sector Mix -->
+        <div class="grid-12">
+          <div class="panel col-7">
+            <div class="panel-head">
+              <div>
+                <h2>Group Monthly Revenue vs Budget Target</h2>
+                <div class="panel-sub">Consolidated ERP + Subsidiary revenue in QAR Millions · Hover any month to inspect variance</div>
+              </div>
+              <div class="filter-pills">
+                <button type="button" class="pill-btn active" id="togglePriorYr">Show 2025 Line</button>
+              </div>
+            </div>
+            <div id="groupRevChartWrap" class="table-wrap"></div>
+            <div class="legend-row">
+              <span class="legend-item"><i class="swatch" style="background:#38bdf8"></i>2026 Actual (Nov MTD 1–12)</span>
+              <span class="legend-item"><i class="swatch" style="background:#94a3b8"></i>2026 Budget Target</span>
+              <span class="legend-item" id="leg2025"><i class="swatch" style="background:rgba(129,140,248,0.55)"></i>2025 Actual</span>
+            </div>
+          </div>
+
+          <div class="panel col-5">
+            <div class="panel-head">
+              <div>
+                <h2>Revenue by Sector (YTD)</h2>
+                <div class="panel-sub">Click any sector to inspect its dedicated workspace</div>
+              </div>
+              <span class="meta-note num">142.84 M QAR</span>
+            </div>
+            <div class="bar-list" id="sectorBarList">
+              <div class="bar-row interactive" onclick="switchView('sales')">
+                <div class="bar-label">FMCG &amp; Trading<small>ERP live · 6 departments</small></div>
+                <div class="bar-track"><span class="bar-fill" style="width:100%"></span></div>
+                <div class="bar-val">68.40 M<small class="pos">▲ 7.8%</small></div>
+              </div>
+              <div class="bar-row interactive" onclick="switchView('restaurants')">
+                <div class="bar-label">Food &amp; Beverage<small>Mr. Shawarma · 9 branches</small></div>
+                <div class="bar-track"><span class="bar-fill" style="width:41%"></span></div>
+                <div class="bar-val">28.15 M<small class="pos">▲ 12.4%</small></div>
+              </div>
+              <div class="bar-row interactive" onclick="switchView('realestate')">
+                <div class="bar-label">Real Estate &amp; Hospitality<small>Al Manzil &amp; 5 properties</small></div>
+                <div class="bar-track"><span class="bar-fill" style="width:31%"></span></div>
+                <div class="bar-val">21.30 M<small class="pos">▲ 6.1%</small></div>
+              </div>
+              <div class="bar-row interactive" onclick="switchView('retail')">
+                <div class="bar-label">Hypermarkets &amp; Retail<small>Top Perfume · 3 outlets</small></div>
+                <div class="bar-track"><span class="bar-fill" style="width:19%"></span></div>
+                <div class="bar-val">12.85 M<small class="pos">▲ 9.2%</small></div>
+              </div>
+              <div class="bar-row interactive" onclick="switchView('logistics')">
+                <div class="bar-label">Logistics &amp; Cold Chain<small>3PL fleet &amp; storage</small></div>
+                <div class="bar-track"><span class="bar-fill" style="width:11%"></span></div>
+                <div class="bar-val">7.42 M<small class="neg">▼ 1.4%</small></div>
+              </div>
+              <div class="bar-row interactive" onclick="switchView('retail')">
+                <div class="bar-label">Health &amp; Beauty<small>Pavati · clinics &amp; distribution</small></div>
+                <div class="bar-track"><span class="bar-fill" style="width:7%"></span></div>
+                <div class="bar-val">4.72 M<small class="pos">▲ 14.9%</small></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Row 3 (7 + 5 = 12): Subsidiary Scorecard & Data Readiness + Actionable Executive Triage -->
+        <div class="grid-12">
+          <div class="panel col-7" id="subsidiaryMatrixPanel">
+            <div class="panel-head">
+              <div>
+                <h2>Subsidiary Performance &amp; Data Readiness</h2>
+                <div class="panel-sub">Bridges front-end financials with monthly reporting status (replaces scattered H&amp;B/Retail-only charts)</div>
+              </div>
+              <button type="button" class="btn sm" onclick="switchView('finance')">Open Full P&amp;L →</button>
+            </div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Company / Subsidiary</th>
+                    <th>Sector</th>
+                    <th class="r">MTD (QAR)</th>
+                    <th class="r">YTD (QAR)</th>
+                    <th class="r">Margin</th>
+                    <th>Data Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="clickable" onclick="switchView('sales')">
+                    <td><b style="color:var(--ink)">Transind Trading &amp; Distribution</b></td>
+                    <td>FMCG</td>
+                    <td class="r">3.18 M</td>
+                    <td class="r">68.40 M</td>
+                    <td class="r"><span class="badge up">22.4%</span></td>
+                    <td><span class="badge info">ERP Live</span></td>
+                  </tr>
+                  <tr class="clickable" onclick="switchView('restaurants')">
+                    <td><b style="color:var(--ink)">Mr. Shawarma Group</b></td>
+                    <td>F&amp;B</td>
+                    <td class="r">1.24 M</td>
+                    <td class="r">28.15 M</td>
+                    <td class="r"><span class="badge up">61.8% GP</span></td>
+                    <td><span class="badge up">Daily Deposit OK</span></td>
+                  </tr>
+                  <tr class="clickable" onclick="switchView('realestate')">
+                    <td><b style="color:var(--ink)">Al Manzil Residence &amp; Suites</b></td>
+                    <td>Real Estate</td>
+                    <td class="r">0.82 M</td>
+                    <td class="r">11.40 M</td>
+                    <td class="r"><span class="badge up">34.2%</span></td>
+                    <td><span class="badge up">Stay + P&amp;L OK</span></td>
+                  </tr>
+                  <tr class="clickable" onclick="switchView('realestate')">
+                    <td><b style="color:var(--ink)">Al Sadd &amp; Lusail Towers</b></td>
+                    <td>Real Estate</td>
+                    <td class="r">0.54 M</td>
+                    <td class="r">9.90 M</td>
+                    <td class="r"><span class="badge warn">Rev only</span></td>
+                    <td><span class="badge warn">Oct Cost Pending</span></td>
+                  </tr>
+                  <tr class="clickable" onclick="switchView('retail')">
+                    <td><b style="color:var(--ink)">Top Perfume Retail</b></td>
+                    <td>Retail</td>
+                    <td class="r">0.41 M</td>
+                    <td class="r">12.85 M</td>
+                    <td class="r"><span class="badge up">38.5%</span></td>
+                    <td><span class="badge up">10/10 Submitted</span></td>
+                  </tr>
+                  <tr class="clickable" onclick="switchView('retail')">
+                    <td><b style="color:var(--ink)">Pavati Health &amp; Beauty</b></td>
+                    <td>Health &amp; Beauty</td>
+                    <td class="r">0.23 M</td>
+                    <td class="r">4.72 M</td>
+                    <td class="r"><span class="badge up">41.0%</span></td>
+                    <td><span class="badge up">10/10 Submitted</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel col-5">
+            <div class="panel-head">
+              <div>
+                <h2>Needs Executive Follow-Up</h2>
+                <div class="panel-sub">Click any alert to open its operational resolution view</div>
+              </div>
+              <div class="filter-pills" id="alertFilterBar">
+                <button type="button" class="pill-btn active" data-af="all">All (6)</button>
+                <button type="button" class="pill-btn" data-af="fin">Finance</button>
+                <button type="button" class="pill-btn" data-af="ops">Ops</button>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table class="data-table" id="triageTable">
+                <tbody>
+                  <tr class="clickable" data-cat="fin" onclick="switchView('customers')">
+                    <td><span class="badge down">Over 90d AR</span></td>
+                    <td><b>38 overdue accounts</b><div class="meta-note">ERP + Subsidiary rollup</div></td>
+                    <td class="r">2.18 M QAR</td>
+                  </tr>
+                  <tr class="clickable" data-cat="ops" onclick="switchView('realestate'); switchSubTab('reSub', 're-tenancy');">
+                    <td><span class="badge warn">Leases ≤ 30d</span></td>
+                    <td><b>7 residential units expiring</b><div class="meta-note">4 vacant now · 3 non-renewed</div></td>
+                    <td class="r">58,500 QAR/m</td>
+                  </tr>
+                  <tr class="clickable" data-cat="ops" onclick="switchView('logistics')">
+                    <td><span class="badge down">Stock ≤ 90d</span></td>
+                    <td><b>Near-expiry FMCG batches</b><div class="meta-note">Birkat Al Awamer cold store</div></td>
+                    <td class="r">184,200 QAR</td>
+                  </tr>
+                  <tr class="clickable" data-cat="ops" onclick="switchView('logistics')">
+                    <td><span class="badge warn">Late Fleet</span></td>
+                    <td><b>3 delayed cold-chain routes</b><div class="meta-note">12 short-delivered orders (30d)</div></td>
+                    <td class="r">3 routes</td>
+                  </tr>
+                  <tr class="clickable" data-cat="fin" onclick="switchView('finance')">
+                    <td><span class="badge warn">Missing Cost</span></td>
+                    <td><b>2 property Oct cost sheets</b><div class="meta-note">Blocks full portfolio net margin</div></td>
+                    <td class="r">2 cos.</td>
+                  </tr>
+                  <tr class="clickable" data-cat="ops" onclick="switchView('hr'); switchSubTab('hrSub', 'hr-settle');">
+                    <td><span class="badge neutral">Settlements</span></td>
+                    <td><b>14 EOS &amp; leave payouts</b><div class="meta-note">Scheduled this month</div></td>
+                    <td class="r">218,400 QAR</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =====================================================================
+           VIEW 2: FINANCE & P&L (/finance + /finance/pnl UNIFIED)
+           ===================================================================== -->
+      <section class="view" id="view-finance">
+        <div class="subbar">
+          <div class="seg-tabs" id="finSub">
+            <button type="button" class="seg-tab active" data-pane="fin-overview">Consolidated Overview</button>
+            <button type="button" class="seg-tab" data-pane="fin-pnl">Company Monthly P&amp;L</button>
+            <button type="button" class="seg-tab" data-pane="fin-ar">Overdue Invoices (AR)</button>
+          </div>
+          <span class="meta-note">Revenue positive · Costs negative · Amounts in QAR</span>
+        </div>
+
+        <div class="kpi-row">
+          <div class="kpi-card">
+            <div class="kpi-head"><span>Group Revenue YTD</span><span class="kpi-unit">QAR</span></div>
+            <div class="kpi-val">142.84 M</div>
+            <div class="kpi-foot"><span class="badge up">▲ 8.4% YoY</span><span class="meta-note">All active companies</span></div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-head"><span>ERP Gross Margin</span><span class="kpi-unit">%</span></div>
+            <div class="kpi-val">22.4%</div>
+            <div class="kpi-foot"><span class="badge up">▲ 0.6 pts</span><span class="meta-note">COGS: -53.08 M QAR</span></div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-head"><span>Receivables Total</span><span class="kpi-unit">QAR</span></div>
+            <div class="kpi-val">19.40 M</div>
+            <div class="kpi-foot"><span class="badge warn">11.2% &gt; 90 days</span><span class="meta-note">ERP + 4 subsidiaries</span></div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-head"><span>Days Sales Outstanding</span><span class="kpi-unit">Days</span></div>
+            <div class="kpi-val">41.2 d</div>
+            <div class="kpi-foot"><span class="badge up">▼ 2.8d faster</span><span class="meta-note">Target ≤ 45.0 d</span></div>
+          </div>
+        </div>
+
+        <!-- Pane 2A: Consolidated Overview (Fixes broken 7+6+6+5 grid into clean 7+5 + 12!) -->
+        <div class="subpane" id="fin-overview">
+          <div class="grid-12">
+            <div class="panel col-7">
+              <div class="panel-head">
+                <div>
+                  <h2>Department Revenue vs YTD Target</h2>
+                  <div class="panel-sub">QAR Millions · Jan–Nov 2026</div>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr><th>Sales Department</th><th class="r">Actual (M)</th><th class="r">Target (M)</th><th class="r">Attainment</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>Retail &amp; Key Accounts</td><td class="r">26.40</td><td class="r">25.80</td><td class="r"><span class="badge up">102.3%</span></td></tr>
+                    <tr><td>HORECA &amp; Foodservice</td><td class="r">18.15</td><td class="r">19.00</td><td class="r"><span class="badge neutral">95.5%</span></td></tr>
+                    <tr><td>Van Sales &amp; Groceries</td><td class="r">14.20</td><td class="r">14.50</td><td class="r"><span class="badge neutral">97.9%</span></td></tr>
+                    <tr><td>Wholesale &amp; Export</td><td class="r">6.45</td><td class="r">7.20</td><td class="r"><span class="badge warn">89.6%</span></td></tr>
+                    <tr><td>Pharmacies &amp; Personal Care</td><td class="r">3.20</td><td class="r">3.00</td><td class="r"><span class="badge up">106.7%</span></td></tr>
+                  </tbody>
+                  <tfoot>
+                    <tr><td>Total ERP Commercial</td><td class="r">68.40</td><td class="r">69.50</td><td class="r">98.4%</td></tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+
+            <div class="panel col-5">
+              <div class="panel-head">
+                <div>
+                  <h2>Receivables Aging Breakdown</h2>
+                  <div class="panel-sub">Combined AR · As of 12 Nov 2026 (QAR)</div>
+                </div>
+              </div>
+              <div class="stacked-bar" title="AR Aging distribution">
+                <span style="width:46%;background:var(--good)"></span>
+                <span style="width:23%;background:#38bdf8"></span>
+                <span style="width:12%;background:#818cf8"></span>
+                <span style="width:7.8%;background:var(--warn)"></span>
+                <span style="width:11.2%;background:var(--bad)"></span>
+              </div>
+              <div class="bar-list">
+                <div class="bar-row"><div class="bar-label">Not due</div><div class="bar-track"><span class="bar-fill good" style="width:100%"></span></div><div class="bar-val">8.92 M</div></div>
+                <div class="bar-row"><div class="bar-label">1–30 days</div><div class="bar-track"><span class="bar-fill" style="width:50%"></span></div><div class="bar-val">4.46 M</div></div>
+                <div class="bar-row"><div class="bar-label">31–60 days</div><div class="bar-track"><span class="bar-fill" style="width:26%"></span></div><div class="bar-val">2.33 M</div></div>
+                <div class="bar-row"><div class="bar-label">61–90 days</div><div class="bar-track"><span class="bar-fill warn" style="width:17%"></span></div><div class="bar-val">1.51 M</div></div>
+                <div class="bar-row"><div class="bar-label">Over 90 days</div><div class="bar-track"><span class="bar-fill bad" style="width:24%"></span></div><div class="bar-val neg">2.18 M</div></div>
+              </div>
+            </div>
+
+            <div class="panel col-12">
+              <div class="panel-head">
+                <div>
+                  <h2>Consolidated Subsidiary P&amp;L Summary (2026 YTD)</h2>
+                  <div class="panel-sub">Replaces the single-company Al Manzil hardcode on /finance · Click any row to open its 12-month statement</div>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead>
+                    <tr><th>Subsidiary</th><th>Sector</th><th class="r">Revenue (QAR)</th><th class="r">Total Cost (QAR)</th><th class="r">Net Profit (QAR)</th><th class="r">Net Margin</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr class="clickable" onclick="switchSubTab('finSub','fin-pnl'); selectPnlCompany('almanzil');">
+                      <td><b style="color:var(--ink)">Al Manzil Residence &amp; Suites</b></td><td>Real Estate</td><td class="r">11,402,500</td><td class="r neg">-7,502,800</td><td class="r pos">3,899,700</td><td class="r"><span class="badge up">34.2%</span></td>
+                    </tr>
+                    <tr class="clickable" onclick="switchSubTab('finSub','fin-pnl'); selectPnlCompany('shawarma');">
+                      <td><b style="color:var(--ink)">Mr. Shawarma Restaurants</b></td><td>Food &amp; Beverage</td><td class="r">28,150,000</td><td class="r neg">-23,980,000</td><td class="r pos">4,170,000</td><td class="r"><span class="badge up">14.8%</span></td>
+                    </tr>
+                    <tr class="clickable" onclick="switchSubTab('finSub','fin-pnl'); selectPnlCompany('perfume');">
+                      <td><b style="color:var(--ink)">Top Perfume Retail</b></td><td>Hypermarkets &amp; Retail</td><td class="r">12,850,000</td><td class="r neg">-10,790,000</td><td class="r pos">2,060,000</td><td class="r"><span class="badge up">16.0%</span></td>
+                    </tr>
+                    <tr class="clickable" onclick="switchSubTab('finSub','fin-pnl'); selectPnlCompany('pavati');">
+                      <td><b style="color:var(--ink)">Pavati Health &amp; Beauty</b></td><td>Health &amp; Beauty</td><td class="r">4,720,000</td><td class="r neg">-3,910,000</td><td class="r pos">810,000</td><td class="r"><span class="badge up">17.2%</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pane 2B: Company Monthly P&L (Sticky First Column!) -->
+        <div class="subpane" id="fin-pnl" style="display:none">
+          <div class="panel">
+            <div class="panel-head">
+              <div>
+                <h2 id="pnlTitle">Al Manzil Residence &amp; Suites — Monthly P&amp;L (2026)</h2>
+                <div class="panel-sub">Sticky account column · Amounts in QAR (0 = verified zero, dash = not yet due)</div>
+              </div>
+              <div class="topbar-controls">
+                <label class="ctl-group">
+                  <span>Company</span>
+                  <select id="pnlCompanySelect" onchange="selectPnlCompany(this.value)">
+                    <option value="almanzil">Al Manzil Residence &amp; Suites</option>
+                    <option value="shawarma">Mr. Shawarma Restaurants</option>
+                    <option value="perfume">Top Perfume Retail</option>
+                    <option value="pavati">Pavati Health &amp; Beauty</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+            <div class="table-wrap" id="pnlMatrixWrap"></div>
+          </div>
+        </div>
+
+        <!-- Pane 2C: Overdue Invoices -->
+        <div class="subpane" id="fin-ar" style="display:none">
+          <div class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Overdue Invoices Ledger</h2>
+                <div class="panel-sub">Top overdue balances across ERP &amp; subsidiaries · QAR</div>
+              </div>
+              <input type="search" class="search-input" placeholder="Filter invoice or customer…" oninput="filterSimpleTable('arInvTable', this.value)">
+            </div>
+            <div class="table-wrap">
+              <table class="data-table" id="arInvTable">
+                <thead>
+                  <tr><th>Invoice</th><th>Account / Subsidiary</th><th>Due Date</th><th class="r">Original (QAR)</th><th class="r">Balance (QAR)</th><th>Status</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td class="mono">INV-26-88412</td><td><b>Al Meera Consumer Goods</b><div class="meta-note">Transind Trading</div></td><td class="mono">2026-07-18</td><td class="r">420,000</td><td class="r neg">385,500</td><td><span class="badge down">Over 90d</span></td></tr>
+                  <tr><td class="mono">INV-26-89104</td><td><b>Monoprix Doha Festival</b><div class="meta-note">Transind Trading</div></td><td class="mono">2026-08-04</td><td class="r">310,200</td><td class="r neg">294,000</td><td><span class="badge down">Over 90d</span></td></tr>
+                  <tr><td class="mono">AMZ-26-0419</td><td><b>Gulf Contracting Staff Lease</b><div class="meta-note">Al Manzil Suites</div></td><td class="mono">2026-09-01</td><td class="r">195,000</td><td class="r">195,000</td><td><span class="badge warn">61–90d</span></td></tr>
+                  <tr><td class="mono">INV-26-91220</td><td><b>Lulu Hypermarket D-Ring</b><div class="meta-note">Transind Trading</div></td><td class="mono">2026-09-29</td><td class="r">268,400</td><td class="r">182,100</td><td><span class="badge warn">31–60d</span></td></tr>
+                  <tr><td class="mono">TP-26-1108</td><td><b>Doha Duty Free Perfumes</b><div class="meta-note">Top Perfume Retail</div></td><td class="mono">2026-10-08</td><td class="r">148,000</td><td class="r">148,000</td><td><span class="badge warn">31–60d</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =====================================================================
+           VIEW 3: COMMERCIAL SALES, ACTUAL MARGIN & PACE (/sales + /trading)
+           ===================================================================== -->
+      <section class="view" id="view-sales">
+        <div class="subbar">
+          <div class="seg-tabs" id="salesSub">
+            <button type="button" class="seg-tab active" data-pane="sales-yoy">YoY &amp; Channels</button>
+            <button type="button" class="seg-tab" data-pane="sales-margin">Actual Margin &amp; Drill-Down</button>
+            <button type="button" class="seg-tab" data-pane="sales-pace">Manager &amp; Salesman Pace</button>
+          </div>
+          <div class="filter-pills" id="salesDeptPills">
+            <button type="button" class="pill-btn active" data-dept="All">All Sectors</button>
+            <button type="button" class="pill-btn" data-dept="Key Accounts">Key Accounts</button>
+            <button type="button" class="pill-btn" data-dept="HORECA">HORECA</button>
+            <button type="button" class="pill-btn" data-dept="Van Sales">Van Sales</button>
+            <button type="button" class="pill-btn" data-dept="Wholesale">Wholesale</button>
+          </div>
+        </div>
+
+        <div class="kpi-row">
+          <div class="kpi-card hero">
+            <div class="kpi-head"><span id="salesHeroTitle">ERP Sales · Nov (1–12)</span><span class="kpi-unit">QAR</span></div>
+            <div class="kpi-val" id="salesHeroVal">3.18 M</div>
+            <div class="kpi-foot"><span class="badge up">▲ 6.8% vs Nov 2025</span><span class="meta-note">▲ 14.2% vs Nov 2024</span></div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-head"><span>YTD ERP Sales</span><span class="kpi-unit">QAR</span></div>
+            <div class="kpi-val">68.40 M</div>
+            <div class="kpi-foot"><span class="badge up">▲ 7.8% YoY</span><span class="meta-note">64.20 M in 2025</span></div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-head"><span>Target Attainment</span><span class="kpi-unit">Pace</span></div>
+            <div class="kpi-val">98.4%</div>
+            <div class="kpi-foot"><span class="badge up">On track</span><span class="meta-note">Target 8.20 M full Nov</span></div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-head"><span>Actual Gross Margin</span><span class="kpi-unit">%</span></div>
+            <div class="kpi-val">22.4%</div>
+            <div class="kpi-foot"><span class="badge warn">Returns: 2.1%</span><span class="meta-note">1,412 active outlets</span></div>
+          </div>
+        </div>
+
+        <!-- Pane 3A: YoY & Channel Indicators (Elevated from bottom!) -->
+        <div class="subpane" id="sales-yoy">
+          <div class="grid-12">
+            <div class="panel col-8">
+              <div class="panel-head">
+                <div>
+                  <h2>3-Year Monthly Comparison (2024 · 2025 · 2026)</h2>
+                  <div class="panel-sub">Nov 2026 shows days 1–12 MTD; all prior bars represent full calendar months (QAR M)</div>
+                </div>
+              </div>
+              <div id="salesCompareChartWrap" class="table-wrap"></div>
+              <div class="legend-row">
+                <span class="legend-item"><i class="swatch" style="background:rgba(148,168,235,0.32)"></i>2024</span>
+                <span class="legend-item"><i class="swatch" style="background:#4f73ff"></i>2025</span>
+                <span class="legend-item"><i class="swatch" style="background:#38bdf8"></i>2026</span>
+              </div>
+            </div>
+
+            <div class="panel col-4">
+              <div class="panel-head">
+                <div>
+                  <h2>Channel &amp; Quality Indicators</h2>
+                  <div class="panel-sub">Nov 2026 MTD · QAR</div>
+                </div>
+              </div>
+              <div class="bar-list">
+                <div class="bar-row"><div class="bar-label">Key Accounts</div><div class="bar-track"><span class="bar-fill" style="width:100%"></span></div><div class="bar-val">1.34 M</div></div>
+                <div class="bar-row"><div class="bar-label">HORECA</div><div class="bar-track"><span class="bar-fill" style="width:66%"></span></div><div class="bar-val">0.88 M</div></div>
+                <div class="bar-row"><div class="bar-label">Van Sales</div><div class="bar-track"><span class="bar-fill" style="width:49%"></span></div><div class="bar-val">0.65 M</div></div>
+                <div class="bar-row"><div class="bar-label">Wholesale</div><div class="bar-track"><span class="bar-fill" style="width:23%"></span></div><div class="bar-val">0.31 M</div></div>
+              </div>
+              <div class="kpi-row" style="grid-template-columns:1fr 1fr;margin-top:4px">
+                <div class="kpi-card" style="padding:10px 12px"><div class="kpi-head"><span>Returns Rate</span></div><div class="kpi-val" style="font-size:18px">2.1%</div><span class="meta-note">-66.8 K credit notes</span></div>
+                <div class="kpi-card" style="padding:10px 12px"><div class="kpi-head"><span>Price Realisation</span></div><div class="kpi-val" style="font-size:18px">97.8%</div><span class="meta-note">Promo uplift +6.4%</span></div>
+              </div>
+            </div>
+
+            <div class="col-12 insight-strip">
+              <div class="insight-box"><span class="badge up" style="width:fit-content">▲ Fastest Growth</span><p><b>HORECA Dairy &amp; Beverage</b> grew +14.6% vs Nov 2025, led by hotel restocking across West Bay and Lusail.</p></div>
+              <div class="insight-box"><span class="badge warn" style="width:fit-content">! Concentration</span><p>Top 10 customer chains account for <b>54.2%</b> of MTD volume; Al Meera (28 branches) represents 16.4%.</p></div>
+              <div class="insight-box"><span class="badge down" style="width:fit-content">▼ Margin Watch</span><p>2 high-volume edible oil brands above 50k QAR are running at <b>12.8% margin</b> due to Q4 promo rebates.</p></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pane 3B: Actual Margin & Dual Drill-Down (Replaces separate /trading page!) -->
+        <div class="subpane" id="sales-margin" style="display:none">
+          <div class="subbar" style="margin-bottom:4px">
+            <input type="search" class="search-input" id="tradingSearch" placeholder="Instant filter brand, department or customer chain…" oninput="filterTradingDrill(this.value)">
+            <span class="meta-note">1,412 Active Customers · 846 SKUs Sold · Gross Margin Chips</span>
+          </div>
+          <div class="grid-12">
+            <div class="panel col-6">
+              <div class="panel-head"><div><h2>Products &amp; Brands Drill-Down</h2><div class="panel-sub">Click a department to expand brands · Gross Margin %</div></div></div>
+              <div class="bar-list" id="prodDrillList">
+                <div class="bar-row interactive" data-search="beverages al rabie rani vimto">
+                  <div class="bar-label">Beverages &amp; Juices<small>Al Rabie, Rani, Vimto · 184 SKUs</small></div>
+                  <div class="bar-track"><span class="bar-fill" style="width:100%"></span></div>
+                  <div class="bar-val">1.12 M<small><span class="badge up">25.4% GM</span></small></div>
+                </div>
+                <div class="bar-row interactive" data-search="dairy cheese puck arla anchor">
+                  <div class="bar-label">Chilled Dairy &amp; Cheese<small>Arla, Anchor, Puck · 142 SKUs</small></div>
+                  <div class="bar-track"><span class="bar-fill" style="width:78%"></span></div>
+                  <div class="bar-val">0.87 M<small><span class="badge up">23.1% GM</span></small></div>
+                </div>
+                <div class="bar-row interactive" data-search="dry grocery pasta oil rice">
+                  <div class="bar-label">Dry Grocery &amp; Oils<small>Barilla, Noor, Sunwhite · 290 SKUs</small></div>
+                  <div class="bar-track"><span class="bar-fill warn" style="width:62%"></span></div>
+                  <div class="bar-val">0.69 M<small><span class="badge warn">14.2% GM</span></small></div>
+                </div>
+                <div class="bar-row interactive" data-search="frozen poultry snacks">
+                  <div class="bar-label">Frozen &amp; Cold Cuts<small>Sadia, Americana · 130 SKUs</small></div>
+                  <div class="bar-track"><span class="bar-fill" style="width:45%"></span></div>
+                  <div class="bar-val">0.50 M<small><span class="badge up">21.8% GM</span></small></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel col-6">
+              <div class="panel-head"><div><h2>Customer Chains Drill-Down</h2><div class="panel-sub">Grouped by parent chain · Branches &amp; Net Margin</div></div></div>
+              <div class="bar-list" id="custDrillList">
+                <div class="bar-row interactive" data-search="al meera hypermarket retail">
+                  <div class="bar-label">Al Meera Consumer Goods<small>28 branches · Key Accounts</small></div>
+                  <div class="bar-track"><span class="bar-fill" style="width:100%"></span></div>
+                  <div class="bar-val">521,400<small><span class="badge up">21.9% GM</span></small></div>
+                </div>
+                <div class="bar-row interactive" data-search="lulu hypermarket group">
+                  <div class="bar-label">Lulu Hypermarket Group<small>19 branches · Key Accounts</small></div>
+                  <div class="bar-track"><span class="bar-fill" style="width:86%"></span></div>
+                  <div class="bar-val">448,900<small><span class="badge up">20.4% GM</span></small></div>
+                </div>
+                <div class="bar-row interactive" data-search="carrefour majid al futtaim">
+                  <div class="bar-label">Carrefour Qatar<small>9 branches · Key Accounts</small></div>
+                  <div class="bar-track"><span class="bar-fill" style="width:59%"></span></div>
+                  <div class="bar-val">308,200<small><span class="badge neutral">18.7% GM</span></small></div>
+                </div>
+                <div class="bar-row interactive" data-search="talabat mart snoonu q-commerce">
+                  <div class="bar-label">Talabat Mart &amp; Snoonu Market<small>14 dark stores · Q-Commerce</small></div>
+                  <div class="bar-track"><span class="bar-fill" style="width:48%"></span></div>
+                  <div class="bar-val">249,600<small><span class="badge up">24.6% GM</span></small></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pane 3C: Manager & Salesman Working-Day Pace (With Visual Pace Marker!) -->
+        <div class="subpane" id="sales-pace" style="display:none">
+          <div class="panel">
+            <div class="panel-head">
+              <div>
+                <h2>Manager &amp; Supervisor Target Pace — Nov 2026</h2>
+                <div class="panel-sub">10 of 26 working days elapsed (38.5% vertical marker on bars · Fridays off) · Amounts in QAR</div>
+              </div>
+              <span class="badge info">Pace Benchmark: 38.5%</span>
+            </div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Manager / Channel</th>
+                    <th class="r">Monthly Target</th>
+                    <th class="r">MTD Sales</th>
+                    <th>Attainment vs Day Pace</th>
+                    <th class="r">Balance</th>
+                    <th class="r">Daily Req. (16d)</th>
+                    <th class="r">Projected %</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><b style="color:var(--ink)">Tariq Al-Mansoori</b><div class="meta-note">Key Accounts · 8 salesmen</div></td>
+                    <td class="r">3,400,000</td><td class="r">1,342,000</td>
+                    <td>
+                      <div class="pace-wrap"><div class="pace-track"><span class="pace-fill" style="width:39.5%;background:var(--good)"></span><i class="pace-marker" style="left:38.5%"></i></div><span class="mono" style="font-size:11px">39.5%</span></div>
+                    </td>
+                    <td class="r">2,058,000</td><td class="r">128,625</td><td class="r"><span class="badge up">102.6%</span></td>
+                  </tr>
+                  <tr>
+                    <td><b style="color:var(--ink)">Rami Haddad</b><div class="meta-note">HORECA &amp; Hotels · 6 salesmen</div></td>
+                    <td class="r">2,200,000</td><td class="r">884,500</td>
+                    <td>
+                      <div class="pace-wrap"><div class="pace-track"><span class="pace-fill" style="width:40.2%;background:var(--good)"></span><i class="pace-marker" style="left:38.5%"></i></div><span class="mono" style="font-size:11px">40.2%</span></div>
+                    </td>
+                    <td class="r">1,315,500</td><td class="r">82,219</td><td class="r"><span class="badge up">104.5%</span></td>
+                  </tr>
+                  <tr>
+                    <td><b style="color:var(--ink)">Saeed Khan</b><div class="meta-note">Van Sales · 14 routes</div></td>
+                    <td class="r">1,750,000</td><td class="r">648,200</td>
+                    <td>
+                      <div class="pace-wrap"><div class="pace-track"><span class="pace-fill" style="width:37.0%;background:var(--warn)"></span><i class="pace-marker" style="left:38.5%"></i></div><span class="mono" style="font-size:11px">37.0%</span></div>
+                    </td>
+                    <td class="r">1,101,800</td><td class="r">68,863</td><td class="r"><span class="badge warn">96.3%</span></td>
+                  </tr>
+                  <tr>
+                    <td><b style="color:var(--ink)">Nasser Darwish</b><div class="meta-note">Wholesale &amp; Cash Carry · 4 reps</div></td>
+                    <td class="r">850,000</td><td class="r">305,300</td>
+                    <td>
+                      <div class="pace-wrap"><div class="pace-track"><span class="pace-fill" style="width:35.9%;background:var(--bad)"></span><i class="pace-marker" style="left:38.5%"></i></div><span class="mono" style="font-size:11px">35.9%</span></div>
+                    </td>
+                    <td class="r">544,700</td><td class="r">34,044</td><td class="r"><span class="badge down">93.4%</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =====================================================================
+           VIEW 4: CUSTOMERS & RECEIVABLES (/customers — SEARCH + CLICKABLE AR)
+           ===================================================================== -->
+      <section class="view" id="view-customers">
+        <div class="subbar">
+          <input type="search" class="search-input" id="custSearchInput" placeholder="Search 1,412 ERP customers by name, ID or channel…" oninput="renderCustomerList(this.value)">
+          <div class="filter-pills">
+            <span class="meta-note">Click any customer or overdue row on the left to inspect 360° profile &amp; AR aging</span>
+          </div>
+        </div>
+
+        <div class="master-detail">
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <div class="panel">
+              <div class="panel-head"><div><h2>Customer Directory</h2><div class="panel-sub">Ranked by YTD sales · QAR</div></div></div>
+              <div id="custListContainer" style="display:flex;flex-direction:column;gap:4px"></div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-head"><div><h2>Top Overdue Balances</h2><div class="panel-sub">Click any row to load account on right</div></div></div>
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead><tr><th>Customer</th><th class="r">Overdue</th><th class="r">Oldest</th></tr></thead>
+                  <tbody id="custOverdueTbody"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:14px" id="custDetailPane">
+            <!-- Populated dynamically by JS -->
+          </div>
+        </div>
+      </section>
+
+      <!-- =====================================================================
+           VIEW 5: REAL ESTATE & HOSPITALITY (/real-estate/overview + details)
+           ===================================================================== -->
+      <section class="view" id="view-realestate">
+        <div class="subbar">
+          <!-- Consistent .seg-tabs across ALL Real Estate views (fixes tab jump!) -->
+          <div class="seg-tabs" id="reSub">
+            <button type="button" class="seg-tab active" data-pane="re-overview">Portfolio Overview</button>
+            <button type="button" class="seg-tab" data-pane="re-stay">Hotel Stay &amp; Occupancy</button>
+            <button type="button" class="seg-tab" data-pane="re-tenancy">Residential Tenancy &amp; Leases</button>
+          </div>
+          <label class="ctl-group">
+            <span>Property</span>
+            <select>
+              <option>All Active Properties (6)</option>
+              <option>Al Manzil Residence &amp; Suites</option>
+              <option>Al Sadd Residential Tower</option>
+              <option>Lusail Marina Suites</option>
+            </select>
+          </label>
+        </div>
+
+        <!-- Pane 5A: Portfolio Overview -->
+        <div class="subpane" id="re-overview">
+          <div class="kpi-row">
+            <div class="kpi-card"><div class="kpi-head"><span>Portfolio Revenue</span><span class="kpi-unit">QAR</span></div><div class="kpi-val">21.30 M</div><div class="kpi-foot"><span class="badge up">▲ 6.1% vs Jan–Nov 2025</span></div></div>
+            <div class="kpi-card"><div class="kpi-head"><span>Costed OpEx</span><span class="kpi-unit">QAR</span></div><div class="kpi-val">-13.42 M</div><div class="kpi-foot"><span class="badge up">▼ 1.4% cost discipline</span></div></div>
+            <div class="kpi-card hero"><div class="kpi-head"><span>Portfolio Net Profit</span><span class="kpi-unit">QAR</span></div><div class="kpi-val">7.88 M</div><div class="kpi-foot"><span class="badge up">▲ 11.2% YoY</span><span class="meta-note">Costed properties</span></div></div>
+            <div class="kpi-card">
+              <div class="kpi-head"><span>Net Margin</span><span class="kpi-unit">%</span></div>
+              <div class="ring-kpi">
+                <svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="15.5" fill="none" stroke="var(--neutral-bg)" stroke-width="3.8"/><circle cx="18" cy="18" r="15.5" fill="none" stroke="var(--good)" stroke-width="3.8" stroke-linecap="round" stroke-dasharray="37 100" transform="rotate(-90 18 18)"/></svg>
+                <div><div class="kpi-val" style="font-size:22px">37.0%</div><span class="meta-note">4 of 6 full costed</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-12" style="margin-top:14px">
+            <div class="panel col-7">
+              <div class="panel-head">
+                <div><h2>Revenue vs Operating Cost by Property Type</h2><div class="panel-sub">Paired comparison in QAR Millions</div></div>
+                <div class="legend-row">
+                  <span class="legend-item"><i class="swatch" style="background:#38bdf8"></i>Revenue</span>
+                  <span class="legend-item"><i class="swatch" style="background:#64748b"></i>Total Cost</span>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <div>
+                  <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:12.5px"><b style="color:var(--ink)">Serviced Apartments &amp; Hotels</b><span class="mono">11.40 M / 7.50 M</span></div>
+                  <div class="bar-track" style="margin-bottom:4px"><span class="bar-fill" style="width:100%"></span></div>
+                  <div class="bar-track"><span class="bar-fill" style="width:66%;background:#64748b"></span></div>
+                </div>
+                <div>
+                  <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:12.5px"><b style="color:var(--ink)">Residential Towers</b><span class="mono">6.40 M / 3.92 M</span></div>
+                  <div class="bar-track" style="margin-bottom:4px"><span class="bar-fill" style="width:56%"></span></div>
+                  <div class="bar-track"><span class="bar-fill" style="width:34%;background:#64748b"></span></div>
+                </div>
+                <div>
+                  <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:12.5px"><b style="color:var(--ink)">Commercial &amp; Showroom</b><span class="mono">3.50 M / 2.00 M</span></div>
+                  <div class="bar-track" style="margin-bottom:4px"><span class="bar-fill" style="width:31%"></span></div>
+                  <div class="bar-track"><span class="bar-fill" style="width:18%;background:#64748b"></span></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel col-5">
+              <div class="panel-head"><div><h2>Where Operating Cost Goes</h2><div class="panel-sub">Share of property cost lines</div></div></div>
+              <div style="display:flex;flex-direction:column;gap:12px">
+                <div>
+                  <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span>Serviced Hotels</span><span class="meta-note">Staff 42% · Utilities 28% · Maint 18%</span></div>
+                  <div class="stacked-bar"><span style="width:42%;background:#4f73ff"></span><span style="width:28%;background:#38bdf8"></span><span style="width:18%;background:#fbbf24"></span><span style="width:12%;background:#34d399"></span></div>
+                </div>
+                <div>
+                  <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span>Residential Towers</span><span class="meta-note">Maint 38% · Utilities 34% · Staff 20%</span></div>
+                  <div class="stacked-bar"><span style="width:20%;background:#4f73ff"></span><span style="width:34%;background:#38bdf8"></span><span style="width:38%;background:#fbbf24"></span><span style="width:8%;background:#34d399"></span></div>
+                </div>
+                <div>
+                  <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span>Commercial Retail</span><span class="meta-note">Maint 44% · Facilities 32% · Admin 24%</span></div>
+                  <div class="stacked-bar"><span style="width:16%;background:#4f73ff"></span><span style="width:32%;background:#38bdf8"></span><span style="width:44%;background:#fbbf24"></span><span style="width:8%;background:#34d399"></span></div>
+                </div>
+              </div>
+              <div class="legend-row" style="margin-top:auto">
+                <span class="legend-item"><i class="swatch" style="background:#4f73ff"></i>Staff</span>
+                <span class="legend-item"><i class="swatch" style="background:#38bdf8"></i>Utilities</span>
+                <span class="legend-item"><i class="swatch" style="background:#fbbf24"></i>Maintenance</span>
+                <span class="legend-item"><i class="swatch" style="background:#34d399"></i>Other</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pane 5B: Hotel Stay & Occupancy (Replaces 13-col multi-year cram with clean readable table!) -->
+        <div class="subpane" id="re-stay" style="display:none">
+          <div class="kpi-row">
+            <div class="kpi-card"><div class="kpi-head"><span>Occupancy (2026 YTD)</span><span class="kpi-unit">%</span></div><div class="kpi-val">84.6%</div><div class="kpi-foot"><span class="badge up">▲ 3.4 pts</span><span class="meta-note">81.2% in 2025</span></div></div>
+            <div class="kpi-card"><div class="kpi-head"><span>Average Daily Rate (ADR)</span><span class="kpi-unit">QAR</span></div><div class="kpi-val">342 QAR</div><div class="kpi-foot"><span class="badge up">▲ 4.9%</span><span class="meta-note">326 QAR in 2025</span></div></div>
+            <div class="kpi-card"><div class="kpi-head"><span>RevPAR</span><span class="kpi-unit">QAR</span></div><div class="kpi-val">289 QAR</div><div class="kpi-foot"><span class="badge up">▲ 9.1%</span><span class="meta-note">265 QAR in 2025</span></div></div>
+            <div class="kpi-card"><div class="kpi-head"><span>Long-Stay Guest Share</span><span class="kpi-unit">Mix</span></div><div class="kpi-val">68.0%</div><div class="kpi-foot"><span class="badge neutral">Corporate &amp; diplomatic</span></div></div>
+          </div>
+
+          <div class="panel" style="margin-top:14px">
+            <div class="panel-head">
+              <div><h2>Al Manzil Monthly Stay Performance (2026 vs 2025)</h2><div class="panel-sub">Calculated dynamically on demand from daily stay reports · Clean 7-column layout instead of 13-column multi-year scroll</div></div>
+            </div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr><th>Month</th><th class="r">Occupancy</th><th class="r">vs 2025</th><th class="r">ADR (QAR)</th><th class="r">RevPAR (QAR)</th><th class="r">Rooms Sold</th><th class="r">Long-Stay Share</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>Jan 2026</td><td class="r">88.4%</td><td class="r pos">+2.8%</td><td class="r">358</td><td class="r">316</td><td class="r">3,288</td><td class="r">64.2%</td></tr>
+                  <tr><td>Feb 2026</td><td class="r">86.1%</td><td class="r pos">+3.1%</td><td class="r">352</td><td class="r">303</td><td class="r">2,893</td><td class="r">66.0%</td></tr>
+                  <tr><td>Jun 2026</td><td class="r">79.2%</td><td class="r pos">+4.5%</td><td class="r">318</td><td class="r">252</td><td class="r">2,851</td><td class="r">72.5%</td></tr>
+                  <tr><td>Sep 2026</td><td class="r">84.9%</td><td class="r pos">+2.2%</td><td class="r">339</td><td class="r">288</td><td class="r">3,056</td><td class="r">69.1%</td></tr>
+                  <tr><td>Oct 2026</td><td class="r">87.5%</td><td class="r pos">+3.9%</td><td class="r">349</td><td class="r">305</td><td class="r">3,255</td><td class="r">67.4%</td></tr>
+                  <tr><td>Nov 2026 (1–12)</td><td class="r">89.2%</td><td class="r pos">+4.1%</td><td class="r">364</td><td class="r">325</td><td class="r">1,284</td><td class="r">65.8%</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pane 5C: Tenancy & Lease Expiry (Color-coded urgency chips!) -->
+        <div class="subpane" id="re-tenancy" style="display:none">
+          <div class="grid-12">
+            <div class="panel col-12">
+              <div class="panel-head"><div><h2>Building Occupancy &amp; Contract Expiry Horizon</h2><div class="panel-sub">Units as of 12 Nov 2026 · Cumulative 30 / 60 / 90 day lease rollover counts</div></div></div>
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead><tr><th>Building</th><th class="r">Total Units</th><th class="r">Occupied</th><th class="r">Occupancy</th><th class="r">Vacant Now</th><th class="r">Ends ≤ 30d</th><th class="r">Ends ≤ 60d</th><th class="r">Ends ≤ 90d</th></tr></thead>
+                  <tbody>
+                    <tr><td><b>Al Sadd Residence Tower A</b></td><td class="r">120</td><td class="r">116</td><td class="r"><span class="badge up">96.7%</span></td><td class="r">4</td><td class="r">3</td><td class="r">7</td><td class="r">12</td></tr>
+                    <tr><td><b>Bin Mahmoud Plaza Suites</b></td><td class="r">84</td><td class="r">79</td><td class="r"><span class="badge up">94.0%</span></td><td class="r">5</td><td class="r">2</td><td class="r">5</td><td class="r">9</td></tr>
+                    <tr><td><b>Lusail Waterfront Apartments</b></td><td class="r">64</td><td class="r">58</td><td class="r"><span class="badge warn">90.6%</span></td><td class="r">6</td><td class="r">2</td><td class="r">4</td><td class="r">6</td></tr>
+                  </tbody>
+                  <tfoot>
+                    <tr><td>Total Residential Portfolio</td><td class="r">268</td><td class="r">253</td><td class="r">94.4%</td><td class="r">15</td><td class="r">7</td><td class="r">16</td><td class="r">27</td></tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+
+            <div class="panel col-12">
+              <div class="panel-head"><div><h2>Units Needing Leasing Action</h2><div class="panel-sub">Color-coded urgency badges replace plain unstyled text</div></div></div>
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead><tr><th>Building</th><th>Unit</th><th>Urgency Status</th><th>Current Tenant</th><th>Contract End</th><th class="r">Monthly Rent (QAR)</th></tr></thead>
+                  <tbody>
+                    <tr><td>Al Sadd Tower A</td><td class="mono">A-402</td><td><span class="badge down">Vacant Now</span></td><td>—</td><td>—</td><td class="r">8,500</td></tr>
+                    <tr><td>Lusail Waterfront</td><td class="mono">LW-1104</td><td><span class="badge down">Contract Ended</span></td><td>Khalid Al-kuwari</td><td class="mono">2026-11-01</td><td class="r">11,000</td></tr>
+                    <tr><td>Bin Mahmoud Plaza</td><td class="mono">BM-208</td><td><span class="badge warn">Ends in 12 days</span></td><td>Doha Med Clinic Staff</td><td class="mono">2026-11-24</td><td class="r">7,200</td></tr>
+                    <tr><td>Al Sadd Tower A</td><td class="mono">A-709</td><td><span class="badge info">Pre-let from Dec 1</span></td><td>Incoming corporate lease</td><td class="mono">2026-12-01</td><td class="r">8,800</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =====================================================================
+           VIEW 6: RESTAURANTS / F&B (/restaurants — DELIVERY AGGREGATOR SPLIT!)
+           ===================================================================== -->
+      <section class="view" id="view-restaurants">
+        <div class="subbar">
+          <div class="filter-pills" id="restBranchPills">
+            <button type="button" class="pill-btn active" onclick="selectRestBranch(this, 'All Branches (9)', '1,242,800', '38.2%')">All Branches (9)</button>
+            <button type="button" class="pill-btn" onclick="selectRestBranch(this, 'Al Sadd Flagship', '248,500', '36.8%')">Al Sadd</button>
+            <button type="button" class="pill-btn" onclick="selectRestBranch(this, 'Duhail Drive-Thru', '214,900', '37.4%')">Duhail</button>
+            <button type="button" class="pill-btn" onclick="selectRestBranch(this, 'Lusail Night Market', '186,400', '38.9%')">Lusail</button>
+            <button type="button" class="pill-btn" onclick="selectRestBranch(this, 'Al Wakrah', '154,200', '39.5%')">Al Wakrah</button>
+          </div>
+          <span class="meta-note">Gross sales exclude Bank Deposits &amp; Talabat Discounts</span>
+        </div>
+
+        <div class="kpi-row">
+          <div class="kpi-card hero">
+            <div class="kpi-head"><span id="restBranchLbl">Gross Sales · All Branches</span><span class="kpi-unit">QAR</span></div>
+            <div class="kpi-val" id="restGrossVal">1,242,800</div>
+            <div class="kpi-foot"><span class="badge up">▲ 12.4% vs Nov 2025</span><span class="meta-note">Mr. Shawarma</span></div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-head"><span>Cost of Goods (COGS)</span><span class="kpi-unit">QAR</span></div>
+            <div class="kpi-val">-448,650</div>
+            <!-- Neutral/good badge instead of false red! -->
+            <div class="kpi-foot"><span class="badge neutral" id="restCogsPct">38.2% of net sales</span></div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-head"><span>Dine-in / Counter</span><span class="kpi-unit">Share</span></div>
+            <div class="kpi-val">54.6%</div>
+            <div class="kpi-foot"><span class="meta-note">Cash 21.4% · Card 33.2%</span></div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-head"><span>Delivery Aggregators</span><span class="kpi-unit">Share</span></div>
+            <div class="kpi-val">45.4%</div>
+            <div class="kpi-foot"><span class="badge info">4 platforms</span><span class="meta-note">564,230 QAR</span></div>
+          </div>
+        </div>
+
+        <div class="grid-12">
+          <!-- Unified Branch Scorecard (Replaces duplicate sequential branch tables!) -->
+          <div class="panel col-7">
+            <div class="panel-head"><div><h2>Unified Branch Scorecard (Sales, Mix &amp; COGS %)</h2><div class="panel-sub">Combines Daily Deposit takings with Monthly COGS workbook in one view · QAR</div></div></div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead><tr><th>Branch</th><th class="r">Gross Sales</th><th class="r">Cash + Card</th><th class="r">Aggregators</th><th class="r">COGS %</th></tr></thead>
+                <tbody>
+                  <tr><td><b>Al Sadd Flagship</b></td><td class="r">248,500</td><td class="r">139,160</td><td class="r">109,340</td><td class="r"><span class="badge up">36.8%</span></td></tr>
+                  <tr><td><b>Duhail Drive-Thru</b></td><td class="r">214,900</td><td class="r">128,940</td><td class="r">85,960</td><td class="r"><span class="badge up">37.4%</span></td></tr>
+                  <tr><td><b>Lusail Night Market</b></td><td class="r">186,400</td><td class="r">96,930</td><td class="r">89,470</td><td class="r"><span class="badge neutral">38.9%</span></td></tr>
+                  <tr><td><b>Al Wakrah</b></td><td class="r">154,200</td><td class="r">84,810</td><td class="r">69,390</td><td class="r"><span class="badge warn">39.5%</span></td></tr>
+                  <tr><td><b>Bin Omran</b></td><td class="r">142,600</td><td class="r">68,450</td><td class="r">74,150</td><td class="r"><span class="badge up">37.9%</span></td></tr>
+                  <tr><td><b>4 Other Active Branches</b></td><td class="r">296,200</td><td class="r">160,280</td><td class="r">135,920</td><td class="r"><span class="badge neutral">38.6%</span></td></tr>
+                </tbody>
+                <tfoot>
+                  <tr><td>Total Active Branches</td><td class="r">1,242,800</td><td class="r">678,570</td><td class="r">564,230</td><td class="r">38.2%</td></tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+
+          <!-- Per-Platform Aggregator Breakdown (Unlocks data stored in app.daily_receipts!) -->
+          <div class="panel col-5">
+            <div class="panel-head"><div><h2>Payment &amp; Delivery Platform Split</h2><div class="panel-sub">Unpacks individual aggregators from Daily Deposit sheets</div></div></div>
+            <div class="bar-list">
+              <div class="bar-row"><div class="bar-label">POS Card / Contactless</div><div class="bar-track"><span class="bar-fill" style="width:100%"></span></div><div class="bar-val">412,610<small class="meta-note">33.2%</small></div></div>
+              <div class="bar-row"><div class="bar-label">Cash Sales<small>Matched to bank deposit</small></div><div class="bar-track"><span class="bar-fill good" style="width:64%"></span></div><div class="bar-val">265,960<small class="meta-note">21.4%</small></div></div>
+              <div class="bar-row"><div class="bar-label">Talabat<small>Excl. promo discount</small></div><div class="bar-track"><span class="bar-fill" style="width:69%"></span></div><div class="bar-val">284,600<small class="meta-note">22.9%</small></div></div>
+              <div class="bar-row"><div class="bar-label">Snoonu</div><div class="bar-track"><span class="bar-fill" style="width:36%"></span></div><div class="bar-val">149,100<small class="meta-note">12.0%</small></div></div>
+              <div class="bar-row"><div class="bar-label">Keeta</div><div class="bar-track"><span class="bar-fill warn" style="width:20%"></span></div><div class="bar-val">82,430<small class="meta-note">6.6%</small></div></div>
+              <div class="bar-row"><div class="bar-label">Deliveroo</div><div class="bar-track"><span class="bar-fill" style="width:12%"></span></div><div class="bar-val">48,100<small class="meta-note">3.9%</small></div></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =====================================================================
+           VIEW 7: RETAIL & HEALTH & BEAUTY (/retail + /health-beauty)
+           ===================================================================== -->
+      <section class="view" id="view-retail">
+        <div class="subbar">
+          <div class="seg-tabs" id="retSub">
+            <button type="button" class="seg-tab active" onclick="switchSectorRetail('retail', this)">Hypermarkets &amp; Retail (Top Perfume)</button>
+            <button type="button" class="seg-tab" onclick="switchSectorRetail('hb', this)">Health &amp; Beauty (Pavati)</button>
+          </div>
+          <span class="meta-note">No duplicate h2 title · Styled company links · Neutral KPI subtitles</span>
+        </div>
+
+        <div class="kpi-row">
+          <div class="kpi-card hero"><div class="kpi-head"><span id="retKpi1Lbl">Retail YTD Sales (Jan–Oct)</span><span class="kpi-unit">QAR</span></div><div class="kpi-val" id="retKpi1Val">12.85 M</div><div class="kpi-foot"><span class="badge up" id="retKpi1Delta">▲ 9.2% (+1.08 M QAR)</span></div></div>
+          <div class="kpi-card"><div class="kpi-head"><span>Same Period 2025</span><span class="kpi-unit">QAR</span></div><div class="kpi-val" id="retKpi2Val">11.77 M</div><div class="kpi-foot"><span class="meta-note">10 completed months</span></div></div>
+          <div class="kpi-card"><div class="kpi-head"><span>Monthly Average</span><span class="kpi-unit">QAR</span></div><div class="kpi-val" id="retKpi3Val">1.29 M</div><div class="kpi-foot"><span class="badge neutral">10 months reported</span></div></div>
+          <div class="kpi-card"><div class="kpi-head"><span>Gross Profit &amp; Margin</span><span class="kpi-unit">QAR</span></div><div class="kpi-val" id="retKpi4Val">4.95 M</div><div class="kpi-foot"><span class="badge up" id="retKpi4Delta">38.5% margin · COGS 7.90 M</span></div></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><div><h2 id="retTableTitle">Subsidiary Breakdown — Hypermarkets &amp; Retail</h2><div class="panel-sub">Click a company name to filter (uses proper theme link contrast)</div></div></div>
+          <div class="table-wrap">
+            <table class="data-table" id="retCompanyTable">
+              <thead><tr><th>Company</th><th class="r">2026 YTD (QAR)</th><th class="r">2025 Same Period</th><th class="r">YoY Change</th><th style="width:28%">Sector Share</th></tr></thead>
+              <tbody id="retCompanyTbody">
+                <tr><td><a href="#retail" onclick="return false;"><b>Top Perfume — Doha Festival &amp; Mall of Qatar</b></a></td><td class="r">8,420,000</td><td class="r">7,650,000</td><td class="r"><span class="badge up">▲ 10.1%</span></td><td><div class="bar-track"><span class="bar-fill" style="width:65.5%"></span></div></td></tr>
+                <tr><td><a href="#retail" onclick="return false;"><b>Top Perfume — Souq Waqif &amp; Vendome</b></a></td><td class="r">4,430,000</td><td class="r">4,120,000</td><td class="r"><span class="badge up">▲ 7.5%</span></td><td><div class="bar-track"><span class="bar-fill" style="width:34.5%"></span></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- =====================================================================
+           VIEW 8: LOGISTICS, COLD CHAIN & FLEET (/logistics)
+           ===================================================================== -->
+      <section class="view" id="view-logistics">
+        <!-- Added On-Time Delivery % and Expiring Stock <=90d KPIs! -->
+        <div class="kpi-row hero-5">
+          <div class="kpi-card hero"><div class="kpi-head"><span>On-Time Delivery</span><span class="kpi-unit">SLA</span></div><div class="kpi-val">94.2%</div><div class="kpi-foot"><span class="badge warn">Target 95.0%</span><span class="meta-note">3 routes delayed today</span></div></div>
+          <div class="kpi-card"><div class="kpi-head"><span>Active Fleet</span><span class="kpi-unit">Units</span></div><div class="kpi-val">48 / 52</div><div class="kpi-foot"><span class="badge up">39 on route now</span><span class="meta-note">4 in maintenance</span></div></div>
+          <div class="kpi-card"><div class="kpi-head"><span>Outlets Reached</span><span class="kpi-unit">MTD</span></div><div class="kpi-val">1,412</div><div class="kpi-foot"><span class="badge neutral">Delivered · Nov 2026</span></div></div>
+          <div class="kpi-card"><div class="kpi-head"><span>FMCG Stock Value</span><span class="kpi-unit">QAR</span></div><div class="kpi-val">14.62 M</div><div class="kpi-foot"><span class="meta-note">3 cold/dry hubs · 1,180 SKUs</span></div></div>
+          <div class="kpi-card"><div class="kpi-head"><span>Expiring ≤ 90 Days</span><span class="kpi-unit">Risk</span></div><div class="kpi-val neg">184.2 K</div><div class="kpi-foot"><span class="badge down">1.26% of stock</span><span class="meta-note">Action clearance</span></div></div>
+        </div>
+
+        <!-- Separated Warehouses, Fleet, and Customs Clearance into clean dedicated panels! -->
+        <div class="grid-12">
+          <div class="panel col-7">
+            <div class="panel-head"><div><h2>Live Cold-Chain &amp; Distribution Shipments</h2><div class="panel-sub">Real-time temperature &amp; ETA status</div></div></div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead><tr><th>Shipment</th><th>Destination</th><th>Temp Regime</th><th>Vehicle</th><th>ETA</th><th>Status</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">SHP-4910</td><td>Lulu D-Ring Central</td><td><span class="badge info">Frozen -18°C</span></td><td class="mono">QTR-88214</td><td class="mono">12:30</td><td><span class="badge up">On time</span></td></tr>
+                  <tr><td class="mono">SHP-4914</td><td>Al Meera Wakrah South</td><td><span class="badge info">Chilled +4°C</span></td><td class="mono">QTR-74109</td><td class="mono">13:15</td><td><span class="badge down">Late (+45m)</span></td></tr>
+                  <tr><td class="mono">SHP-4918</td><td>West Bay Hotels Route 3</td><td><span class="badge info">Chilled +4°C</span></td><td class="mono">QTR-91502</td><td class="mono">11:55</td><td><span class="badge up">Delivered</span></td></tr>
+                  <tr><td class="mono">SHP-4921</td><td>Industrial Area Wholesale</td><td><span class="badge neutral">Ambient +22°C</span></td><td class="mono">QTR-60318</td><td class="mono">14:00</td><td><span class="badge up">On route</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel col-5">
+            <div class="panel-head"><div><h2>Customs Clearance Queue</h2><div class="panel-sub">Separated into its own panel (no longer cramped inside Fleet)</div></div></div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead><tr><th>Bill of Lading</th><th>Port &amp; Consignee</th><th>Status</th></tr></thead>
+                <tbody>
+                  <tr><td class="mono">BL-HMD-90821<div class="meta-note">Hamad Port · 6 reefers</div></td><td>Transind Dairy Imports</td><td><span class="badge up">Cleared</span></td></tr>
+                  <tr><td class="mono">BL-HMD-90944<div class="meta-note">Hamad Port · Municipality lab</div></td><td>Beverage Concentrates</td><td><span class="badge warn">Inspection</span></td></tr>
+                  <tr><td class="mono">BL-ABU-11402<div class="meta-note">Abu Samra Land Border</div></td><td>Al Rabie GCC Overland</td><td><span class="badge up">Cleared</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="panel col-12">
+            <div class="panel-head"><div><h2>Warehouse Stock &amp; Pallet Utilization</h2><div class="panel-sub">Combines FMCG inventory valuation with cold-room pallet capacity</div></div></div>
+            <div class="table-wrap">
+              <table class="data-table">
+                <thead><tr><th>Facility / Zone</th><th class="r">SKUs</th><th class="r">Pallet Utilization</th><th class="r">Stock Value (QAR)</th><th class="r">Expiring ≤ 90d (QAR)</th><th>Status</th></tr></thead>
+                <tbody>
+                  <tr><td><b>Birkat Al Awamer Central Hub</b> · Frozen &amp; Chilled</td><td class="r">684</td><td class="r">2,140 / 2,400 (89%)</td><td class="r">9,180,000</td><td class="r neg">128,400</td><td><span class="badge up">Operational</span></td></tr>
+                  <tr><td><b>Industrial Area St. 38</b> · Dry &amp; Ambient</td><td class="r">412</td><td class="r">1,420 / 1,800 (79%)</td><td class="r">4,310,000</td><td class="r warn">55,800</td><td><span class="badge up">Operational</span></td></tr>
+                  <tr><td><b>Lusail Rapid Fulfilment</b> · F&amp;B Commissary</td><td class="r">84</td><td class="r">310 / 400 (78%)</td><td class="r">1,130,000</td><td class="r">—</td><td><span class="badge up">Operational</span></td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =====================================================================
+           VIEW 9: HUMAN RESOURCES & SETTLEMENTS (/hr + /hr/settlements)
+           ===================================================================== -->
+      <section class="view" id="view-hr">
+        <div class="subbar">
+          <div class="seg-tabs" id="hrSub">
+            <button type="button" class="seg-tab active" data-pane="hr-dir">Directory &amp; Headcount</button>
+            <button type="button" class="seg-tab" data-pane="hr-settle">Settlements &amp; EOS (Fixed QAR)</button>
+          </div>
+          <input type="search" class="search-input" placeholder="Search employee, ID, job title or company…" oninput="filterSimpleTable('hrDirTable', this.value)">
+        </div>
+
+        <div class="kpi-row">
+          <div class="kpi-card hero"><div class="kpi-head"><span>Active Employees</span><span class="kpi-unit">Group</span></div><div class="kpi-val">1,284</div><div class="kpi-foot"><span class="badge neutral">1,396 total on file</span></div></div>
+          <div class="kpi-card"><div class="kpi-head"><span>Joined in 2026</span><span class="kpi-unit">Hires</span></div><div class="kpi-val">158</div><div class="kpi-foot"><span class="badge up">F&amp;B &amp; Fleet expansion</span></div></div>
+          <div class="kpi-card"><div class="kpi-head"><span>Left in 2026</span><span class="kpi-unit">Exits</span></div><div class="kpi-val">112</div><div class="kpi-foot"><span class="badge neutral">8.7% annualized turnover</span></div></div>
+          <div class="kpi-card"><div class="kpi-head"><span>Settlements Paid (2026)</span><span class="kpi-unit">QAR</span></div><div class="kpi-val">1.84 M</div><div class="kpi-foot"><span class="meta-note">194 payments · 146 staff</span></div></div>
+        </div>
+
+        <!-- Pane 9A: Directory & Movements -->
+        <div class="subpane" id="hr-dir">
+          <div class="grid-12">
+            <div class="panel col-7">
+              <div class="panel-head"><div><h2>Headcount &amp; 2026 Movements by Subsidiary</h2><div class="panel-sub">Misplaced ERP Salesmen revenue table moved out to Commercial Sales</div></div></div>
+              <div class="table-wrap">
+                <table class="data-table" id="hrDirTable">
+                  <thead><tr><th>Subsidiary Company</th><th>Primary Units</th><th class="r">Active</th><th class="r">Joined</th><th class="r">Left</th></tr></thead>
+                  <tbody>
+                    <tr><td><b>Transind Trading &amp; Distribution</b></td><td>Sales, Van Routes, Admin</td><td class="r">486</td><td class="r pos">+52</td><td class="r">-38</td></tr>
+                    <tr><td><b>Mr. Shawarma Restaurants</b></td><td>9 Branches, Central Kitchen</td><td class="r">342</td><td class="r pos">+61</td><td class="r">-41</td></tr>
+                    <tr><td><b>Transind Logistics &amp; Warehousing</b></td><td>Cold Store, Fleet, Mechanics</td><td class="r">218</td><td class="r pos">+24</td><td class="r">-16</td></tr>
+                    <tr><td><b>Al Manzil &amp; Real Estate</b></td><td>Hospitality, Maintenance, Leasing</td><td class="r">134</td><td class="r pos">+11</td><td class="r">-10</td></tr>
+                    <tr><td><b>Top Perfume &amp; Pavati</b></td><td>Retail Advisors, Clinics</td><td class="r">104</td><td class="r pos">+10</td><td class="r">-7</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div class="panel col-5">
+              <div class="panel-head"><div><h2>Monthly Joiners vs Leavers (2026)</h2><div class="panel-sub">Net +46 headcount growth YTD</div></div></div>
+              <div class="bar-list">
+                <div class="bar-row"><div class="bar-label">Q1 (Jan–Mar)</div><div class="bar-track"><span class="bar-fill good" style="width:82%"></span></div><div class="bar-val">+48 / -31</div></div>
+                <div class="bar-row"><div class="bar-label">Q2 (Apr–Jun)</div><div class="bar-track"><span class="bar-fill good" style="width:74%"></span></div><div class="bar-val">+44 / -33</div></div>
+                <div class="bar-row"><div class="bar-label">Q3 (Jul–Sep)</div><div class="bar-track"><span class="bar-fill good" style="width:68%"></span></div><div class="bar-val">+41 / -29</div></div>
+                <div class="bar-row"><div class="bar-label">Q4 MTD (Oct–Nov)</div><div class="bar-track"><span class="bar-fill good" style="width:42%"></span></div><div class="bar-val">+25 / -19</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Pane 9B: Settlements (Fixes 1,000,000x QAR M unit bug, decodes AL/FF/TE/LE, right-aligns numbers!) -->
+        <div class="subpane" id="hr-settle" style="display:none">
+          <div class="grid-12">
+            <div class="panel col-6">
+              <div class="panel-head">
+                <div>
+                  <h2>By Settlement Type (2026)</h2>
+                  <div class="panel-sub">Fixed: displays exact QAR (not erroneous QAR M) &amp; explains HR codes</div>
+                </div>
+              </div>
+              <div class="bar-list">
+                <div class="bar-row">
+                  <div class="bar-label">FF · Final Settlement (EOS)<small>64 leavers · Gratuity &amp; clearance</small></div>
+                  <div class="bar-track"><span class="bar-fill" style="width:100%"></span></div>
+                  <div class="bar-val">982,400 QAR</div>
+                </div>
+                <div class="bar-row">
+                  <div class="bar-label">AL · Annual Leave Salary<small>78 payments · Scheduled leave</small></div>
+                  <div class="bar-track"><span class="bar-fill" style="width:56%"></span></div>
+                  <div class="bar-val">548,200 QAR</div>
+                </div>
+                <div class="bar-row">
+                  <div class="bar-label">TE · Air Ticket Encashment<small>34 allowances</small></div>
+                  <div class="bar-track"><span class="bar-fill" style="width:20%"></span></div>
+                  <div class="bar-val">196,800 QAR</div>
+                </div>
+                <div class="bar-row">
+                  <div class="bar-label">LE · Leave Encashment<small>18 buyouts</small></div>
+                  <div class="bar-track"><span class="bar-fill" style="width:12%"></span></div>
+                  <div class="bar-val">114,600 QAR</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel col-6">
+              <div class="panel-head">
+                <div>
+                  <h2>Settlements by Division</h2>
+                  <div class="panel-sub">Numeric columns right-aligned with tabular-nums</div>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead><tr><th>Division</th><th class="r">People</th><th class="r">Payments</th><th class="r">Paid (QAR)</th></tr></thead>
+                  <tbody>
+                    <tr><td>FMCG &amp; Commercial</td><td class="r">58</td><td class="r">79</td><td class="r">794,500</td></tr>
+                    <tr><td>Food &amp; Beverage</td><td class="r">41</td><td class="r">52</td><td class="r">462,100</td></tr>
+                    <tr><td>Logistics &amp; Fleet</td><td class="r">27</td><td class="r">36</td><td class="r">341,800</td></tr>
+                    <tr><td>Real Estate &amp; Retail</td><td class="r">20</td><td class="r">27</td><td class="r">243,600</td></tr>
+                  </tbody>
+                  <tfoot>
+                    <tr><td>Total 2026 Settlements</td><td class="r">146</td><td class="r">194</td><td class="r">1,842,000</td></tr>
+                  </tfoot>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<!-- FLOATING CHART TOOLTIP -->
+<div class="chart-tip" id="chartTip"></div>
+
+<!-- SLIDE-OVER ASK AI COPILOT DRAWER (Calm, contextual, zero distracting neon pulse) -->
+<div class="drawer-backdrop" id="aiBackdrop">
+  <aside class="ai-drawer" aria-label="Ask AI Copilot">
+    <div style="padding:14px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <strong style="color:var(--ink);font-size:14px">One Transind Copilot</strong>
+        <div class="meta-note">Scoped to live ERP views &amp; subsidiary QAR statements</div>
+      </div>
+      <button type="button" class="btn sm" id="closeAiBtn">Close ✕</button>
+    </div>
+    <div class="ai-messages" id="aiMessages">
+      <div class="ai-msg bot">Hello! Ask about group YTD variance, overdue AR above 90 days, branch aggregator mix, or salesman target pace.</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <button type="button" class="btn" style="justify-content:flex-start;text-align:left" onclick="askPreset('Which sector contributed most to YoY growth?')">Which sector contributed most to YoY growth?</button>
+        <button type="button" class="btn" style="justify-content:flex-start;text-align:left" onclick="askPreset('Summarize receivables over 90 days in QAR')">Summarize receivables over 90 days in QAR</button>
+        <button type="button" class="btn" style="justify-content:flex-start;text-align:left" onclick="askPreset('How are Mr. Shawarma delivery channels performing?')">How are Mr. Shawarma delivery channels performing?</button>
+      </div>
+    </div>
+    <form id="aiForm" style="padding:12px;border-top:1px solid var(--line);display:flex;gap:8px">
+      <input type="text" id="aiInput" class="search-input" style="flex:1;min-width:0" placeholder="Ask a question about Transind figures…">
+      <button type="submit" class="btn primary">Send</button>
+    </form>
+  </aside>
+</div>
+
+<!-- REDESIGNED SIGN-IN & NO-ACCESS PREVIEW MODAL -->
+<div class="modal-backdrop" id="authBackdrop">
+  <div class="modal-card">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <strong style="color:var(--ink);font-size:15px">Authentication &amp; Access Gate Redesign (/signin &amp; /no-access)</strong>
+        <div class="meta-note">Fixes centered button-styled text inputs on /signin and adds signed-in account context on /no-access</div>
+      </div>
+      <button type="button" class="btn sm" id="closeAuthBtn">Close ✕</button>
+    </div>
+
+    <div class="grid-12">
+      <div class="panel col-7" style="background:var(--bg-subtle)">
+        <span class="badge info" style="width:fit-content">Private Internal System · /signin</span>
+        <h2 style="font-size:18px;color:var(--ink)">Sign in to One Transind</h2>
+        <p class="meta-note">Restricted to approved Transind Holding &amp; subsidiary staff via Microsoft Entra ID.</p>
+        <button type="button" class="btn primary" style="justify-content:center;padding:10px;width:100%">
+          <svg width="16" height="16" viewBox="0 0 21 21"><rect width="10" height="10" fill="#f25022"/><rect x="11" width="10" height="10" fill="#7fba00"/><rect y="11" width="10" height="10" fill="#00a4ef"/><rect x="11" y="11" width="10" height="10" fill="#ffb900"/></svg>
+          Continue with Transind Microsoft Account
+        </button>
+        <div style="border-top:1px solid var(--line);padding-top:10px;display:flex;flex-direction:column;gap:8px">
+          <span class="meta-note">Fallback administrator sign-in (left-aligned inputs instead of .si-btn):</span>
+          <input type="email" class="search-input" style="width:100%" placeholder="admin@transind.qa" readonly>
+          <input type="password" class="search-input" style="width:100%" value="••••••••••••" readonly>
+        </div>
+      </div>
+
+      <div class="panel col-5" style="background:var(--bg-subtle);justify-content:space-between">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <span class="badge warn" style="width:fit-content">Account Not Approved · /no-access</span>
+          <h2 style="font-size:17px;color:var(--ink)">Access pending approval</h2>
+          <p class="meta-note">You are currently signed in as <b style="color:var(--ink)">guest.personal@outlook.com</b>, which is not on the One Transind approved list.</p>
+          <p class="meta-note">Switch to your corporate <b>@transind.qa</b> Microsoft account or request access from System Administration.</p>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button type="button" class="btn" style="flex:1;justify-content:center">Switch Account</button>
+          <button type="button" class="btn" style="flex:1;justify-content:center">Sign Out</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function byId(id) { return document.getElementById(id); }
+  function selectAll(sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); }
+
+  var MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  var VIEW_META = {
+    dashboard:   { group: "Executive",            sub: "Consolidated Holding View",        title: "Group Overview" },
+    finance:     { group: "Executive",            sub: "Statements, Budgets & AR",         title: "Finance & P&L" },
+    sales:       { group: "Commercial · ERP",     sub: "Unified Sales, Margin & Pace",     title: "Sales, Margin & Pace" },
+    customers:   { group: "Commercial · ERP",     sub: "Account 360 & Credit Control",     title: "Customers & Receivables" },
+    realestate:  { group: "Subsidiary Sectors",   sub: "Properties, Hotels & Tenancy",     title: "Real Estate & Hospitality" },
+    restaurants: { group: "Subsidiary Sectors",   sub: "Daily Takings, Channels & COGS",   title: "Restaurants (F&B)" },
+    retail:      { group: "Subsidiary Sectors",   sub: "Top Perfume & Pavati",             title: "Retail & Health & Beauty" },
+    logistics:   { group: "Operations & People",  sub: "Cold Chain, Warehouses & Routes",  title: "Logistics & Fleet" },
+    hr:          { group: "Operations & People",  sub: "Workforce, Movements & EOS",       title: "Human Resources" }
+  };
+
+  function switchView(key) {
+    selectAll(".view").forEach(function(el) { el.classList.remove("active"); });
+    var target = byId("view-" + key);
+    if (target) target.classList.add("active");
+    selectAll(".nav-btn").forEach(function(btn) {
+      btn.classList.toggle("active", btn.getAttribute("data-target") === key);
+    });
+    var meta = VIEW_META[key];
+    if (meta) {
+      byId("topGroup").textContent = meta.group;
+      byId("topSub").textContent = meta.sub;
+      byId("topHeading").textContent = meta.title;
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  selectAll(".nav-btn").forEach(function(btn) {
+    btn.addEventListener("click", function() {
+      switchView(btn.getAttribute("data-target"));
+    });
+  });
+
+  function switchSubTab(barId, paneId) {
+    var bar = byId(barId);
+    if (!bar) return;
+    var parentSection = bar.closest(".view");
+    selectAll(".seg-tab", bar).forEach(function(t) {
+      t.classList.toggle("active", t.getAttribute("data-pane") === paneId);
+    });
+    selectAll(".subpane", parentSection).forEach(function(p) {
+      p.style.display = (p.id === paneId) ? "" : "none";
+    });
+  }
+
+  ["finSub", "salesSub", "reSub", "hrSub"].forEach(function(barId) {
+    var bar = byId(barId);
+    if (!bar) return;
+    selectAll(".seg-tab", bar).forEach(function(tab) {
+      tab.addEventListener("click", function() {
+        switchSubTab(barId, tab.getAttribute("data-pane"));
+      });
+    });
+  });
+
+  /* Collapsible Sidebar Rail */
+  byId("collapseBtn").addEventListener("click", function() {
+    byId("appShell").classList.toggle("collapsed");
+  });
+
+  /* Light / Dark Theme Switcher */
+  byId("themeToggle").addEventListener("click", function() {
+    var body = document.body;
+    var next = body.getAttribute("data-mode") === "dark" ? "light" : "dark";
+    body.setAttribute("data-mode", next);
+    byId("themeLabel").textContent = next === "dark" ? "Light mode" : "Dark mode";
+  });
+
+  /* Global Period Selector updates Dashboard hero metrics */
+  var PERIOD_PRESETS = {
+    nov26: { ytd: "142.84 M", mtdLbl: "Sales · Nov (1–12)", mtdVal: "6.42 M" },
+    oct26: { ytd: "136.42 M", mtdLbl: "Sales · Oct (Full)",  mtdVal: "14.85 M" },
+    ytd26: { ytd: "142.84 M", mtdLbl: "Monthly Avg (2026)", mtdVal: "13.64 M" },
+    fy25:  { ytd: "146.10 M", mtdLbl: "Sales · Dec 2025",   mtdVal: "13.90 M" }
+  };
+  byId("globalPeriod").addEventListener("change", function(ev) {
+    var p = PERIOD_PRESETS[ev.target.value];
+    if (!p) return;
+    byId("dashYtdVal").textContent = p.ytd;
+    byId("dashMtdLbl").textContent = p.mtdLbl;
+    byId("dashMtdVal").textContent = p.mtdVal;
+  });
+
+  /* Alert Triage Filter */
+  selectAll("#alertFilterBar .pill-btn").forEach(function(btn) {
+    btn.addEventListener("click", function() {
+      selectAll("#alertFilterBar .pill-btn").forEach(function(b) { b.classList.remove("active"); });
+      btn.classList.add("active");
+      var cat = btn.getAttribute("data-af");
+      selectAll("#triageTable tbody tr").forEach(function(row) {
+        row.style.display = (cat === "all" || row.getAttribute("data-cat") === cat) ? "" : "none";
+      });
+    });
+  });
+
+  /* Interactive Tooltip Helper */
+  var tipEl = byId("chartTip");
+  function showTip(ev, html) {
+    tipEl.innerHTML = html;
+    tipEl.classList.add("show");
+    var x = Math.min(ev.clientX + 14, window.innerWidth - 210);
+    var y = Math.max(12, ev.clientY - 56);
+    tipEl.style.left = x + "px";
+    tipEl.style.top = y + "px";
+  }
+  function hideTip() { tipEl.classList.remove("show"); }
+
+  /* Group Monthly Revenue SVG Chart */
+  var show2025 = true;
+  var ACT_26 = [12.8, 12.1, 14.6, 13.4, 13.9, 13.2, 12.6, 13.1, 14.2, 16.5, 6.42, null];
+  var BUD_26 = [12.5, 12.2, 14.0, 13.8, 14.2, 13.8, 13.0, 13.5, 14.5, 15.8, 13.7, 15.2];
+  var ACT_25 = [11.9, 11.4, 13.5, 12.6, 12.9, 12.4, 11.8, 12.2, 13.1, 15.1, 12.9, 13.9];
+
+  function renderGroupRevenueChart() {
+    var W = 660, H = 225, pl = 38, pr = 14, pt = 14, pb = 26;
+    var iw = W - pl - pr, ih = H - pt - pb, top = 20;
+    function xOf(i) { return pl + i * (iw / 11); }
+    function yOf(v) { return pt + ih - (v / top) * ih; }
+    function buildPath(arr) {
+      var parts = [];
+      for (var i = 0; i < arr.length; i++) {
+        if (arr[i] === null) break;
+        parts.push((parts.length === 0 ? "M" : "L") + xOf(i).toFixed(1) + "," + yOf(arr[i]).toFixed(1));
+      }
+      return parts.join(" ");
+    }
+
+    var gridSvg = "";
+    [0, 5, 10, 15, 20].forEach(function(g) {
+      var gy = yOf(g).toFixed(1);
+      gridSvg += '<line x1="' + pl + '" x2="' + (W - pr) + '" y1="' + gy + '" y2="' + gy + '" stroke="var(--line)" />';
+      gridSvg += '<text x="' + (pl - 7) + '" y="' + (Number(gy) + 4) + '" text-anchor="end" fill="var(--muted)" font-size="11">' + g + '</text>';
+    });
+
+    var labelsSvg = "";
+    var hitsSvg = "";
+    MONTHS_SHORT.forEach(function(m, i) {
+      var cx = xOf(i).toFixed(1);
+      labelsSvg += '<text x="' + cx + '" y="' + (H - 6) + '" text-anchor="middle" fill="var(--muted)" font-size="11">' + m + '</text>';
+      var a = ACT_26[i], b = BUD_26[i], p = ACT_25[i];
+      var note = i === 10 ? " (Days 1–12 MTD)" : (a === null ? " (Not yet elapsed)" : "");
+      var tipHtml = "<b>" + m + " 2026" + note + "</b><br>" +
+        "2026 Actual: <b>" + (a !== null ? a.toFixed(2) + " M QAR" : "—") + "</b><br>" +
+        "2026 Budget: <b>" + b.toFixed(2) + " M QAR</b><br>" +
+        "2025 Actual: <b>" + p.toFixed(2) + " M QAR</b>";
+      hitsSvg += '<rect x="' + (xOf(i) - iw / 22).toFixed(1) + '" y="' + pt + '" width="' + (iw / 11).toFixed(1) + '" height="' + ih + '" fill="transparent" style="cursor:crosshair" data-tip="' + tipHtml.replace(/"/g, "&quot;") + '" />';
+    });
+
+    var actPath = buildPath(ACT_26);
+    var areaPath = actPath + " L" + xOf(10).toFixed(1) + "," + yOf(0).toFixed(1) + " L" + xOf(0).toFixed(1) + "," + yOf(0).toFixed(1) + " Z";
+    var budPath = buildPath(BUD_26);
+    var priPath = show2025 ? '<path d="' + buildPath(ACT_25) + '" fill="none" stroke="rgba(129,140,248,0.55)" stroke-width="1.8" />' : "";
+
+    var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="min-width:460px;display:block">' +
+      '<defs><linearGradient id="revFill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#38bdf8" stop-opacity="0.28"/><stop offset="1" stop-color="#4f73ff" stop-opacity="0"/></linearGradient></defs>' +
+      gridSvg + priPath +
+      '<path d="' + areaPath + '" fill="url(#revFill)" />' +
+      '<path d="' + budPath + '" fill="none" stroke="#94a3b8" stroke-width="1.8" stroke-dasharray="5 4" />' +
+      '<path d="' + actPath + '" fill="none" stroke="#38bdf8" stroke-width="2.6" stroke-linejoin="round" />' +
+      '<circle cx="' + xOf(9).toFixed(1) + '" cy="' + yOf(ACT_26[9]).toFixed(1) + '" r="4" fill="#38bdf8" />' +
+      '<circle cx="' + xOf(10).toFixed(1) + '" cy="' + yOf(ACT_26[10]).toFixed(1) + '" r="4.5" fill="#fbbf24" />' +
+      labelsSvg + hitsSvg + '</svg>';
+
+    var wrap = byId("groupRevChartWrap");
+    wrap.innerHTML = svg;
+    selectAll("rect[data-tip]", wrap).forEach(function(r) {
+      r.addEventListener("mousemove", function(ev) { showTip(ev, r.getAttribute("data-tip")); });
+      r.addEventListener("mouseleave", hideTip);
+    });
+  }
+
+  byId("togglePriorYr").addEventListener("click", function() {
+    show2025 = !show2025;
+    this.classList.toggle("active", show2025);
+    byId("leg2025").style.opacity = show2025 ? "1" : "0.35";
+    renderGroupRevenueChart();
+  });
+
+  /* Sales 3-Year Grouped Bar Chart */
+  function renderSalesCompareChart() {
+    var s24 = [5.1, 4.9, 6.2, 5.6, 5.8, 5.4, 5.0, 5.3, 5.9, 6.4, 5.6, 6.1];
+    var s25 = [5.5, 5.3, 6.7, 6.0, 6.2, 5.8, 5.4, 5.7, 6.3, 7.0, 6.1, 6.6];
+    var s26 = [5.9, 5.8, 7.2, 6.5, 6.7, 6.3, 5.9, 6.2, 6.8, 7.6, 3.18, null];
+    var W = 680, H = 225, pl = 34, pr = 10, pt = 14, pb = 26, iw = W - pl - pr, ih = H - pt - pb, gw = iw / 12, bw = gw / 4.2, top = 9;
+    function yOf(v) { return pt + ih - (v / top) * ih; }
+    var out = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="100%" style="min-width:500px;display:block">';
+    [0, 3, 6, 9].forEach(function(g) {
+      out += '<line x1="' + pl + '" x2="' + (W - pr) + '" y1="' + yOf(g).toFixed(1) + '" y2="' + yOf(g).toFixed(1) + '" stroke="var(--line)"/>';
+      out += '<text x="' + (pl - 6) + '" y="' + (yOf(g) + 4).toFixed(1) + '" text-anchor="end" fill="var(--muted)" font-size="11">' + g + '</text>';
+    });
+    MONTHS_SHORT.forEach(function(m, i) {
+      var x0 = pl + i * gw;
+      if (i === 10) out += '<rect x="' + (x0 + 2).toFixed(1) + '" y="' + (pt - 4) + '" width="' + (gw - 4).toFixed(1) + '" height="' + (ih + 4) + '" rx="5" fill="rgba(56,189,248,0.09)" stroke="rgba(56,189,248,0.32)"/>';
+      var vals = [s24[i], s25[i], s26[i]];
+      var fills = ["rgba(148,168,235,0.32)", "#4f73ff", "#38bdf8"];
+      vals.forEach(function(v, j) {
+        if (v === null) return;
+        var bh = ih - (yOf(v) - pt);
+        out += '<rect x="' + (x0 + 5 + j * (bw + 2)).toFixed(1) + '" y="' + yOf(v).toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + bh.toFixed(1) + '" rx="2.5" fill="' + fills[j] + '"/>';
+      });
+      out += '<text x="' + (x0 + gw / 2).toFixed(1) + '" y="' + (H - 6) + '" text-anchor="middle" fill="var(--muted)" font-size="11">' + m + '</text>';
+    });
+    out += '</svg>';
+    byId("salesCompareChartWrap").innerHTML = out;
+  }
+
+  /* Sales Department Pills */
+  var DEPT_TOTALS = { "All": "3.18 M", "Key Accounts": "1.34 M", "HORECA": "0.88 M", "Van Sales": "0.65 M", "Wholesale": "0.31 M" };
+  selectAll("#salesDeptPills .pill-btn").forEach(function(btn) {
+    btn.addEventListener("click", function() {
+      selectAll("#salesDeptPills .pill-btn").forEach(function(b) { b.classList.remove("active"); });
+      btn.classList.add("active");
+      var d = btn.getAttribute("data-dept");
+      byId("salesHeroTitle").textContent = (d === "All" ? "ERP Sales" : d) + " · Nov (1–12)";
+      byId("salesHeroVal").textContent = DEPT_TOTALS[d] || "3.18 M";
+    });
+  });
+
+  /* Company Monthly P&L Matrix with Sticky First Column */
+  var PNL_DATA = {
+    almanzil: {
+      name: "Al Manzil Residence & Suites",
+      rows: [
+        ["group", "REVENUE", [1080, 1040, 1120, 1050, 990, 920, 910, 950, 1060, 1140, 1142, null]],
+        ["line",  "Room & Long-Stay Revenue", [960, 930, 995, 940, 885, 825, 815, 850, 945, 1015, 1020, null]],
+        ["line",  "Commercial Space Rental", [120, 110, 125, 110, 105, 95, 95, 100, 115, 125, 122, null]],
+        ["group", "OPERATING COSTS", [-690, -675, -710, -680, -670, -660, -655, -668, -695, -705, -695, null]],
+        ["line",  "Hospitality Payroll & Staff", [-310, -310, -315, -312, -310, -308, -308, -310, -315, -318, -315, null]],
+        ["line",  "Kahramaa Utilities & Chiller", [-195, -182, -205, -188, -185, -180, -178, -184, -195, -198, -192, null]],
+        ["line",  "Building Maintenance & Housekeeping", [-185, -183, -190, -180, -175, -172, -169, -174, -185, -189, -188, null]],
+        ["group", "NET PROFIT / LOSS (QAR K)", [390, 365, 410, 370, 320, 260, 255, 282, 365, 435, 447, null]]
+      ]
+    },
+    shawarma: {
+      name: "Mr. Shawarma Restaurants",
+      rows: [
+        ["group", "REVENUE", [2520, 2410, 2680, 2590, 2610, 2490, 2440, 2530, 2640, 2990, 1243, null]],
+        ["group", "COST OF GOODS SOLD", [-960, -920, -1018, -984, -992, -950, -932, -965, -1005, -1136, -449, null]],
+        ["group", "OPERATING & AGGREGATOR FEES", [-1180, -1140, -1240, -1210, -1215, -1180, -1165, -1195, -1230, -1350, -585, null]],
+        ["group", "NET PROFIT / LOSS (QAR K)", [380, 350, 422, 396, 403, 360, 343, 370, 405, 504, 209, null]]
+      ]
+    },
+    perfume: {
+      name: "Top Perfume Retail",
+      rows: [
+        ["group", "RETAIL SALES", [1210, 1150, 1490, 1320, 1240, 1180, 1120, 1190, 1280, 1670, null, null]],
+        ["group", "TOTAL COST & MALL RENT", [-1010, -975, -1210, -1105, -1050, -1010, -970, -1015, -1075, -1370, null, null]],
+        ["group", "NET PROFIT / LOSS (QAR K)", [200, 175, 280, 215, 190, 170, 150, 175, 205, 300, null, null]]
+      ]
+    },
+    pavati: {
+      name: "Pavati Health & Beauty",
+      rows: [
+        ["group", "CLINIC & DISTRIBUTION REVENUE", [440, 425, 495, 470, 465, 450, 435, 460, 490, 590, null, null]],
+        ["group", "TOTAL COST", [-365, -358, -405, -390, -388, -378, -368, -382, -402, -474, null, null]],
+        ["group", "NET PROFIT / LOSS (QAR K)", [75, 67, 90, 80, 77, 72, 67, 78, 88, 116, null, null]]
+      ]
+    }
+  };
+
+  function selectPnlCompany(key) {
+    var d = PNL_DATA[key] || PNL_DATA.almanzil;
+    byId("pnlCompanySelect").value = key;
+    byId("pnlTitle").textContent = d.name + " — Monthly P&L (2026 · QAR Thousands)";
+    var html = '<table class="data-table"><thead><tr><th class="sticky-col">Account Line</th>';
+    MONTHS_SHORT.forEach(function(m) { html += '<th class="r">' + m + '</th>'; });
+    html += '<th class="r">YTD Total</th></tr></thead><tbody>';
+    d.rows.forEach(function(r) {
+      var isGrp = r[0] === "group";
+      var tot = 0;
+      html += '<tr class="' + (isGrp ? "group-row" : "") + '"><td class="sticky-col" style="' + (isGrp ? "" : "padding-left:22px") + '">' + r[1] + '</td>';
+      r[2].forEach(function(v) {
+        if (v !== null) tot += v;
+        var cls = v !== null && v < 0 ? " neg" : "";
+        html += '<td class="r' + cls + '">' + (v === null ? "–" : v.toLocaleString("en-US")) + '</td>';
+      });
+      html += '<td class="r' + (tot < 0 ? " neg" : "") + '">' + tot.toLocaleString("en-US") + '</td></tr>';
+    });
+    html += '</tbody></table>';
+    byId("pnlMatrixWrap").innerHTML = html;
+  }
+
+  /* Customers Master-Detail Interactive Directory */
+  var CUSTOMERS = [
+    { id: "C-10042", name: "Al Meera Consumer Goods Co.", cat: "Key Accounts · 28 Branches", mtd: "521,400", ytd: "9,840,000", chg: "+8.2%", overdue: "385,500", oldest: "116d", aging: [410, 220, 115, 85, 385], brands: [["Al Rabie Juices", "198,400", 100], ["Arla Chilled Dairy", "164,200", 83], ["Barilla Culinary", "92,100", 46]], pending: [["SO-99412", "2026-11-11", "Tariq M.", "48,200"], ["SO-99448", "2026-11-12", "Tariq M.", "31,900"]] },
+    { id: "C-10018", name: "Lulu Hypermarket Trading", cat: "Key Accounts · 19 Branches", mtd: "448,900", ytd: "8,610,000", chg: "+6.4%", overdue: "182,100", oldest: "44d", aging: [520, 190, 182, 0, 0], brands: [["Anchor Milk Powder", "172,000", 100], ["Rani Float", "141,500", 82], ["Sadia Frozen", "88,400", 51]], pending: [["SO-99430", "2026-11-12", "Hassan A.", "64,500"]] },
+    { id: "C-10291", name: "Monoprix Doha Festival City", cat: "Key Accounts · Premium Retail", mtd: "214,600", ytd: "3,920,000", chg: "+4.1%", overdue: "294,000", oldest: "99d", aging: [140, 95, 60, 45, 294], brands: [["Puck Cream Cheese", "94,200", 100], ["Evian & Gourmet", "76,400", 81]], pending: [] },
+    { id: "C-10415", name: "Katara Hospitality Hotels Group", cat: "HORECA · 11 Properties", mtd: "286,300", ytd: "4,780,000", chg: "+15.3%", overdue: "42,000", oldest: "19d", aging: [290, 42, 0, 0, 0], brands: [["Chefline Foodservice", "134,000", 100], ["Arla Pro Butter", "98,500", 74]], pending: [["SO-99451", "2026-11-12", "Rami H.", "27,400"]] },
+    { id: "C-10580", name: "Talabat Mart Dark Stores", cat: "Q-Commerce · 9 Hubs", mtd: "178,400", ytd: "2,940,000", chg: "+22.8%", overdue: "0", oldest: "—", aging: [215, 0, 0, 0, 0], brands: [["Rani & Vimto", "86,100", 100], ["Snacks & Impulse", "62,300", 72]], pending: [["SO-99460", "2026-11-12", "Saeed K.", "19,800"]] }
+  ];
+  var selectedCustId = CUSTOMERS[0].id;
+
+  function selectCustomer(id) {
+    selectedCustId = id;
+    renderCustomerList(byId("custSearchInput").value);
+    var c = CUSTOMERS.filter(function(x) { return x.id === id; })[0] || CUSTOMERS[0];
+    var sumAge = c.aging.reduce(function(a, b) { return a + b; }, 0) || 1;
+    var cols = ["var(--good)", "#38bdf8", "#818cf8", "var(--warn)", "var(--bad)"];
+    var stackHtml = c.aging.map(function(v, i) {
+      return v ? '<span style="width:' + ((v / sumAge) * 100).toFixed(1) + '%;background:' + cols[i] + '"></span>' : '';
+    }).join("");
+    var brandHtml = c.brands.map(function(b) {
+      return '<div class="bar-row"><div class="bar-label">' + b[0] + '</div><div class="bar-track"><span class="bar-fill" style="width:' + b[2] + '%"></span></div><div class="bar-val">' + b[1] + ' QAR</div></div>';
+    }).join("");
+    var pendHtml = c.pending.length ? '<table class="data-table"><thead><tr><th>Order</th><th>Date</th><th>Salesman</th><th class="r">Amount (QAR)</th></tr></thead><tbody>' +
+      c.pending.map(function(p) { return '<tr><td class="mono">' + p[0] + '</td><td class="mono">' + p[1] + '</td><td>' + p[2] + '</td><td class="r">' + p[3] + '</td></tr>'; }).join("") +
+      '</tbody></table>' : '<p class="meta-note">No undelivered reservations pending.</p>';
+
+    byId("custDetailPane").innerHTML =
+      '<div class="panel">' +
+        '<div class="panel-head"><div><h2 style="font-size:16px">' + c.name + '</h2><div class="panel-sub">' + c.cat + '</div></div><span class="badge info mono">' + c.id + '</span></div>' +
+        '<div class="kpi-row" style="grid-template-columns:repeat(3,1fr)">' +
+          '<div class="kpi-card"><div class="kpi-head"><span>Sales Nov MTD</span></div><div class="kpi-val" style="font-size:20px">' + c.mtd + '</div><span class="badge up">' + c.chg + ' vs Oct</span></div>' +
+          '<div class="kpi-card"><div class="kpi-head"><span>YTD Sales (QAR)</span></div><div class="kpi-val" style="font-size:20px">' + c.ytd + '</div><span class="meta-note">2026 commercial</span></div>' +
+          '<div class="kpi-card"><div class="kpi-head"><span>Overdue Balance</span></div><div class="kpi-val" style="font-size:20px">' + c.overdue + '</div><span class="meta-note">Oldest: ' + c.oldest + '</span></div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="panel">' +
+        '<div class="panel-head"><div><h2>AR Aging Profile (QAR Thousands)</h2><div class="panel-sub">Not due · 1–30d · 31–60d · 61–90d · Over 90d</div></div></div>' +
+        '<div class="stacked-bar">' + stackHtml + '</div>' +
+        '<div class="table-wrap"><table class="data-table"><thead><tr><th class="r">Not Due</th><th class="r">1–30d</th><th class="r">31–60d</th><th class="r">61–90d</th><th class="r">&gt; 90d</th><th class="r">Total (K)</th></tr></thead>' +
+        '<tbody><tr><td class="r">' + c.aging[0] + '</td><td class="r">' + c.aging[1] + '</td><td class="r">' + c.aging[2] + '</td><td class="r">' + c.aging[3] + '</td><td class="r neg">' + c.aging[4] + '</td><td class="r"><b>' + sumAge + '</b></td></tr></tbody></table></div>' +
+      '</div>' +
+      '<div class="panel"><div class="panel-head"><div><h2>Top Brand Mix · Nov 2026</h2></div></div><div class="bar-list">' + brandHtml + '</div></div>' +
+      '<div class="panel"><div class="panel-head"><div><h2>Ordered, Not Yet Delivered</h2><div class="panel-sub">Open ERP reservations awaiting delivery note</div></div></div>' + pendHtml + '</div>';
+  }
+
+  function renderCustomerList(query) {
+    var q = (query || "").toLowerCase();
+    var listHtml = "";
+    CUSTOMERS.forEach(function(c) {
+      if (q && (c.name + " " + c.id + " " + c.cat).toLowerCase().indexOf(q) === -1) return;
+      listHtml += '<div class="cust-item ' + (c.id === selectedCustId ? "active" : "") + '" onclick="selectCustomer(\'' + c.id + '\')">' +
+        '<div><b style="color:var(--ink);font-size:12.5px">' + c.name + '</b><div class="meta-note mono">' + c.id + ' · ' + c.cat.split("·")[0] + '</div></div>' +
+        '<div class="mono" style="font-weight:600;color:var(--ink)">' + c.mtd + '</div></div>';
+    });
+    byId("custListContainer").innerHTML = listHtml || '<p class="meta-note">No matching customer.</p>';
+
+    var ovHtml = "";
+    CUSTOMERS.filter(function(c) { return c.overdue !== "0"; }).forEach(function(c) {
+      ovHtml += '<tr class="clickable ' + (c.id === selectedCustId ? "selected" : "") + '" onclick="selectCustomer(\'' + c.id + '\')">' +
+        '<td><b>' + c.name + '</b></td><td class="r neg">' + c.overdue + '</td><td class="r">' + c.oldest + '</td></tr>';
+    });
+    byId("custOverdueTbody").innerHTML = ovHtml;
+  }
+
+  /* Restaurants Branch Filter */
+  function selectRestBranch(btn, name, gross, cogs) {
+    selectAll("#restBranchPills .pill-btn").forEach(function(b) { b.classList.remove("active"); });
+    btn.classList.add("active");
+    byId("restBranchLbl").textContent = "Gross Sales · " + name;
+    byId("restGrossVal").textContent = gross;
+    byId("restCogsPct").textContent = cogs + " of net sales";
+  }
+
+  /* Retail vs Health & Beauty Switcher */
+  function switchSectorRetail(mode, btn) {
+    selectAll("#retSub .seg-tab").forEach(function(t) { t.classList.remove("active"); });
+    btn.classList.add("active");
+    if (mode === "hb") {
+      byId("retKpi1Lbl").textContent = "Health & Beauty YTD (Jan–Oct)";
+      byId("retKpi1Val").textContent = "4.72 M";
+      byId("retKpi1Delta").textContent = "▲ 14.9% (+0.61 M QAR)";
+      byId("retKpi2Val").textContent = "4.11 M";
+      byId("retKpi3Val").textContent = "0.47 M";
+      byId("retKpi4Val").textContent = "1.94 M";
+      byId("retKpi4Delta").textContent = "41.0% margin · COGS 2.78 M";
+      byId("retTableTitle").textContent = "Subsidiary Breakdown — Health & Beauty";
+      byId("retCompanyTbody").innerHTML =
+        '<tr><td><a href="#hb" onclick="return false;"><b>Pavati Clinics &amp; Aesthetics</b></a></td><td class="r">3,140,000</td><td class="r">2,690,000</td><td class="r"><span class="badge up">▲ 16.7%</span></td><td><div class="bar-track"><span class="bar-fill" style="width:66.5%"></span></div></td></tr>' +
+        '<tr><td><a href="#hb" onclick="return false;"><b>Pavati Salon &amp; Spa Distribution</b></a></td><td class="r">1,580,000</td><td class="r">1,420,000</td><td class="r"><span class="badge up">▲ 11.3%</span></td><td><div class="bar-track"><span class="bar-fill" style="width:33.5%"></span></div></td></tr>';
+    } else {
+      byId("retKpi1Lbl").textContent = "Retail YTD Sales (Jan–Oct)";
+      byId("retKpi1Val").textContent = "12.85 M";
+      byId("retKpi1Delta").textContent = "▲ 9.2% (+1.08 M QAR)";
+      byId("retKpi2Val").textContent = "11.77 M";
+      byId("retKpi3Val").textContent = "1.29 M";
+      byId("retKpi4Val").textContent = "4.95 M";
+      byId("retKpi4Delta").textContent = "38.5% margin · COGS 7.90 M";
+      byId("retTableTitle").textContent = "Subsidiary Breakdown — Hypermarkets & Retail";
+      byId("retCompanyTbody").innerHTML =
+        '<tr><td><a href="#retail" onclick="return false;"><b>Top Perfume — Doha Festival &amp; Mall of Qatar</b></a></td><td class="r">8,420,000</td><td class="r">7,650,000</td><td class="r"><span class="badge up">▲ 10.1%</span></td><td><div class="bar-track"><span class="bar-fill" style="width:65.5%"></span></div></td></tr>' +
+        '<tr><td><a href="#retail" onclick="return false;"><b>Top Perfume — Souq Waqif &amp; Vendome</b></a></td><td class="r">4,430,000</td><td class="r">4,120,000</td><td class="r"><span class="badge up">▲ 7.5%</span></td><td><div class="bar-track"><span class="bar-fill" style="width:34.5%"></span></div></td></tr>';
+    }
+  }
+
+  /* Search Helpers */
+  function filterTradingDrill(q) {
+    var term = (q || "").toLowerCase();
+    selectAll("#prodDrillList .bar-row, #custDrillList .bar-row").forEach(function(row) {
+      var hay = (row.textContent + " " + (row.getAttribute("data-search") || "")).toLowerCase();
+      row.style.display = (!term || hay.indexOf(term) !== -1) ? "" : "none";
+    });
+  }
+
+  function filterSimpleTable(tableId, q) {
+    var term = (q || "").toLowerCase();
+    selectAll("#" + tableId + " tbody tr").forEach(function(tr) {
+      tr.style.display = (!term || tr.textContent.toLowerCase().indexOf(term) !== -1) ? "" : "none";
+    });
+  }
+
+  /* Ask AI Slide-Over Drawer & Sign-In Modal */
+  byId("openAiBtn").addEventListener("click", function() { byId("aiBackdrop").classList.add("open"); });
+  byId("closeAiBtn").addEventListener("click", function() { byId("aiBackdrop").classList.remove("open"); });
+  byId("aiBackdrop").addEventListener("click", function(ev) { if (ev.target === byId("aiBackdrop")) byId("aiBackdrop").classList.remove("open"); });
+
+  byId("openAuthBtn").addEventListener("click", function() { byId("authBackdrop").classList.add("open"); });
+  byId("closeAuthBtn").addEventListener("click", function() { byId("authBackdrop").classList.remove("open"); });
+  byId("authBackdrop").addEventListener("click", function(ev) { if (ev.target === byId("authBackdrop")) byId("authBackdrop").classList.remove("open"); });
+
+  var AI_ANSWERS = {
+    "Which sector contributed most to YoY growth?": "FMCG & Trading added +4.95 M QAR YoY (+7.8%), while Food & Beverage (Mr. Shawarma) grew fastest in percentage terms among major sectors at +12.4% (+3.10 M QAR YTD).",
+    "Summarize receivables over 90 days in QAR": "Combined >90-day receivables stand at 2.18 M QAR (11.2% of 19.40 M QAR total AR). The two largest balances are Al Meera (385,500 QAR) and Monoprix DFC (294,000 QAR).",
+    "How are Mr. Shawarma delivery channels performing?": "Delivery aggregators represent 45.4% of Nov gross sales (564,230 QAR): Talabat leads at 22.9%, followed by Snoonu (12.0%), Keeta (6.6%), and Deliveroo (3.9%)."
+  };
+
+  function appendAiBubble(role, text) {
+    var box = byId("aiMessages");
+    var div = document.createElement("div");
+    div.className = "ai-msg " + role;
+    div.textContent = text;
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function askPreset(q) {
+    appendAiBubble("usr", q);
+    setTimeout(function() {
+      appendAiBubble("bot", AI_ANSWERS[q] || "Group YTD revenue is 142.84 M QAR (94.6% of budget), with 18.94 M QAR consolidated net profit across costed subsidiaries.");
+    }, 220);
+  }
+
+  byId("aiForm").addEventListener("submit", function(ev) {
+    ev.preventDefault();
+    var inp = byId("aiInput");
+    var val = inp.value.trim();
+    if (!val) return;
+    inp.value = "";
+    askPreset(val);
+  });
+
+  /* Initial Render */
+  renderGroupRevenueChart();
+  renderSalesCompareChart();
+  selectPnlCompany("almanzil");
+  selectCustomer(CUSTOMERS[0].id);
+</script>
+</body>
+</html>

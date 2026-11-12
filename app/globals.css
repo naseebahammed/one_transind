@@ -397,3 +397,14 @@ a .chit{cursor:pointer}
  .rail-logout{width:auto;padding:7px;border-radius:9px;border:1px solid var(--line);background:rgba(255,255,255,.04);gap:0}
 }
 @media (prefers-reduced-motion:reduce){.rail-logout:hover svg,[dir="rtl"] .rail-logout:hover svg{transform:none}}
+
+/* monthly P&L grid: first column stays visible while scrolling across months */
+.pl th:first-child,.pl td:first-child{position:sticky;left:0;background:var(--panel);z-index:1;min-width:190px}
+.pl tbody tr:hover td{background:var(--panel-2)}
+.pl .grp td{font-weight:600;background:var(--panel) linear-gradient(var(--brand-soft),var(--brand-soft))}
+.pl .tot td{font-weight:600;border-top:1px solid var(--line-strong)}
+.pl td.n,.pl th.n{min-width:78px}
+.pl-toggle{all:unset;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.pl-toggle:focus-visible{outline:2px solid var(--cyan)}
+.pl-toggle small{color:var(--muted);font-weight:400}
+.pl .sec td{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding-top:14px;background:var(--panel)}
