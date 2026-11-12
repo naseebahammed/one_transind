@@ -3,7 +3,6 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { connection } from "next/server";
 import { getCustomers } from "@/lib/data";
-import { hasAnyCustomerOpportunities, listCustomerOpportunities } from "@/lib/manual-report-records";
 import { getOutstandingByCustomer, getReceivables } from "@/lib/receivables";
 import { fmt, MONTHS, pct } from "@/lib/format";
 import { OutstandingTable } from "@/components/OutstandingTable";
@@ -21,11 +20,9 @@ async function Content({ searchParams }: { searchParams: Promise<{ c?: string }>
   const [{ c: id }, d] = await Promise.all([searchParams, getCustomers()]);
   const c = d.customers.find((x) => x.id === id) ?? d.customers[0];
   if (!c) return <p className="empty">No customers.</p>;
-  const [ar, owing, opportunities, anyOpportunities] = await Promise.all([
+  const [ar, owing] = await Promise.all([
     getReceivables(c.id),
     getOutstandingByCustomer(),
-    listCustomerOpportunities(c.id, c.name),
-    hasAnyCustomerOpportunities(),
   ]);
   const label = `${MONTHS[d.month]} ${d.year}`, ch = pct(c.mtd, c.lastMonth);
   const series = [Array.from({ length: 12 }, (_, i) => (i <= d.month ? c.months[i] ?? 0 : null))];
@@ -66,24 +63,6 @@ async function Content({ searchParams }: { searchParams: Promise<{ c?: string }>
             <thead><tr><th>Invoice</th><th>Date</th><th>Salesman</th><th className="n">Amount</th></tr></thead>
             <tbody>{ar.pending.map((p) => <tr key={p.invoice}><td className="mono">{p.invoice}</td><td>{p.date}</td><td>{p.salesman ?? "—"}</td><td className="n num">{fmt(p.amount)}</td></tr>)}</tbody>
           </table></div> : <p className="empty">None pending.</p>}
-        </Panel>
-        <Panel title="Opportunities" src={opportunities.length ? "QAR" : undefined}>
-          {opportunities.length ? (
-            <div className="tw"><table>
-              <thead><tr><th>Opportunity</th><th>Stage</th><th>Owner</th><th>Expected close</th><th className="n">Value</th></tr></thead>
-              <tbody>{opportunities.map((op) => (
-                <tr key={op.id}>
-                  <td>{op.title}{op.notes ? <small style={{ display: "block", color: "var(--muted)" }}>{op.notes}</small> : null}</td>
-                  <td><span className={`chip ${op.stage === "Won" ? "good" : op.stage === "Lost" ? "bad" : "plain"}`}>{op.stage}</span></td>
-                  <td>{op.owner || "—"}</td>
-                  <td className="mono">{op.expectedClose ?? "—"}</td>
-                  <td className="n num">{fmt(op.value)}</td>
-                </tr>
-              ))}</tbody>
-            </table></div>
-          ) : (
-            <p className="empty">{anyOpportunities ? "No opportunities recorded for this customer." : "Not connected"}</p>
-          )}
         </Panel>
       </div>
     </div>

@@ -1,5 +1,5 @@
 // Database readers and manual-entry writers for existing report tables and the additive 031_manual_report_data tables.
-import { numbering, q, q1 } from "@/lib/db";
+import { numbering, q } from "@/lib/db";
 import type { GridSection } from "@/lib/company-data";
 import { linesOf } from "@/lib/company-figures";
 import { branchClash, monthlySalesClash, takingsClash } from "@/lib/figure-rules";
@@ -643,6 +643,19 @@ export async function deleteFmcgStockExpiry(asOf: string, report: string, lineNo
 
 // --- New 031_manual_report_data readers and writers ---
 
+const isMissingTable = (e: unknown) => (e as { code?: string })?.code === "42P01";
+async function qSafe<T>(text: string, params: unknown[] = []): Promise<T[]> {
+  try {
+    return await q<T>(text, params);
+  } catch (e) {
+    if (isMissingTable(e)) return [];
+    throw e;
+  }
+}
+async function q1Safe<T>(text: string, params: unknown[] = []): Promise<T | undefined> {
+  return (await qSafe<T>(text, params))[0];
+}
+
 export type ReceivablesSnapshotRow = {
   id: number;
   companyId: number | null;
@@ -669,7 +682,7 @@ export type AggregatedReceivables = {
 };
 
 export async function listReceivablesSnapshots(): Promise<ReceivablesSnapshotRow[]> {
-  const rows = await q<Omit<ReceivablesSnapshotRow, "total">>(
+  const rows = await qSafe<Omit<ReceivablesSnapshotRow, "total">>(
     `SELECT r.id, r.company_id AS "companyId", c.name AS "companyName",
             to_char(r.as_of, 'YYYY-MM-DD') AS "asOf", r.dso_days::float8 AS "dsoDays",
             r.not_due::float8 AS "notDue", r.days_1_30::float8 AS "days1To30",
@@ -750,7 +763,7 @@ export type OverdueInvoiceRow = {
 };
 
 export async function listOverdueInvoices(): Promise<OverdueInvoiceRow[]> {
-  return q<OverdueInvoiceRow>(
+  return qSafe<OverdueInvoiceRow>(
     `SELECT i.id, i.invoice_no AS "invoiceNo", i.account_name AS "accountName",
             i.company_id AS "companyId", c.name AS "companyName",
             to_char(i.due_date, 'YYYY-MM-DD') AS "dueDate",
@@ -803,7 +816,7 @@ export type CustomerOpportunityRow = {
 
 export async function listCustomerOpportunities(customerCode?: string, customerName?: string): Promise<CustomerOpportunityRow[]> {
   if (customerCode !== undefined || customerName !== undefined) {
-    return q<CustomerOpportunityRow>(
+    return qSafe<CustomerOpportunityRow>(
       `SELECT id, customer_code AS "customerCode", customer_name AS "customerName", title, stage,
               value::float8 AS value, to_char(expected_close, 'YYYY-MM-DD') AS "expectedClose", owner, notes
        FROM app.customer_opportunities
@@ -813,7 +826,7 @@ export async function listCustomerOpportunities(customerCode?: string, customerN
       [customerCode ?? "", customerName ?? ""],
     );
   }
-  return q<CustomerOpportunityRow>(
+  return qSafe<CustomerOpportunityRow>(
     `SELECT id, customer_code AS "customerCode", customer_name AS "customerName", title, stage,
             value::float8 AS value, to_char(expected_close, 'YYYY-MM-DD') AS "expectedClose", owner, notes
      FROM app.customer_opportunities
@@ -822,7 +835,7 @@ export async function listCustomerOpportunities(customerCode?: string, customerN
 }
 
 export async function hasAnyCustomerOpportunities(): Promise<boolean> {
-  return !!(await q1("SELECT 1 FROM app.customer_opportunities LIMIT 1"));
+  return !!(await q1Safe("SELECT 1 FROM app.customer_opportunities LIMIT 1"));
 }
 
 export async function saveCustomerOpportunity(
@@ -873,7 +886,7 @@ export type HrLeaveRequestRow = {
 };
 
 export async function listHrLeaveRequests(): Promise<HrLeaveRequestRow[]> {
-  return q<HrLeaveRequestRow>(
+  return qSafe<HrLeaveRequestRow>(
     `SELECT l.id, l.employee_id AS "employeeId", l.employee_name AS "employeeName",
             l.company_id AS "companyId", c.name AS "companyName", l.leave_type AS "leaveType",
             to_char(l.start_date, 'YYYY-MM-DD') AS "startDate",
@@ -932,7 +945,7 @@ export type HrExpiringDocumentRow = {
 };
 
 export async function listHrExpiringDocuments(): Promise<HrExpiringDocumentRow[]> {
-  return q<HrExpiringDocumentRow>(
+  return qSafe<HrExpiringDocumentRow>(
     `SELECT d.id, d.employee_id AS "employeeId", d.holder_name AS "holderName",
             d.company_id AS "companyId", c.name AS "companyName",
             d.document_type AS "documentType", d.document_no AS "documentNo",
@@ -1023,25 +1036,25 @@ export type CustomsRow = {
 
 export async function getLogisticsOverview() {
   const [kpis, fleet, shipments, warehouses, customs] = await Promise.all([
-    q1<LogisticsKpisRow>(
+    q1Safe<LogisticsKpisRow>(
       `SELECT fleet_count AS "fleetCount", on_route_count AS "onRouteCount", outlets_reached AS "outletsReached"
        FROM app.logistics_kpis WHERE id = 1`,
     ),
-    q<FleetVehicleRow>(
+    qSafe<FleetVehicleRow>(
       `SELECT id, vehicle_no AS "vehicleNo", vehicle_type AS "vehicleType", driver_name AS "driverName",
               route, temperature_mode AS "temperatureMode", status
        FROM app.logistics_fleet ORDER BY vehicle_no`,
     ),
-    q<ShipmentRow>(
+    qSafe<ShipmentRow>(
       `SELECT id, shipment_code AS "shipmentCode", destination, temperature, vehicle, eta, status
        FROM app.logistics_shipments ORDER BY updated DESC, id DESC`,
     ),
-    q<WarehouseRow>(
+    qSafe<WarehouseRow>(
       `SELECT id, name, location, temperature_zone AS "temperatureZone",
               capacity_pallets AS "capacityPallets", occupied_pallets AS "occupiedPallets", status
        FROM app.logistics_warehouses ORDER BY name`,
     ),
-    q<CustomsRow>(
+    qSafe<CustomsRow>(
       `SELECT id, bol_no AS "bolNo", customer, port, to_char(eta, 'YYYY-MM-DD') AS eta, status
        FROM app.logistics_customs ORDER BY eta ASC NULLS LAST, id DESC`,
     ),

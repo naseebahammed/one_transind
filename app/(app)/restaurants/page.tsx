@@ -150,7 +150,7 @@ async function Content({ searchParams }: { searchParams: Params }) {
         </Panel>
         <Panel span={5} title={`Sales by channel · ${mn}`}>
           <HBars unit=" QAR" rows={hasData ? [{ l: "Cash", v: cash }, { l: "Card", v: card }, { l: "Delivery apps", v: apps }] : []} />
-          <p className="note" style={{ marginTop: 8 }}>{monthlyOnly ? "No daily deposit book for this month, so gross sales are the monthly figure from the COGS workbook and there is no cash or card split. " : ""}From the branches' Daily Sales Deposit workbooks. Gross sales exclude bank deposits, which repeat cash sales. Baskin Robbins and Dunkin appear once they upload the same workbook.</p>
+          <p className="note" style={{ marginTop: 8 }}>{monthlyOnly ? "No daily deposit book for this month, so gross sales are the monthly figure from the COGS workbook and there is no cash or card split. " : ""}From the branches&apos; Daily Sales Deposit workbooks. Gross sales exclude bank deposits, which repeat cash sales.</p>
         </Panel>
         <Panel span={12} title={`Daily gross sales · ${mn}`}>
           {allMonths ? <p className="empty">Pick a single month to see daily sales.</p> : !hasData ? <p className="empty">No daily sales uploaded for {mn}.</p> : (

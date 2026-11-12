@@ -9,6 +9,26 @@ const OPEN = `FROM public.glas_food_cust_oustanding_inv WHERE COALESCE("ACTUAL_C
 
 export type CustomerOutstanding = { name: string; balance: number; overdue: number; oldestOverdueDays: number };
 export type PendingDelivery = { invoice: string; date: string; salesman: string | null; amount: number };
+export type ErpOverdueInvoice = {
+  invoiceNo: string;
+  accountName: string;
+  dueDate: string;
+  amount: number;
+  balance: number;
+  daysOverdue: number;
+  status: string;
+};
+export type GroupErpReceivables = {
+  connected: boolean;
+  asOf: string;
+  notDue: number;
+  days1To30: number;
+  days31To60: number;
+  days61To90: number;
+  over90: number;
+  total: number;
+  overdueInvoices: ErpOverdueInvoice[];
+};
 export const AGING = ["Not due", "1-30", "31-60", "61-90", "Over 90"] as const;
 
 /** Everything one customer still owes, in days past due, plus the invoices behind it and the orders not yet delivered. */
@@ -46,4 +66,99 @@ export async function getOutstandingByCustomer(limit = 50) {
             COALESCE(MAX(current_date - "DUE_DATE") FILTER (WHERE "DUE_DATE" < current_date AND "BALANCE_AMOUNT" > 0), 0)::int AS "oldestOverdueDays"
      FROM public.glas_food_cust_oustanding_inv GROUP BY 1 HAVING SUM("BALANCE_AMOUNT") <> 0 ORDER BY overdue DESC LIMIT $1`, [safeLimit]);
   return rows;
+}
+
+function erpOverdueStatus(daysOverdue: number): string {
+  if (daysOverdue > 90) return "Over 90d";
+  if (daysOverdue > 60) return "61–90d";
+  if (daysOverdue > 30) return "31–60d";
+  return "Overdue";
+}
+
+/** Group-wide ERP Trading open receivables, 5-bucket aging, and top overdue invoices. Safely returns connected=false when the ERP view does not exist (e.g. staging). */
+export async function getGroupErpReceivables(overdueLimit = 25): Promise<GroupErpReceivables> {
+  "use cache";
+  cacheLife("minutes");
+  const safeLimit = Math.min(100, Math.max(1, Number.isFinite(overdueLimit) ? Math.trunc(overdueLimit) : 25));
+  const { rows: [probe] } = await pg.query<{ reg: string | null; today: string }>(
+    `SELECT to_regclass('public.glas_food_cust_oustanding_inv')::text AS reg, to_char(current_date, 'YYYY-MM-DD') AS today`,
+  );
+  const today = probe?.today ?? new Date().toISOString().slice(0, 10);
+  if (!probe?.reg) {
+    return {
+      connected: false,
+      asOf: today,
+      notDue: 0,
+      days1To30: 0,
+      days31To60: 0,
+      days61To90: 0,
+      over90: 0,
+      total: 0,
+      overdueInvoices: [],
+    };
+  }
+
+  const [{ rows: [summary] }, { rows: overdueRows }] = await Promise.all([
+    pg.query<{
+      notDue: number;
+      days1To30: number;
+      days31To60: number;
+      days61To90: number;
+      over90: number;
+      total: number;
+    }>(
+      `SELECT
+         COALESCE(SUM("BALANCE_AMOUNT") FILTER (WHERE "DUE_DATE" IS NULL OR current_date <= "DUE_DATE"), 0)::float8 AS "notDue",
+         COALESCE(SUM("BALANCE_AMOUNT") FILTER (WHERE current_date - "DUE_DATE" BETWEEN 1 AND 30), 0)::float8 AS "days1To30",
+         COALESCE(SUM("BALANCE_AMOUNT") FILTER (WHERE current_date - "DUE_DATE" BETWEEN 31 AND 60), 0)::float8 AS "days31To60",
+         COALESCE(SUM("BALANCE_AMOUNT") FILTER (WHERE current_date - "DUE_DATE" BETWEEN 61 AND 90), 0)::float8 AS "days61To90",
+         COALESCE(SUM("BALANCE_AMOUNT") FILTER (WHERE current_date - "DUE_DATE" > 90), 0)::float8 AS "over90",
+         COALESCE(SUM("BALANCE_AMOUNT"), 0)::float8 AS total
+       FROM public.glas_food_cust_oustanding_inv`,
+    ),
+    pg.query<{
+      invoiceNo: string;
+      accountName: string;
+      dueDate: string;
+      balance: number;
+      daysOverdue: number;
+    }>(
+      `SELECT
+         COALESCE("SLTR_OUR_DOC_NO"::text, '-') AS "invoiceNo",
+         MAX(COALESCE("ACTUAL_CUST_NAME", "COAD_PTY_FULL_NAME", '-')) AS "accountName",
+         to_char(MIN("DUE_DATE"), 'YYYY-MM-DD') AS "dueDate",
+         SUM("BALANCE_AMOUNT")::float8 AS balance,
+         MAX(current_date - "DUE_DATE")::int AS "daysOverdue"
+       FROM public.glas_food_cust_oustanding_inv
+       WHERE "DUE_DATE" < current_date AND "BALANCE_AMOUNT" > 0
+       GROUP BY 1
+       HAVING SUM("BALANCE_AMOUNT") > 0
+       ORDER BY balance DESC, "daysOverdue" DESC
+       LIMIT $1`,
+      [safeLimit],
+    ),
+  ]);
+
+  return {
+    connected: true,
+    asOf: today,
+    notDue: roundMoney(summary?.notDue ?? 0),
+    days1To30: roundMoney(summary?.days1To30 ?? 0),
+    days31To60: roundMoney(summary?.days31To60 ?? 0),
+    days61To90: roundMoney(summary?.days61To90 ?? 0),
+    over90: roundMoney(summary?.over90 ?? 0),
+    total: roundMoney(summary?.total ?? 0),
+    overdueInvoices: overdueRows.map((row) => {
+      const balance = roundMoney(row.balance);
+      return {
+        invoiceNo: row.invoiceNo,
+        accountName: row.accountName,
+        dueDate: row.dueDate,
+        amount: balance,
+        balance,
+        daysOverdue: row.daysOverdue,
+        status: erpOverdueStatus(row.daysOverdue),
+      };
+    }),
+  };
 }

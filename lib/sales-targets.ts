@@ -49,16 +49,23 @@ export function resolveSectorIndicators(rows: SalesSectorIndicatorRow[], departm
   return result;
 }
 
+const isMissingTable = (e: unknown) => (e as { code?: string })?.code === "42P01";
+
 export async function listSalesDepartmentTargets(year: number): Promise<SalesDepartmentTargetRow[]> {
   const { q } = await db();
-  return q<SalesDepartmentTargetRow>(
-    `SELECT code, EXTRACT(year FROM period)::int AS year, EXTRACT(month FROM period)::int - 1 AS month,
-            to_char(period, 'YYYY-MM-DD') AS period, target::float8 AS target
-     FROM app.sales_department_targets
-     WHERE period >= make_date($1::int, 1, 1) AND period < make_date($1::int + 1, 1, 1)
-     ORDER BY code, period`,
-    [year],
-  );
+  try {
+    return await q<SalesDepartmentTargetRow>(
+      `SELECT code, EXTRACT(year FROM period)::int AS year, EXTRACT(month FROM period)::int - 1 AS month,
+              to_char(period, 'YYYY-MM-DD') AS period, target::float8 AS target
+       FROM app.sales_department_targets
+       WHERE period >= make_date($1::int, 1, 1) AND period < make_date($1::int + 1, 1, 1)
+       ORDER BY code, period`,
+      [year],
+    );
+  } catch (e) {
+    if (isMissingTable(e)) return [];
+    throw e;
+  }
 }
 
 export async function saveSalesDepartmentTarget(code: string, period: string, target: number) {
@@ -78,14 +85,19 @@ export async function deleteSalesDepartmentTarget(code: string, period: string) 
 
 export async function listSalesSectorIndicators(period: string): Promise<SalesSectorIndicatorRow[]> {
   const { q } = await db();
-  return q<SalesSectorIndicatorRow>(
-    `SELECT department_code AS "departmentCode", to_char(period, 'YYYY-MM-DD') AS period,
-            indicator, value::float8 AS value
-     FROM app.sales_sector_indicators
-     WHERE period = $1::date
-     ORDER BY department_code, indicator`,
-    [period],
-  );
+  try {
+    return await q<SalesSectorIndicatorRow>(
+      `SELECT department_code AS "departmentCode", to_char(period, 'YYYY-MM-DD') AS period,
+              indicator, value::float8 AS value
+       FROM app.sales_sector_indicators
+       WHERE period = $1::date
+       ORDER BY department_code, indicator`,
+      [period],
+    );
+  } catch (e) {
+    if (isMissingTable(e)) return [];
+    throw e;
+  }
 }
 
 export async function saveSalesSectorIndicators(

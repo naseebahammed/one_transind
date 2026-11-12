@@ -4,7 +4,7 @@ import { PROPERTY_TYPES } from "@/lib/company-input";
 import { ACCOUNT_SEED } from "@/lib/accounts-seed";
 import { cleanText } from "@/lib/input-validation";
 import { pg } from "@/lib/pg";
-import { migrate } from "@/lib/schema";
+import { LATEST_MIGRATION_ID, migrate } from "@/lib/schema";
 
 const SEED_CHECK_SQL = {
   sectors: "SELECT 1 FROM app.sectors LIMIT 1",
@@ -36,10 +36,21 @@ async function init() {
 }
 
 // Lazy: connecting (and seeding) at import time collides across Next build workers.
-const g = globalThis as unknown as { _dbReady?: Promise<void> };
+// Keyed by LATEST_MIGRATION_ID so adding a new migration during `next dev` HMR runs migrate() on the next query without a server restart.
+const g = globalThis as unknown as { _dbReady?: Promise<void>; _dbMigrationId?: string };
 // Production skips schema/seed on requests: run once per deploy with DB_INIT=true.
 const autoInit = process.env.NODE_ENV !== "production" || process.env.DB_INIT === "true";
-const ready = () => (g._dbReady ??= (autoInit ? init() : Promise.resolve()).catch((e) => ((g._dbReady = undefined), Promise.reject(e))));
+const ready = () => {
+  if (g._dbMigrationId !== LATEST_MIGRATION_ID) {
+    g._dbReady = undefined;
+    g._dbMigrationId = LATEST_MIGRATION_ID;
+  }
+  return (g._dbReady ??= (autoInit ? init() : Promise.resolve()).catch((e) => {
+    g._dbReady = undefined;
+    g._dbMigrationId = undefined;
+    return Promise.reject(e);
+  }));
+};
 
 /** Run SQL against the app schema (tables are `app.<name>`); returns the rows. */
 export async function q<T = Record<string, unknown>>(text: string, params: unknown[] = []) {
