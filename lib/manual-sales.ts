@@ -8,7 +8,8 @@ const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const quote = (text: string) => `'${text.replaceAll("'", "''")}'`;
 
 /** Sales typed in by hand for departments the ERP does not carry (data/manual-sales.json). Bad rows throw, so a typo never reaches SQL. */
-export function readManualSales(file = path.join(process.cwd(), "data", "manual-sales.json")): ManualSale[] {
+export function readManualSales(): ManualSale[] {
+  const file = path.join(process.cwd(), "data", "manual-sales.json");
   const rows: ManualSale[] = JSON.parse(readFileSync(file, "utf8"));
   for (const r of rows) {
     if (!DATE.test(r.date) || !r.code?.trim() || !r.department?.trim() || !Number.isFinite(r.value) || !Number.isFinite(r.cost)) throw new Error(`Bad row in manual-sales.json: ${JSON.stringify(r)}`);

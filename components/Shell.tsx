@@ -31,8 +31,17 @@ const PRIMARY_MOBILE_HREFS = new Set(["/dashboard", "/sales", "/finance", "/real
 
 // The Suspense fallbacks render these without a language, so the menu is English until the real one loads.
 // areas: the top-level pages this person may open; null/undefined = all.
-export function Nav({ sectors = [], language = "en", areas }: { sectors?: MenuSector[]; language?: Language; areas?: readonly string[] | null }) {
-  const path = usePathname();
+function NavFrame({
+  path,
+  sectors = [],
+  language = "en",
+  areas,
+}: {
+  path: string;
+  sectors?: MenuSector[];
+  language?: Language;
+  areas?: readonly string[] | null;
+}) {
   const translate = translator(language);
   const [mini, setMini] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -159,6 +168,15 @@ export function Nav({ sectors = [], language = "en", areas }: { sectors?: MenuSe
       )}
     </>
   );
+}
+
+export function NavShell() {
+  return <NavFrame path="" />;
+}
+
+export function Nav({ sectors = [], language = "en", areas }: { sectors?: MenuSector[]; language?: Language; areas?: readonly string[] | null }) {
+  const path = usePathname();
+  return <NavFrame path={path} sectors={sectors} language={language} areas={areas} />;
 }
 
 export function Title({ sectors = [], language = "en" }: { sectors?: MenuSector[]; language?: Language }) {

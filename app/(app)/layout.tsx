@@ -7,7 +7,7 @@ import { translator } from "@/lib/i18n";
 import { getLanguage } from "@/lib/language";
 import { listMenuSectors, listSectors } from "@/lib/sectors";
 import { SalesToolbar } from "@/components/SalesToolbar";
-import { Nav, Title } from "@/components/Shell";
+import { Nav, NavShell, Title } from "@/components/Shell";
 import { AskAI } from "@/components/AskAI";
 
 async function Toolbar() {
@@ -72,12 +72,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <img src="/logo.webp" alt="Transind Holding" />
           <b>One Transind</b>
         </div>
-        <Suspense fallback={<Suspense fallback={null}><Nav /></Suspense>}><MenuNav /></Suspense>
+        <Suspense fallback={<Suspense fallback={<NavShell />}><Nav /></Suspense>}><MenuNav /></Suspense>
         <Suspense fallback={null}><SidebarUser /></Suspense>
       </aside>
       <div className="main">
         <div className="top">
-          <Suspense fallback={<Suspense fallback={null}><Title /></Suspense>}><MenuTitle /></Suspense>
+          <Suspense fallback={<Suspense fallback={<h1>One Transind</h1>}><Title /></Suspense>}><MenuTitle /></Suspense>
           <Suspense fallback={null}><Toolbar /></Suspense>
         </div>
         <main className="content">{children}</main>

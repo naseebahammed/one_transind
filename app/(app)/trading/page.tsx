@@ -68,7 +68,7 @@ async function Content({ searchParams }: { searchParams: Params }) {
       <div className="kpis">
         <Kpi label={`${translate("Sales")} ${mn}`} value={`${fmt(tot / 1e6, 2)} M`} delta={fmt(tot)} up />
         <Kpi label={translate("Gross margin")} value={`${fmt(mPct(tot, cost), 1)}%`} delta={`${translate("Cost")}: ${fmt(cost / 1e6, 2)} M`} up />
-        <Kpi label={translate("Active customers")} value={fmt(active)} delta={`${groups.length} ${translate("chains")}`} />
+        <Kpi label={translate("Active customers")} value={fmt(active)} />
         <Kpi label={translate("Items sold")} value={fmt(dept.items)} delta={`${brands.length} ${translate("brands")}`} />
         <Kpi label={translate("Returns")} value={`${fmt(ret / 1e6, 2)} M`} delta={`${fmt(tot ? -ret / tot * 100 : 0, 1)}% ${translate("of sales")}`} />
         <Kpi label={translate("Avg per customer")} value={fmt(active ? tot / active : 0)} up />

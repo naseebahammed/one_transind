@@ -6,7 +6,8 @@ type HeadcountRow = { month: string; department: string; company: string; count:
 const MONTH = /^\d{4}-\d{2}$/;
 
 /** Monthly department headcount from the HR department files (data/headcount.json). Bad rows throw, so a typo never shows up as a number. */
-export function readHeadcount(file = path.join(process.cwd(), "data", "headcount.json")): HeadcountRow[] {
+export function readHeadcount(): HeadcountRow[] {
+  const file = path.join(process.cwd(), "data", "headcount.json");
   const rows: HeadcountRow[] = JSON.parse(readFileSync(file, "utf8"));
   for (const r of rows) {
     if (!MONTH.test(r.month) || !r.department?.trim() || !r.company?.trim() || !Number.isInteger(r.count) || r.count < 0) throw new Error(`Bad row in headcount.json: ${JSON.stringify(r)}`);

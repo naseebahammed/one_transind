@@ -1,13 +1,10 @@
-import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/guard";
 import { landingPage } from "@/lib/modules";
 
-export default function Page() {
-  return <Suspense fallback={null}><Landing /></Suspense>;
-}
+export const instant = false;
 
-async function Landing() {
+export default async function Page() {
   const { modules } = await requireUser();
-  return redirect(landingPage(modules) ?? "/no-access");
+  redirect(landingPage(modules) ?? "/no-access");
 }
