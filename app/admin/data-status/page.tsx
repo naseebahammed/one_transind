@@ -30,7 +30,7 @@ const tally = (s: string[]): Cell => {
   return due ? { state: done === due ? "ok" : done ? "part" : "none", text: `${done}/${due}` } : na;
 };
 
-const STYLE = { ok: "text-emerald-600", part: "text-amber-600", none: "text-red-600", na: "text-muted-foreground" };
+const STYLE = { ok: "text-success", part: "text-warning", none: "text-destructive", na: "text-muted-foreground" };
 
 export default function DataStatus({ searchParams }: { searchParams: Search }) {
   return (
@@ -75,17 +75,17 @@ async function Matrix({ searchParams }: { searchParams: Search }) {
             <Link href={link("/admin/data-status", { year: String(y) })} aria-current={y === year ? "page" : undefined}>{y}</Link>
           </Button>
         ))}
-        <span className="ml-auto flex items-center gap-4 text-xs text-muted-foreground">
-          <span className="flex items-center gap-1"><Check className="size-3.5 text-emerald-600" />Complete</span>
-          <span className="flex items-center gap-1"><span className="font-medium text-amber-600">n/m</span>Some months</span>
-          <span className="flex items-center gap-1"><X className="size-3.5 text-red-600" />Missing</span>
+        <span className="ml-auto flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1"><Check className="size-3.5 text-success" />Complete</span>
+          <span className="flex items-center gap-1"><span className="font-medium text-warning">n/m</span>Some months</span>
+          <span className="flex items-center gap-1"><X className="size-3.5 text-destructive" />Missing</span>
           <span className="flex items-center gap-1"><Minus className="size-3.5" />Not required</span>
         </span>
       </Card>
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Company</TableHead>
+            <TableHead className="admin-sticky-col">Company</TableHead>
             {columns.map((col) => <TableHead key={col.label} className="text-center">{col.label}</TableHead>)}
             <TableHead className="text-right">Complete</TableHead>
           </TableRow>
@@ -95,7 +95,7 @@ async function Matrix({ searchParams }: { searchParams: Search }) {
             const need = cells.filter((x) => x.state !== "na"), done = need.filter((x) => x.state === "ok").length;
             return (
               <TableRow key={c.id}>
-                <TableCell className="font-medium"><Link href={`/admin/companies/${c.id}`} className="hover:underline">{c.name}</Link></TableCell>
+                <TableCell className="admin-sticky-col font-medium"><Link href={`/admin/companies/${c.id}`} className="hover:underline">{c.name}</Link></TableCell>
                 {cells.map((x, i) => (
                   <TableCell key={columns[i].label} className="text-center">
                     <Link href={link(`/admin/companies/${c.id}`, { section: columns[i].section, year: columns[i].section === "profile" ? undefined : String(year) })}
@@ -104,7 +104,7 @@ async function Matrix({ searchParams }: { searchParams: Search }) {
                     </Link>
                   </TableCell>
                 ))}
-                <TableCell className={`text-right tabular-nums ${done === need.length ? "text-emerald-600" : ""}`}>{done}/{need.length}</TableCell>
+                <TableCell className={`text-right tabular-nums ${done === need.length ? "font-medium text-success" : ""}`}>{done}/{need.length}</TableCell>
               </TableRow>
             );
           })}
@@ -113,7 +113,7 @@ async function Matrix({ searchParams }: { searchParams: Search }) {
         {!!rows.length && (
           <TableFooter>
             <TableRow>
-              <TableCell className="font-medium">Companies complete</TableCell>
+              <TableCell className="admin-sticky-col font-medium">Companies complete</TableCell>
               {columns.map((col, i) => {
                 const need = rows.filter((r) => r.cells[i].state !== "na");
                 return <TableCell key={col.label} className="text-center text-xs tabular-nums">{need.length ? `${need.filter((r) => r.cells[i].state === "ok").length}/${need.length}` : "-"}</TableCell>;

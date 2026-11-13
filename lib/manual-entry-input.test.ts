@@ -8,7 +8,6 @@ import {
   parseManualDailyStay,
   parseManualDailyTakings,
   parseManualEmployee,
-  parseManualLeaveRequest,
   parseManualMonthlyFigures,
   parseManualOverdueInvoice,
   parseManualPnl,
@@ -138,9 +137,6 @@ test("parseManualSalesTarget, parseManualSalesIndicators, Finance, HR, and Logis
 
   const badEmp = parseManualEmployee(form({ id: "E100", name: "Ali", joined: "2026-05-10", left: "2026-04-01" }));
   assert.ok("error" in badEmp);
-
-  const badLeave = parseManualLeaveRequest(form({ employeeName: "Sara", startDate: "2026-11-10", endDate: "2026-11-08", days: "3" }));
-  assert.ok("error" in badLeave);
 
   const customs = parseManualCustoms(form({ bolNo: "BOL-7788", customer: "Transind Trading", port: "Hamad Port", eta: "2026-11-20" }));
   assert.ok("data" in customs);

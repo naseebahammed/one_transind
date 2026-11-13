@@ -59,10 +59,10 @@ test("Auth.js route, proxy.ts, and auth.ts enforce bot protection and rate limit
 test("every dashboard page checks the user itself (or redirects, or hands off to a guarded component)", () => {
   const pages = files.filter((f) => /[\\/]\(app\)[\\/].*page\.tsx$/.test(f.file));
   assert.ok(pages.length >= 10, "found too few pages; the search is broken");
-  const bad = pages.filter((f) => !/requireUser\(\)|redirect\(|SectorSales/.test(f.text));
+  const bad = pages.filter((f) => !/requireUser\(|redirect\(|SectorSales/.test(f.text));
   assert.deepEqual(bad, [], `Pages without a guard: ${show(bad)}`);
   const shared = readFileSync(join(APP_DIR, "..", "components", "SectorSales.tsx"), "utf8");
-  assert.match(shared, /requireUser\(\)/, "SectorSales must guard itself");
+  assert.match(shared, /requireUser\(/, "SectorSales must guard itself");
 });
 
 test("every admin page goes through the shared Page wrapper, which checks the user", () => {
@@ -173,7 +173,6 @@ test("client components and their transitive non-action imports never read proce
       "lib/ask-ai.ts",
       "lib/guard.ts",
       "lib/rate-limit.ts",
-      "lib/webhook-signature.ts",
     ].map((p) => normalize(join(ROOT_DIR, p))),
   );
   const visited = new Set<string>(roots);

@@ -47,7 +47,7 @@ export function AccountsList({ rows }: { rows: Account[] }) {
         ))}
       </div>
 
-      <Card className="gap-0 overflow-hidden py-0">
+      <Card flush>
         <div className="flex flex-wrap items-center gap-2 border-b p-3">
           <div className="relative w-full max-w-xs">
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />

@@ -2,7 +2,7 @@
 // Pure (no database) so `node --test` can load it.
 import type ExcelJS from "exceljs";
 
-import { ERP_CODE, eachRow, findTable, text, type Item } from "./fmcg-masters.ts";
+import { ERP_CODE, eachRow, findTable, type Item } from "./fmcg-masters.ts";
 import { roundMoney, sumMoney } from "./money.ts";
 import { num, type ImportIssue } from "./report-parsers.ts";
 

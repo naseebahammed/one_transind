@@ -13,6 +13,7 @@ import { gridFromWorkbook, MAX_UPLOAD_BYTES, readWorkbook } from "@/lib/company-
 import { addLog } from "@/lib/db";
 import { checkDaily, cogsForCompany, cogsFromWorkbook, dailyFromWorkbook, dukanFromWorkbook, matchAccounts, pnlFromWorkbook, receiptsFromWorkbook, unitsFromWorkbook } from "@/lib/report-parsers";
 import { REPORTS_CACHE_TAG } from "@/lib/reports";
+import { SALES_CACHE_TAG } from "@/lib/sales-targets";
 import { balancesFromWorkbook } from "@/lib/fmcg-balances";
 import { controlFromWorkbook } from "@/lib/fmcg-control";
 import { mastersFromWorkbook } from "@/lib/fmcg-masters";
@@ -27,7 +28,8 @@ const LABEL: Record<string, string> = { pnl: "P&L", daily: "Daily sales", units:
 
 function refresh() {
   updateTag(REPORTS_CACHE_TAG);
-  for (const p of ["/admin/finance", "/admin/data-status", "/admin/activity", "/real-estate", "/real-estate/overview", "/real-estate/details", "/restaurants", "/finance", "/dashboard", "/health-beauty", "/retail"]) revalidatePath(p);
+  updateTag(SALES_CACHE_TAG);
+  for (const p of ["/admin/finance", "/admin/data-status", "/admin/activity", "/real-estate", "/real-estate/overview", "/real-estate/details", "/restaurants", "/finance", "/dashboard", "/health-beauty", "/retail", "/sales"]) revalidatePath(p);
   revalidatePath("/admin", "layout");
 }
 const monthNames = (rows: { year: number; month: number }[]) => [...new Set(rows.map((r) => `${MONTHS[r.month]} ${r.year}`))].join(", ");

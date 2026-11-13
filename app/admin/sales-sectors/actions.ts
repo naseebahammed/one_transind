@@ -1,8 +1,9 @@
 "use server";
 import { requireAdmin } from "@/lib/guard";
 import { cleanText, parseSlugKey } from "@/lib/input-validation";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { setSalesDepartmentLabel, setSalesDepartmentSector, toggleSalesDepartmentHidden } from "@/lib/sales-sectors";
+import { SALES_CACHE_TAG } from "@/lib/sales-targets";
 import { listSectors } from "@/lib/sectors";
 
 // Empty label = use the database name. Overrides only affect display; sales data is untouched.
@@ -12,6 +13,7 @@ export async function saveSalesSector(f: FormData) {
   if (!code) return;
   const label = cleanText(f.get("label"), 60) || null;
   await setSalesDepartmentLabel(code, label);
+  updateTag(SALES_CACHE_TAG);
   revalidatePath("/", "layout");
 }
 
@@ -25,6 +27,7 @@ export async function assignSalesSector(f: FormData) {
   if (rawSector && !sector) return;
   if (sector && !(await listSectors()).some(([k]) => k === sector)) return;
   await setSalesDepartmentSector(code, sector);
+  updateTag(SALES_CACHE_TAG);
   revalidatePath("/", "layout");
 }
 
@@ -33,5 +36,6 @@ export async function toggleSalesSector(f: FormData) {
   const code = cleanText(f.get("code"), 80);
   if (!code) return;
   await toggleSalesDepartmentHidden(code);
+  updateTag(SALES_CACHE_TAG);
   revalidatePath("/", "layout");
 }

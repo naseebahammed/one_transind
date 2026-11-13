@@ -2,11 +2,14 @@ import { cacheLife } from "next/cache";
 import { cleanText } from "@/lib/input-validation";
 import { getPeriod } from "@/lib/period";
 import { pg } from "@/lib/pg";
+import { departmentsWithManual, salesWithManual } from "@/lib/manual-sales";
 import { salesTable } from "@/lib/server-config";
 
 // Sales value = IN-DTS and IN-OT invoices plus CR credit notes (already negative), from app.sales_clean: every ERP row of those types, without tax (migrations 023, 033). Data starts 2026-08-09.
 // Validated via salesTable() so only strict identifier syntax (schema.table or table) can ever be interpolated; trailing "s" is the table alias.
-const salesSource = () => `${salesTable()} s`;
+// Plus the departments typed in by hand in data/manual-sales.json (the ERP does not carry them).
+const departments = () => departmentsWithManual();
+const salesSource = () => `${salesWithManual(salesTable())} s`;
 const clampMonth = (month: number) => (Number.isInteger(month) && month >= 0 && month <= 11 ? month : 0);
 const TOP_ITEMS = 25;
 const TOP_CUSTOMERS = 60;
@@ -21,15 +24,13 @@ const inMonths = (col: string, days: number, ...ps: string[]) => inSpan(col, day
 const inYtd = (col: string, y: string, m: string, days = 31) => `(${col} >= make_date((${y})::int,1,1) AND ${col} < LEAST((make_date((${y})::int,(${m})::int,1) + interval '1 month')::date, make_date((${y})::int,(${m})::int,1) + ${days}))`;
 // Days of the selected month to count: the month still running is cut at the latest data day, any other month is whole.
 const daysOf = (period: { year: number; month: number; day: number }, month: number, year = period.year) => (month === period.month && year === period.year ? period.day : 31);
-export type MonthPick = number | "all" | "q1" | "q2" | "q3" | "q4";
-/** First month (0-11) and number of months a pick covers: one month, a quarter ("q1"-"q4") or the whole year ("all"). */
-const pickSpan = (month: MonthPick) => month === "all" ? { start: 0, months: 12 } : typeof month === "string" ? { start: (Number(month[1]) - 1) * 3, months: 3 } : { start: clampMonth(month), months: 1 };
-// Days to count for a month, quarter or the whole year: the span still running is cut at the latest data day so it compares with the same days of earlier years.
+export type MonthPick = number | "all";
+/** First month (0-11) and number of months a pick covers: one month or the whole year ("all"). */
+const pickSpan = (month: MonthPick) => month === "all" ? { start: 0, months: 12 } : { start: clampMonth(month), months: 1 };
+// Days to count for a month or the whole year: the span still running is cut at the latest data day so it compares with the same days of earlier years.
 const spanDays = (period: { year: number; month: number; day: number }, month: MonthPick, year: number) => {
   if (typeof month === "number") return daysOf(period, month, year);
-  const { start, months } = pickSpan(month);
-  if (year !== period.year) return months === 12 ? 366 : 92;
-  return period.month >= start && period.month < start + months ? Math.round((Date.UTC(year, period.month, period.day) - Date.UTC(year, start, 1)) / 864e5) + 1 : months === 12 ? 366 : 92;
+  return year === period.year ? Math.round((Date.UTC(year, period.month, period.day) - Date.UTC(year, 0, 1)) / 864e5) + 1 : 366;
 };
 
 export type Item = { name: string; value: number; lastMonth: number; units: number };
@@ -55,7 +56,7 @@ export async function getOverview() {
   "use cache";
   cacheLife("hours");
   const table = salesSource();
-  const { year, month, day, before } = await getPeriod(table);
+  const { year, month, day, before } = await getPeriod(salesTable());
   const { rows } = await pg.query<Hist>(
     `SELECT EXTRACT(year FROM "DOC_DATE")::int AS year, EXTRACT(month FROM "DOC_DATE")::int AS month,
             SUM("NET_AMOUNT")::float8 AS value, SUM("NET_COST")::float8 AS cost,
@@ -72,7 +73,7 @@ export async function getOverviewBrands() {
   "use cache";
   cacheLife("hours");
   const table = salesSource();
-  const { cur, before, day } = await getPeriod(table);
+  const { cur, before, day } = await getPeriod(salesTable());
   const curStart = `${cur}-01`, beforeStart = `${before}-01`;
   const { rows } = await pg.query<{ k: string; b: string; i: string; v: number; u: number }>(
     `SELECT (CASE WHEN "DOC_DATE" >= $1::date THEN $1 ELSE $2 END)::text AS k, COALESCE("BRAND",'-') AS b, COALESCE("ITEM_NAME",'-') AS i,
@@ -100,7 +101,7 @@ export async function getCustomers(pickYear?: number, pickMonth?: number) {
   "use cache";
   cacheLife("hours");
   const table = salesSource();
-  const latest = await getPeriod(table);
+  const latest = await getPeriod(salesTable());
   let { year, month, day } = latest;
   // Another month (never later than the latest data) is shown whole, not cut at the latest data day.
   if (pickYear !== undefined && pickMonth !== undefined && (pickYear !== year || pickMonth !== month) && pickYear * 12 + pickMonth < year * 12 + month) {
@@ -141,7 +142,7 @@ export async function getCustomers(pickYear?: number, pickMonth?: number) {
 }
 
 const DIMENSIONS = {
-  dept: { label: "Department", sql: `COALESCE(d.department_name, s."DEPT_CODE", '-')`, join: `LEFT JOIN public.invs_departments d ON d.department_code = s."DEPT_CODE"` },
+  dept: { label: "Department", sql: `COALESCE(d.department_name, s."DEPT_CODE", '-')`, join: `LEFT JOIN ${departments()} d ON d.department_code = s."DEPT_CODE"` },
   brand: { label: "Brand", sql: `COALESCE(s."BRAND", '-')`, join: "" },
   supplier: { label: "Supplier", sql: `COALESCE(s."SUPPLIER_NAME", '-')`, join: "" },
   category: { label: "Customer category", sql: `COALESCE(s."CUST_CATEGORY", '-')`, join: "" },
@@ -159,7 +160,7 @@ export async function getBreakdown(month: MonthPick, by: Dim, pickYear?: number)
   cacheLife("hours");
   const table = salesSource();
   const { start: safeMonth, months } = pickSpan(month);
-  const period = await getPeriod(table), year = pickYear ?? period.year, days = spanDays(period, month, year);
+  const period = await getPeriod(salesTable()), year = pickYear ?? period.year, days = spanDays(period, month, year);
   const cur = ymOf(year, safeMonth), before = months === 12 ? ymOf(year - 1, 0) : ymOf(year, safeMonth - months), d = DIMENSIONS[by];
   const [{ rows }, { rows: [n] }] = await Promise.all([
     pg.query<{ k: string; ym: string; v: number; c: number; cr: number }>(
@@ -184,7 +185,7 @@ export async function getRoutes(month: number) {
   cacheLife("hours");
   const table = salesSource();
   const safeMonth = clampMonth(month);
-  const period = await getPeriod(table), { year } = period, days = daysOf(period, safeMonth);
+  const period = await getPeriod(salesTable()), { year } = period, days = daysOf(period, safeMonth);
   const cur = ymOf(year, safeMonth), before = ymOf(year, safeMonth - 1);
   const [{ rows: routes }, { rows: drivers }, { rows: [reach] }] = await Promise.all([
     pg.query<{ k: string; ym: string; v: number; drivers: number; docs: number }>(
@@ -236,7 +237,7 @@ export async function getDrill(month: MonthPick, kind: "p" | "c", path: string[]
   const table = salesSource();
   const { start: safeMonth, months } = pickSpan(month);
   const safeDepts = depts.map((d) => cleanText(d, 40));
-  const period = await getPeriod(table), year = pickYear ?? period.year, days = spanDays(period, month, year);
+  const period = await getPeriod(salesTable()), year = pickYear ?? period.year, days = spanDays(period, month, year);
   const ym = [ymOf(year, safeMonth), months === 12 ? ymOf(year - 1, 0) : ymOf(year, safeMonth - months), ymOf(year - 1, safeMonth), ymOf(year - 2, safeMonth)];
   if (path.length >= LEVELS[kind].length) return []; // a path as deep as the leaf level (or deeper, e.g. from a hand-edited URL) has no children
   const level = LEVELS[kind][path.length];
@@ -246,7 +247,7 @@ export async function getDrill(month: MonthPick, kind: "p" | "c", path: string[]
   if (safeDepts.length && kind === "p" && !path.length) { params.push(safeDepts); where.push(`COALESCE(s."DEPT_CODE",'-')::text = ANY($${params.length})`); }
   const curSql = inMonth('s."DOC_DATE"', "$1", days, months);
   const sql = level.sub.replaceAll("cur", curSql);
-  const join = kind === "p" && !path.length ? `LEFT JOIN public.invs_departments d ON d.department_code = s."DEPT_CODE"` : "";
+  const join = kind === "p" && !path.length ? `LEFT JOIN ${departments()} d ON d.department_code = s."DEPT_CODE"` : "";
   const { rows } = await pg.query<DrillRow>(
     `SELECT ${level.key} AS key, ${level.label} AS label, ${sql} AS sub,
             COALESCE(SUM(s."NET_AMOUNT") FILTER (WHERE ${curSql}),0)::float8 AS value,
@@ -268,7 +269,7 @@ async function getDrillLabel(kind: "p" | "c", depth: number, rawKey: string): Pr
   if (!safeKey || safeKey === "-") return safeKey || "-";
   if (kind === "p" && depth === 0) {
     const { rows: [row] } = await pg.query<{ label: string }>(
-      `SELECT department_name AS label FROM public.invs_departments WHERE department_code = $1 LIMIT 1`,
+      `SELECT department_name AS label FROM ${departments()} d WHERE department_code = $1 LIMIT 1`,
       [safeKey],
     );
     return row?.label || safeKey;
@@ -315,14 +316,14 @@ export async function getSectors() {
   "use cache";
   cacheLife("hours");
   const table = salesSource();
-  const { year, month, day } = await getPeriod(table);
+  const { year, month, day } = await getPeriod(salesTable());
   const thisYear = `s."DOC_DATE" >= make_date(($1)::int,1,1)`;
   const { rows } = await pg.query<{ key: string; label: string; value: number; cost: number; lastYear: number }>(
     `SELECT COALESCE(s."DEPT_CODE",'-') AS key, MAX(COALESCE(d.department_name, s."DEPT_CODE", '-')) AS label,
             COALESCE(SUM(s."NET_AMOUNT") FILTER (WHERE ${thisYear}),0)::float8 AS value,
             COALESCE(SUM(s."NET_COST") FILTER (WHERE ${thisYear}),0)::float8 AS cost,
             COALESCE(SUM(s."NET_AMOUNT") FILTER (WHERE NOT (${thisYear})),0)::float8 AS "lastYear"
-     FROM ${table} LEFT JOIN public.invs_departments d ON d.department_code = s."DEPT_CODE"
+     FROM ${table} LEFT JOIN ${departments()} d ON d.department_code = s."DEPT_CODE"
      WHERE (${inYtd('s."DOC_DATE"', "$2", "$3", day)} OR ${inYtd('s."DOC_DATE"', "$2 - 1", "$3", day)}) GROUP BY 1 ORDER BY value DESC`, [year, year, month + 1]);
   return rows.filter((r) => r.value || r.lastYear);
 }
@@ -333,7 +334,7 @@ export async function getStats(month: MonthPick, by: "group" | "brand", pickYear
   cacheLife("hours");
   const table = salesSource();
   const { start: safeMonth, months } = pickSpan(month);
-  const period = await getPeriod(table), year = pickYear ?? period.year;
+  const period = await getPeriod(salesTable()), year = pickYear ?? period.year;
   const col = by === "group" ? `COALESCE("GROUP_NAME",'-')` : `COALESCE("BRAND",'-')`;
   const { rows } = await pg.query<{ key: string; value: number; cost: number; items: number; customers: number }>(
     `SELECT ${col} AS key, SUM("NET_AMOUNT")::float8 AS value, SUM("NET_COST")::float8 AS cost,
@@ -348,9 +349,32 @@ export async function getSalesmen(month: number) {
   cacheLife("hours");
   const table = salesSource();
   const safeMonth = clampMonth(month);
-  const period = await getPeriod(table), { year } = period;
+  const period = await getPeriod(salesTable()), { year } = period;
   const { rows } = await pg.query<{ name: string; value: number; customers: number; docs: number }>(
     `SELECT "SMAN_NAME" AS name, SUM("NET_AMOUNT")::float8 AS value, COUNT(DISTINCT "CUST_NO")::int AS customers, COUNT(DISTINCT "DOC_NO")::int AS docs
      FROM ${table} WHERE ${inMonth('"DOC_DATE"', "$1", daysOf(period, safeMonth))} AND "SMAN_NAME" IS NOT NULL GROUP BY 1 ORDER BY 2 DESC LIMIT 12`, [ymOf(year, safeMonth)]);
   return rows;
+}
+
+/** Total sales and credit notes for one period, optionally narrowed to a list of department codes. */
+export async function getSalesReturns(month: MonthPick, depts: string[] = [], pickYear?: number) {
+  "use cache";
+  cacheLife("hours");
+  const table = salesSource();
+  const { start: safeMonth, months } = pickSpan(month);
+  const safeDepts = depts.map((d) => cleanText(d, 40));
+  const period = await getPeriod(salesTable()), year = pickYear ?? period.year, days = spanDays(period, month, year);
+  const params: (string | string[])[] = [ymOf(year, safeMonth)];
+  let deptWhere = "";
+  if (safeDepts.length) {
+    params.push(safeDepts);
+    deptWhere = ` AND COALESCE("DEPT_CODE",'-') = ANY($2)`;
+  }
+  const { rows: [row] } = await pg.query<{ sales: number; creditNotes: number }>(
+    `SELECT COALESCE(SUM("NET_AMOUNT"), 0)::float8 AS sales,
+            COALESCE(SUM("NET_AMOUNT") FILTER (WHERE "DOC_TYPE" = 'CR'), 0)::float8 AS "creditNotes"
+     FROM ${table} WHERE ${inMonth('"DOC_DATE"', "$1", days, months)}${deptWhere}`,
+    params,
+  );
+  return { sales: row?.sales ?? 0, creditNotes: row?.creditNotes ?? 0 };
 }

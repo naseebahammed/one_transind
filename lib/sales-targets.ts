@@ -2,7 +2,10 @@
 import type { SalesIndicatorKey } from "./manual-entry-input.ts";
 import { roundMoney, sumMoney } from "./money.ts";
 
+export const SALES_CACHE_TAG = "sales";
+
 const db = () => import("@/lib/db");
+const salesCache = () => import("@/lib/sales-cache");
 
 export type SalesDepartmentTargetRow = { code: string; year: number; month: number; period: string; target: number };
 export type SalesSectorIndicatorRow = { departmentCode: string; period: string; indicator: SalesIndicatorKey; value: number };
@@ -51,7 +54,7 @@ export function resolveSectorIndicators(rows: SalesSectorIndicatorRow[], departm
 
 const isMissingTable = (e: unknown) => (e as { code?: string })?.code === "42P01";
 
-export async function listSalesDepartmentTargets(year: number): Promise<SalesDepartmentTargetRow[]> {
+export async function querySalesDepartmentTargets(year: number): Promise<SalesDepartmentTargetRow[]> {
   const { q } = await db();
   try {
     return await q<SalesDepartmentTargetRow>(
@@ -66,6 +69,10 @@ export async function listSalesDepartmentTargets(year: number): Promise<SalesDep
     if (isMissingTable(e)) return [];
     throw e;
   }
+}
+
+export async function listSalesDepartmentTargets(year: number): Promise<SalesDepartmentTargetRow[]> {
+  return (await salesCache()).loadCachedSalesDepartmentTargets(year);
 }
 
 export async function saveSalesDepartmentTarget(code: string, period: string, target: number) {
@@ -83,7 +90,7 @@ export async function deleteSalesDepartmentTarget(code: string, period: string) 
   await q("DELETE FROM app.sales_department_targets WHERE code = $1 AND period = $2::date", [code, period]);
 }
 
-export async function listSalesSectorIndicators(period: string): Promise<SalesSectorIndicatorRow[]> {
+export async function querySalesSectorIndicators(period: string): Promise<SalesSectorIndicatorRow[]> {
   const { q } = await db();
   try {
     return await q<SalesSectorIndicatorRow>(
@@ -98,6 +105,10 @@ export async function listSalesSectorIndicators(period: string): Promise<SalesSe
     if (isMissingTable(e)) return [];
     throw e;
   }
+}
+
+export async function listSalesSectorIndicators(period: string): Promise<SalesSectorIndicatorRow[]> {
+  return (await salesCache()).loadCachedSalesSectorIndicators(period);
 }
 
 export async function saveSalesSectorIndicators(

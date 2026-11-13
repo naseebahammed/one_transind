@@ -1,14 +1,17 @@
 "use server";
 import { GuardError, requireAdmin } from "@/lib/guard";
 import { cleanText, parseSlugKey } from "@/lib/input-validation";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
-import { createSector, removeSector, renameSectorByKey } from "@/lib/sectors";
+import { createSector, removeSector, renameSectorByKey, SECTORS_CACHE_TAG } from "@/lib/sectors";
 
 export type SectorState = { error?: string; success?: boolean };
 
 const name = (f: FormData) => cleanText(f.get("name"), 60);
-const done = () => revalidatePath("/", "layout");
+const done = () => {
+  updateTag(SECTORS_CACHE_TAG);
+  revalidatePath("/", "layout");
+};
 
 export async function addSector(_: SectorState, f: FormData): Promise<SectorState> {
   try {

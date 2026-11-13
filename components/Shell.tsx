@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { translator, type Language } from "@/lib/i18n";
 
 const PAGES = [
   { href: "/sales", title: "Sales", icon: "M3 17l6-6 4 4 8-8M15 7h6v6" },
@@ -25,9 +26,17 @@ const withSectors = (sectors: MenuSector[]) => [
   PAGES[PAGES.length - 1],
 ];
 
-export function Nav({ sectors = [] }: { sectors?: MenuSector[] }) {
+// Primary 4 destinations displayed directly on mobile bottom bar
+const PRIMARY_MOBILE_HREFS = new Set(["/dashboard", "/sales", "/finance", "/real-estate"]);
+
+// The Suspense fallbacks render these without a language, so the menu is English until the real one loads.
+// areas: the top-level pages this person may open; null/undefined = all.
+export function Nav({ sectors = [], language = "en", areas }: { sectors?: MenuSector[]; language?: Language; areas?: readonly string[] | null }) {
   const path = usePathname();
+  const translate = translator(language);
   const [mini, setMini] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
   useEffect(() => {
     try {
       const saved = localStorage.getItem("rail-mini") === "1";
@@ -35,33 +44,125 @@ export function Nav({ sectors = [] }: { sectors?: MenuSector[] }) {
       document.querySelector(".app")?.classList.toggle("mini", saved);
     } catch {}
   }, []);
+
+  useEffect(() => {
+    // Close drawer on path navigation
+    setDrawerOpen(false);
+  }, [path]);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && drawerOpen) setDrawerOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [drawerOpen]);
+
   const toggleMini = () => {
     const next = !mini;
     setMini(next);
     document.querySelector(".app")?.classList.toggle("mini", next);
     try { localStorage.setItem("rail-mini", next ? "1" : "0"); } catch {}
   };
+
+  const allItems = withSectors(sectors).filter((p) => !areas || areas.includes(p.href.split("/")[1]));
+  const isSecondaryActive = allItems.some((p) => !PRIMARY_MOBILE_HREFS.has(p.href) && path.startsWith(p.href));
+  const activeSecondary = allItems.find((p) => !PRIMARY_MOBILE_HREFS.has(p.href) && path.startsWith(p.href));
+  const toggleLabel = translate(mini ? "Expand sidebar" : "Collapse sidebar");
+
   return (
-    <nav className="nav">
-      <button type="button" className="rail-toggle" onClick={toggleMini} aria-label={mini ? "Expand sidebar" : "Collapse sidebar"} title={mini ? "Expand sidebar" : "Collapse sidebar"} aria-expanded={!mini}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          {/* panel-left-open / panel-left-close */}
-          <path d={"M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM9 3v18" + (mini ? "M14 9l3 3-3 3" : "M16 15l-3-3 3-3")} />
-        </svg>
-      </button>
-      {withSectors(sectors).map((p) => (
-        <Link key={p.href} href={p.href} title={p.title} aria-current={path.startsWith(p.href) ? "page" : undefined}>
+    <>
+      <nav className="nav">
+        <button type="button" className="rail-toggle" onClick={toggleMini} aria-label={toggleLabel} title={toggleLabel} aria-expanded={!mini}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            <path d={p.icon} />
+            {/* panel-left-open / panel-left-close */}
+            <path d={"M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM9 3v18" + (mini ? "M14 9l3 3-3 3" : "M16 15l-3-3 3-3")} />
           </svg>
-          <span className="lbl">{p.title}</span>
-        </Link>
-      ))}
-    </nav>
+        </button>
+        {allItems.map((p) => {
+          const isPrimary = PRIMARY_MOBILE_HREFS.has(p.href);
+          return (
+            <Link
+              key={p.href}
+              href={p.href}
+              className={isPrimary ? undefined : "nav-item-secondary"}
+              title={translate(p.title)}
+              data-title={translate(p.title)}
+              aria-current={path.startsWith(p.href) ? "page" : undefined}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d={p.icon} />
+              </svg>
+              <span className="lbl">{translate(p.title)}</span>
+            </Link>
+          );
+        })}
+        <button
+          type="button"
+          className="nav-more-btn"
+          onClick={() => setDrawerOpen((open) => !open)}
+          aria-expanded={drawerOpen}
+          aria-label={translate("More")}
+          title={translate("More")}
+          aria-current={isSecondaryActive ? "page" : undefined}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <rect x="3" y="3" width="7" height="7" rx="1.5" />
+            <rect x="14" y="3" width="7" height="7" rx="1.5" />
+            <rect x="14" y="14" width="7" height="7" rx="1.5" />
+            <rect x="3" y="14" width="7" height="7" rx="1.5" />
+          </svg>
+          <span className="lbl">{isSecondaryActive && activeSecondary ? translate(activeSecondary.title) : translate("More")}</span>
+        </button>
+      </nav>
+
+      {drawerOpen && (
+        <div className="nav-drawer-backdrop" onClick={() => setDrawerOpen(false)}>
+          <div
+            className="nav-drawer"
+            role="dialog"
+            aria-modal="true"
+            aria-label={translate("All modules")}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="nav-drawer-header">
+              <b>{translate("All modules")}</b>
+              <button
+                type="button"
+                className="nav-drawer-close"
+                onClick={() => setDrawerOpen(false)}
+                aria-label={translate("Close")}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 18, height: 18 }}>
+                  <path d="M18 6L6 18M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="nav-drawer-grid">
+              {allItems.map((p) => (
+                <Link
+                  key={p.href}
+                  href={p.href}
+                  className="nav-drawer-item"
+                  aria-current={path.startsWith(p.href) ? "page" : undefined}
+                  onClick={() => setDrawerOpen(false)}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                    <path d={p.icon} />
+                  </svg>
+                  <span>{translate(p.title)}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
-export function Title({ sectors = [] }: { sectors?: MenuSector[] }) {
+export function Title({ sectors = [], language = "en" }: { sectors?: MenuSector[]; language?: Language }) {
   const path = usePathname();
-  return <h1>{withSectors(sectors).find((p) => path.startsWith(p.href))?.title ?? "One Transind"}</h1>;
+  const found = withSectors(sectors).find((p) => path.startsWith(p.href));
+  return <h1>{found ? translator(language)(found.title) : "One Transind"}</h1>;
 }

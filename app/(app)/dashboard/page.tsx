@@ -20,9 +20,12 @@ import { connection } from "next/server";
 import { getDrill, getOverview, type DrillRow } from "@/lib/data";
 import { fmt, MONTHS, money, sum } from "@/lib/format";
 import { link, parsePath } from "@/lib/url";
+import { translator } from "@/lib/i18n";
+import { getLanguage } from "@/lib/language";
 import { Drill } from "@/components/Drill";
 import { CompareChart, LineChart } from "@/components/charts";
 import { HBars, Kpi, NotConnected, Panel } from "@/components/ui";
+import { PageSkeleton } from "@/components/PageSkeleton";
 
 export const metadata = { title: "Group dashboard · One Transind" };
 type Params = Promise<{ p?: string; all?: string }>;
@@ -30,12 +33,13 @@ const sectorName = new Map<string, string>(SECTORS);
 const FILE_SECTORS = [SECTOR.healthBeauty, SECTOR.retail].map((k) => [k, sectorName.get(k)!] as const);
 
 export default function Page({ searchParams }: { searchParams: Params }) {
-  return <Suspense fallback={<p className="empty">Loading…</p>}><Content searchParams={searchParams} /></Suspense>;
+  return <Suspense fallback={<PageSkeleton kpis={4} panels={2} />}><Content searchParams={searchParams} /></Suspense>;
 }
 
 async function Content({ searchParams }: { searchParams: Params }) {
   await connection();
-  await requireUser();
+  await requireUser("dashboard");
+  const translate = translator(await getLanguage());
   const overview = getOverview();
   const erpDrill = Promise.all([searchParams, overview]).then(([{ p }, o]) =>
     parsePath(p)[0] === SECTOR.trading ? getDrill(o.month, "p", []) : Promise.resolve([] as DrillRow[]),
@@ -134,38 +138,38 @@ async function Content({ searchParams }: { searchParams: Params }) {
   return (
     <>
       <div className="kpis">
-        <Kpi label="Sales this month" value={money(curGroupQar)} delta={label} spark={monthly} />
-        <Kpi label="Revenue year to date" value={`${fmt(ytdGroupQar / 1e6)} M`} spark={monthly} up />
-        <Kpi label="Receivables outstanding" value={ar ? money(ar.total) : <NotConnected />} delta={ar ? ar.sourceLabel : undefined} up />
-        <Kpi label="Employees" value={staff.length ? fmt(activeStaff) : <NotConnected />} delta={staff.length ? `${fmt(staff.length)} total on file` : undefined} up />
+        <Kpi label={translate("Sales this month")} value={money(curGroupQar)} delta={label} spark={monthly} />
+        <Kpi label={translate("Revenue year to date")} value={`${fmt(ytdGroupQar / 1e6)} M`} spark={monthly} up />
+        <Kpi label={translate("Receivables outstanding")} value={ar ? money(ar.total) : <NotConnected />} delta={ar ? ar.sourceLabel : undefined} up />
+        <Kpi label={translate("Employees")} value={staff.length ? fmt(activeStaff) : <NotConnected />} delta={staff.length ? `${fmt(staff.length)} ${translate("total on file")}` : undefined} up />
       </div>
       <div className="grid">
         <Drill
-          title="Sales this month" src={label} mode="mom" rows={rows} labels={labels} path={path}
-          levels={["Sectors", "Companies"]} rootLabel="All sectors" all={all === "1"}
+          title={translate("Sales this month")} src={label} mode="mom" rows={rows} labels={labels} path={path}
+          levels={["Sectors", "Companies"].map((level) => translate(level))} rootLabel={translate("All sectors")} all={all === "1"}
           href={(pp, a) => link("/dashboard", { p: pp.join("|"), all: a ? "1" : undefined })}
         />
-        <Panel span={7} title="Group monthly revenue">
+        <Panel span={7} title={translate("Group monthly revenue")}>
           <LineChart actual={monthly} target={monthlyTarget} />
         </Panel>
-        <Panel span={5} title={`Revenue by sector (QAR M, Jan–${MONTHS[o.month]} ${o.year})`}>
+        <Panel span={5} title={`${translate("Revenue by sector")} (QAR M, Jan–${MONTHS[o.month]} ${o.year})`}>
           <HBars rows={sectors.map((s) => ({ l: s.label, v: s.v / 1e6 }))} unit=" M" />
         </Panel>
         {fileSales.filter((s) => s.ys.length).map((s) => (
-          <Panel key={s.k} span={12} title={`${s.name} sales by month (${s.cos.filter((c) => years(reports, keyFor(c), "sales").length).map((c) => c.name).join(", ")})`}>
+          <Panel key={s.k} span={12} title={`${s.name} ${translate("sales by month")} (${s.cos.filter((c) => years(reports, keyFor(c), "sales").length).map((c) => c.name).join(", ")})`}>
             <CompareChart years={s.ys} series={s.ys.map((y) => s.rev(y).map((v) => v / 1e6 || null))} sel={s.ys.at(-1) === o.year ? o.month : -1} />
           </Panel>
         ))}
-        <Panel span={12} title="Needs follow-up">
+        <Panel span={12} title={translate("Needs follow-up")}>
           <div className="tw"><table><tbody>
             <tr>
-              <td><span className="chip bad">Over 90 days</span></td>
-              <td>Receivables{ar ? ` · ${ar.sourceLabel}` : ""}</td>
+              <td><span className="chip bad">{translate("Over 90 days")}</span></td>
+              <td>{translate("Receivables")}{ar ? ` · ${ar.sourceLabel}` : ""}</td>
               <td className={`n${ar ? " num" : ""}`}>{ar ? `${money(ar.over90)} QAR` : <NotConnected />}</td>
             </tr>
             <tr>
-              <td><span className="chip warn">Late</span></td>
-              <td>Shipment tracking{!hasShipmentFeed && hasVarianceFeed ? " · Short-delivered orders (30d)" : ""}</td>
+              <td><span className="chip warn">{translate("Late")}</span></td>
+              <td>{translate("Shipment tracking")}{!hasShipmentFeed && hasVarianceFeed ? ` · ${translate("Short-delivered orders (30d)")}` : ""}</td>
               <td className={`n${hasShipmentFeed || hasVarianceFeed ? " num" : ""}`}>
                 {hasShipmentFeed ? fmt(lateShipments) : hasVarianceFeed ? fmt(warehouseSummary.shortDeliveryOrders) : <NotConnected />}
               </td>

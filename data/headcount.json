@@ -1,0 +1,6272 @@
+[
+{
+"month": "2024-01",
+"department": "AL MANZIL OPERATIONS",
+"company": "Al Manzil Residence & Suites",
+"count": 14
+},
+{
+"month": "2024-01",
+"department": "ASIAN WOK RESTAURANT",
+"company": "Asian Wok",
+"count": 6
+},
+{
+"month": "2024-01",
+"department": "BUSINESS DEVELOPMENT",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-01",
+"department": "CENTRAL KITCHEN",
+"company": "Mr. Shawarma",
+"count": 6
+},
+{
+"month": "2024-01",
+"department": "CHAMPION CLEANERS OPERATIONS",
+"company": "Champion Cleaners",
+"count": 25
+},
+{
+"month": "2024-01",
+"department": "CHIEF OPERATIONS OFFICER",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2024-01",
+"department": "DOHA BANK",
+"company": "Top Clean",
+"count": 146
+},
+{
+"month": "2024-01",
+"department": "DOHA BANK TQ",
+"company": "Top Clean",
+"count": 34
+},
+{
+"month": "2024-01",
+"department": "DUKAN FOOD GENERAL",
+"company": "Dukhan Foods",
+"count": 5
+},
+{
+"month": "2024-01",
+"department": "DUKAN FOOD OPERATIONS - BIN OMRAN",
+"company": "Dukhan Foods",
+"count": 10
+},
+{
+"month": "2024-01",
+"department": "FINANCE & ACCOUNTING",
+"company": "Transind Holding",
+"count": 21
+},
+{
+"month": "2024-01",
+"department": "FLEET DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 8
+},
+{
+"month": "2024-01",
+"department": "FOOD DEPARTMENT (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 248
+},
+{
+"month": "2024-01",
+"department": "GENERAL ADMINISTRATION T.C",
+"company": "Transind Holding",
+"count": 3
+},
+{
+"month": "2024-01",
+"department": "GENERAL ADMINISTRATION-REST",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2024-01",
+"department": "GROUP CEO",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-01",
+"department": "HORECA DEPARTMENT (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 22
+},
+{
+"month": "2024-01",
+"department": "HR & ADMIN",
+"company": "Transind Holding",
+"count": 8
+},
+{
+"month": "2024-01",
+"department": "INFORMATION TECHNOLOGY",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2024-01",
+"department": "KAHRAMAA",
+"company": "Top Clean",
+"count": 103
+},
+{
+"month": "2024-01",
+"department": "LAYS & BEVERAGES",
+"company": "Transind Trading and Distribution",
+"count": 2
+},
+{
+"month": "2024-01",
+"department": "LEGAL DEPARTMENT",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2024-01",
+"department": "MAINTENANCE DEPARTMENT",
+"company": "Transind Holding",
+"count": 8
+},
+{
+"month": "2024-01",
+"department": "MANAGEMENT",
+"company": "Transind Holding",
+"count": 35
+},
+{
+"month": "2024-01",
+"department": "MD",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2024-01",
+"department": "MR ABU HAMOUR",
+"company": "Mr. Shawarma",
+"count": 4
+},
+{
+"month": "2024-01",
+"department": "MR GHARAFA",
+"company": "Mr. Shawarma",
+"count": 14
+},
+{
+"month": "2024-01",
+"department": "MR MUSHIREB",
+"company": "Mr. Shawarma",
+"count": 14
+},
+{
+"month": "2024-01",
+"department": "MR QATAR SPORT CLUB",
+"company": "Mr. Shawarma",
+"count": 8
+},
+{
+"month": "2024-01",
+"department": "MR SHAWERMA CENTRAL KITCHEN",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-01",
+"department": "MR UMMSALAL",
+"company": "Mr. Shawarma",
+"count": 5
+},
+{
+"month": "2024-01",
+"department": "NON FOOD DIVISION (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 23
+},
+{
+"month": "2024-01",
+"department": "PAVATI OPERATIONS",
+"company": "Pavati Glamour Lounge",
+"count": 17
+},
+{
+"month": "2024-01",
+"department": "PROCUREMENT & BUSINESS DEPARTMENT",
+"company": "Transind Holding",
+"count": 3
+},
+{
+"month": "2024-01",
+"department": "QATAR ENGINEERING LAB",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-01",
+"department": "QATAR EXPRESS OPERATIONS",
+"company": "Qatar Express Customs Clearance",
+"count": 12
+},
+{
+"month": "2024-01",
+"department": "QATAR ISLAMIC INSURANCE",
+"company": "Top Clean",
+"count": 5
+},
+{
+"month": "2024-01",
+"department": "SEDAR CO",
+"company": "Top Clean",
+"count": 2
+},
+{
+"month": "2024-01",
+"department": "TOP CLEAN",
+"company": "Top Clean",
+"count": 4
+},
+{
+"month": "2024-01",
+"department": "TOP EQUIPMENT GENERAL",
+"company": "Top Clean",
+"count": 4
+},
+{
+"month": "2024-01",
+"department": "TOP PERFUMES OPERATION",
+"company": "Top Perfume",
+"count": 2
+},
+{
+"month": "2024-01",
+"department": "TRANS OCEAN OPERATIONS",
+"company": "Trans Ocean",
+"count": 1
+},
+{
+"month": "2024-01",
+"department": "TRANSIND MARKETING",
+"company": "Transind Holding",
+"count": 2
+},
+{
+"month": "2024-01",
+"department": "WAREHOUSE & LOGISTICS",
+"company": "Transind Trading and Distribution",
+"count": 148
+},
+{
+"month": "2024-01",
+"department": "WORKSHOP",
+"company": "Unassigned",
+"count": 5
+},
+{
+"month": "2024-02",
+"department": "AL MANZIL OPERATIONS",
+"company": "Al Manzil Residence & Suites",
+"count": 17
+},
+{
+"month": "2024-02",
+"department": "ASIAN WOK RESTAURANT",
+"company": "Asian Wok",
+"count": 6
+},
+{
+"month": "2024-02",
+"department": "BUSINESS DEVELOPMENT",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-02",
+"department": "CENTRAL KITCHEN",
+"company": "Mr. Shawarma",
+"count": 6
+},
+{
+"month": "2024-02",
+"department": "CHAMPION CLEANERS OPERATIONS",
+"company": "Champion Cleaners",
+"count": 25
+},
+{
+"month": "2024-02",
+"department": "CHIEF OPERATIONS OFFICER",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2024-02",
+"department": "DOHA BANK",
+"company": "Top Clean",
+"count": 142
+},
+{
+"month": "2024-02",
+"department": "DOHA BANK TQ",
+"company": "Top Clean",
+"count": 34
+},
+{
+"month": "2024-02",
+"department": "DUKAN FOOD GENERAL",
+"company": "Dukhan Foods",
+"count": 4
+},
+{
+"month": "2024-02",
+"department": "DUKAN FOOD OPERATIONS - BIN OMRAN",
+"company": "Dukhan Foods",
+"count": 3
+},
+{
+"month": "2024-02",
+"department": "FINANCE & ACCOUNTING",
+"company": "Transind Holding",
+"count": 21
+},
+{
+"month": "2024-02",
+"department": "FLEET DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 8
+},
+{
+"month": "2024-02",
+"department": "FOOD DEPARTMENT (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 254
+},
+{
+"month": "2024-02",
+"department": "GENERAL ADMINISTRATION T.C",
+"company": "Transind Holding",
+"count": 3
+},
+{
+"month": "2024-02",
+"department": "GENERAL ADMINISTRATION-REST",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2024-02",
+"department": "GROUP CEO",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-02",
+"department": "HORECA DEPARTMENT (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 26
+},
+{
+"month": "2024-02",
+"department": "HR & ADMIN",
+"company": "Transind Holding",
+"count": 8
+},
+{
+"month": "2024-02",
+"department": "INFORMATION TECHNOLOGY",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2024-02",
+"department": "KAHRAMAA",
+"company": "Top Clean",
+"count": 100
+},
+{
+"month": "2024-02",
+"department": "LAYS & BEVERAGES",
+"company": "Transind Trading and Distribution",
+"count": 2
+},
+{
+"month": "2024-02",
+"department": "LEGAL DEPARTMENT",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2024-02",
+"department": "MAINTENANCE DEPARTMENT",
+"company": "Transind Holding",
+"count": 9
+},
+{
+"month": "2024-02",
+"department": "MANAGEMENT",
+"company": "Transind Holding",
+"count": 34
+},
+{
+"month": "2024-02",
+"department": "MD",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2024-02",
+"department": "MR ABU HAMOUR",
+"company": "Mr. Shawarma",
+"count": 5
+},
+{
+"month": "2024-02",
+"department": "MR GHARAFA",
+"company": "Mr. Shawarma",
+"count": 13
+},
+{
+"month": "2024-02",
+"department": "MR MUSHIREB",
+"company": "Mr. Shawarma",
+"count": 13
+},
+{
+"month": "2024-02",
+"department": "MR QATAR SPORT CLUB",
+"company": "Mr. Shawarma",
+"count": 8
+},
+{
+"month": "2024-02",
+"department": "MR SHAWERMA CENTRAL KITCHEN",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-02",
+"department": "MR SHAWERMA QATAR SPORT CLUB",
+"company": "Mr. Shawarma",
+"count": 1
+},
+{
+"month": "2024-02",
+"department": "MR SHAWERMA UMMSALAL",
+"company": "Mr. Shawarma",
+"count": 1
+},
+{
+"month": "2024-02",
+"department": "MR UMMSALAL",
+"company": "Mr. Shawarma",
+"count": 5
+},
+{
+"month": "2024-02",
+"department": "NON FOOD DIVISION (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 23
+},
+{
+"month": "2024-02",
+"department": "PAVATI OPERATIONS",
+"company": "Pavati Glamour Lounge",
+"count": 17
+},
+{
+"month": "2024-02",
+"department": "PROCUREMENT & BUSINESS DEPARTMENT",
+"company": "Transind Holding",
+"count": 3
+},
+{
+"month": "2024-02",
+"department": "QATAR ENGINEERING LAB",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-02",
+"department": "QATAR EXPRESS OPERATIONS",
+"company": "Qatar Express Customs Clearance",
+"count": 12
+},
+{
+"month": "2024-02",
+"department": "QATAR ISLAMIC INSURANCE",
+"company": "Top Clean",
+"count": 5
+},
+{
+"month": "2024-02",
+"department": "SEDAR CO",
+"company": "Top Clean",
+"count": 3
+},
+{
+"month": "2024-02",
+"department": "TOP CLEAN",
+"company": "Top Clean",
+"count": 4
+},
+{
+"month": "2024-02",
+"department": "TOP EQUIPMENT GENERAL",
+"company": "Top Clean",
+"count": 4
+},
+{
+"month": "2024-02",
+"department": "TOP PERFUMES OPERATION",
+"company": "Top Perfume",
+"count": 1
+},
+{
+"month": "2024-02",
+"department": "TRANS OCEAN OPERATIONS",
+"company": "Trans Ocean",
+"count": 1
+},
+{
+"month": "2024-02",
+"department": "TRANSIND MARKETING",
+"company": "Transind Holding",
+"count": 2
+},
+{
+"month": "2024-02",
+"department": "WAREHOUSE & LOGISTICS",
+"company": "Transind Trading and Distribution",
+"count": 163
+},
+{
+"month": "2024-03",
+"department": "AL MANZIL OPERATIONS",
+"company": "Al Manzil Residence & Suites",
+"count": 15
+},
+{
+"month": "2024-03",
+"department": "ASIAN WOK RESTAURANT",
+"company": "Asian Wok",
+"count": 6
+},
+{
+"month": "2024-03",
+"department": "BUSINESS DEVELOPMENT",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-03",
+"department": "CENTRAL KITCHEN",
+"company": "Mr. Shawarma",
+"count": 6
+},
+{
+"month": "2024-03",
+"department": "CHAMPION CLEANERS OPERATIONS",
+"company": "Champion Cleaners",
+"count": 24
+},
+{
+"month": "2024-03",
+"department": "CHIEF OPERATIONS OFFICER",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2024-03",
+"department": "DOHA BANK",
+"company": "Top Clean",
+"count": 146
+},
+{
+"month": "2024-03",
+"department": "DOHA BANK TQ",
+"company": "Top Clean",
+"count": 34
+},
+{
+"month": "2024-03",
+"department": "DUKAN FOOD GENERAL",
+"company": "Dukhan Foods",
+"count": 4
+},
+{
+"month": "2024-03",
+"department": "DUKAN FOOD OPERATIONS - BIN OMRAN",
+"company": "Dukhan Foods",
+"count": 4
+},
+{
+"month": "2024-03",
+"department": "FINANCE & ACCOUNTING",
+"company": "Transind Holding",
+"count": 21
+},
+{
+"month": "2024-03",
+"department": "FLEET DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 7
+},
+{
+"month": "2024-03",
+"department": "FOOD DEPARTMENT (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 251
+},
+{
+"month": "2024-03",
+"department": "GENERAL ADMINISTRATION T.C",
+"company": "Transind Holding",
+"count": 3
+},
+{
+"month": "2024-03",
+"department": "GENERAL ADMINISTRATION-REST",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2024-03",
+"department": "GROUP CEO",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-03",
+"department": "HORECA DEPARTMENT (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 24
+},
+{
+"month": "2024-03",
+"department": "HR & ADMIN",
+"company": "Transind Holding",
+"count": 8
+},
+{
+"month": "2024-03",
+"department": "INFORMATION TECHNOLOGY",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2024-03",
+"department": "KAHRAMAA",
+"company": "Top Clean",
+"count": 102
+},
+{
+"month": "2024-03",
+"department": "LAYS & BEVERAGES",
+"company": "Transind Trading and Distribution",
+"count": 2
+},
+{
+"month": "2024-03",
+"department": "LEGAL DEPARTMENT",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2024-03",
+"department": "MAINTENANCE DEPARTMENT",
+"company": "Transind Holding",
+"count": 10
+},
+{
+"month": "2024-03",
+"department": "MANAGEMENT",
+"company": "Transind Holding",
+"count": 34
+},
+{
+"month": "2024-03",
+"department": "MD",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2024-03",
+"department": "MR ABU HAMOUR",
+"company": "Mr. Shawarma",
+"count": 5
+},
+{
+"month": "2024-03",
+"department": "MR GHARAFA",
+"company": "Mr. Shawarma",
+"count": 14
+},
+{
+"month": "2024-03",
+"department": "MR MUSHIREB",
+"company": "Mr. Shawarma",
+"count": 13
+},
+{
+"month": "2024-03",
+"department": "MR QATAR SPORT CLUB",
+"company": "Mr. Shawarma",
+"count": 7
+},
+{
+"month": "2024-03",
+"department": "MR SHAWERMA CENTRAL KITCHEN",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-03",
+"department": "MR UMMSALAL",
+"company": "Mr. Shawarma",
+"count": 5
+},
+{
+"month": "2024-03",
+"department": "NON FOOD DIVISION (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 22
+},
+{
+"month": "2024-03",
+"department": "PAVATI OPERATIONS",
+"company": "Pavati Glamour Lounge",
+"count": 18
+},
+{
+"month": "2024-03",
+"department": "PROCUREMENT & BUSINESS DEPARTMENT",
+"company": "Transind Holding",
+"count": 3
+},
+{
+"month": "2024-03",
+"department": "QATAR ENGINEERING LAB",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-03",
+"department": "QATAR EXPRESS OPERATIONS",
+"company": "Qatar Express Customs Clearance",
+"count": 12
+},
+{
+"month": "2024-03",
+"department": "QATAR ISLAMIC INSURANCE",
+"company": "Top Clean",
+"count": 5
+},
+{
+"month": "2024-03",
+"department": "SEDAR CO",
+"company": "Top Clean",
+"count": 3
+},
+{
+"month": "2024-03",
+"department": "TOP CLEAN",
+"company": "Top Clean",
+"count": 2
+},
+{
+"month": "2024-03",
+"department": "TOP EQUIPMENT GENERAL",
+"company": "Top Clean",
+"count": 4
+},
+{
+"month": "2024-03",
+"department": "TOP PERFUMES OPERATION",
+"company": "Top Perfume",
+"count": 1
+},
+{
+"month": "2024-03",
+"department": "TRANS OCEAN OPERATIONS",
+"company": "Trans Ocean",
+"count": 1
+},
+{
+"month": "2024-03",
+"department": "TRANSIND MARKETING",
+"company": "Transind Holding",
+"count": 2
+},
+{
+"month": "2024-03",
+"department": "WAREHOUSE & LOGISTICS",
+"company": "Transind Trading and Distribution",
+"count": 159
+},
+{
+"month": "2024-04",
+"department": "AL MANZIL OPERATIONS",
+"company": "Al Manzil Residence & Suites",
+"count": 15
+},
+{
+"month": "2024-04",
+"department": "ASIAN WOK RESTAURANT",
+"company": "Asian Wok",
+"count": 6
+},
+{
+"month": "2024-04",
+"department": "BUSINESS DEVELOPMENT",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-04",
+"department": "CENTRAL KITCHEN",
+"company": "Mr. Shawarma",
+"count": 6
+},
+{
+"month": "2024-04",
+"department": "CHAMPION CLEANERS OPERATIONS",
+"company": "Champion Cleaners",
+"count": 23
+},
+{
+"month": "2024-04",
+"department": "CHIEF OPERATIONS OFFICER",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2024-04",
+"department": "DOHA BANK",
+"company": "Top Clean",
+"count": 145
+},
+{
+"month": "2024-04",
+"department": "DOHA BANK TQ",
+"company": "Top Clean",
+"count": 34
+},
+{
+"month": "2024-04",
+"department": "DUKAN FOOD GENERAL",
+"company": "Dukhan Foods",
+"count": 5
+},
+{
+"month": "2024-04",
+"department": "DUKAN FOOD OPERATIONS - BIN OMRAN",
+"company": "Dukhan Foods",
+"count": 3
+},
+{
+"month": "2024-04",
+"department": "FINANCE & ACCOUNTING",
+"company": "Transind Holding",
+"count": 21
+},
+{
+"month": "2024-04",
+"department": "FLEET DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 7
+},
+{
+"month": "2024-04",
+"department": "FOOD DEPARTMENT (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 249
+},
+{
+"month": "2024-04",
+"department": "GENERAL ADMINISTRATION T.C",
+"company": "Transind Holding",
+"count": 3
+},
+{
+"month": "2024-04",
+"department": "GENERAL ADMINISTRATION-REST",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2024-04",
+"department": "GROUP CEO",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-04",
+"department": "HORECA DEPARTMENT (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 25
+},
+{
+"month": "2024-04",
+"department": "HR & ADMIN",
+"company": "Transind Holding",
+"count": 8
+},
+{
+"month": "2024-04",
+"department": "INFORMATION TECHNOLOGY",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2024-04",
+"department": "KAHRAMAA",
+"company": "Top Clean",
+"count": 102
+},
+{
+"month": "2024-04",
+"department": "LAYS & BEVERAGES",
+"company": "Transind Trading and Distribution",
+"count": 2
+},
+{
+"month": "2024-04",
+"department": "LEGAL DEPARTMENT",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2024-04",
+"department": "MAINTENANCE DEPARTMENT",
+"company": "Transind Holding",
+"count": 10
+},
+{
+"month": "2024-04",
+"department": "MANAGEMENT",
+"company": "Transind Holding",
+"count": 39
+},
+{
+"month": "2024-04",
+"department": "MD",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2024-04",
+"department": "MR ABU HAMOUR",
+"company": "Mr. Shawarma",
+"count": 5
+},
+{
+"month": "2024-04",
+"department": "MR GHARAFA",
+"company": "Mr. Shawarma",
+"count": 15
+},
+{
+"month": "2024-04",
+"department": "MR MUSHIREB",
+"company": "Mr. Shawarma",
+"count": 12
+},
+{
+"month": "2024-04",
+"department": "MR QATAR SPORT CLUB",
+"company": "Mr. Shawarma",
+"count": 7
+},
+{
+"month": "2024-04",
+"department": "MR SHAWERMA CENTRAL KITCHEN",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-04",
+"department": "MR UMMSALAL",
+"company": "Mr. Shawarma",
+"count": 5
+},
+{
+"month": "2024-04",
+"department": "NON FOOD DIVISION (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 22
+},
+{
+"month": "2024-04",
+"department": "PAVATI OPERATIONS",
+"company": "Pavati Glamour Lounge",
+"count": 18
+},
+{
+"month": "2024-04",
+"department": "PROCUREMENT & BUSINESS DEPARTMENT",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2024-04",
+"department": "QATAR ENGINEERING LAB",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-04",
+"department": "QATAR EXPRESS OPERATIONS",
+"company": "Qatar Express Customs Clearance",
+"count": 12
+},
+{
+"month": "2024-04",
+"department": "QATAR ISLAMIC INSURANCE",
+"company": "Top Clean",
+"count": 5
+},
+{
+"month": "2024-04",
+"department": "SEDAR CO",
+"company": "Top Clean",
+"count": 3
+},
+{
+"month": "2024-04",
+"department": "TOP CLEAN",
+"company": "Top Clean",
+"count": 2
+},
+{
+"month": "2024-04",
+"department": "TOP EQUIPMENT GENERAL",
+"company": "Top Clean",
+"count": 4
+},
+{
+"month": "2024-04",
+"department": "TOP PERFUMES OPERATION",
+"company": "Top Perfume",
+"count": 1
+},
+{
+"month": "2024-04",
+"department": "TRANS OCEAN OPERATIONS",
+"company": "Trans Ocean",
+"count": 1
+},
+{
+"month": "2024-04",
+"department": "TRANSIND MARKETING",
+"company": "Transind Holding",
+"count": 2
+},
+{
+"month": "2024-04",
+"department": "WAREHOUSE & LOGISTICS",
+"company": "Transind Trading and Distribution",
+"count": 160
+},
+{
+"month": "2024-05",
+"department": "AL MANZIL OPERATIONS",
+"company": "Al Manzil Residence & Suites",
+"count": 14
+},
+{
+"month": "2024-05",
+"department": "ASIAN WOK RESTAURANT",
+"company": "Asian Wok",
+"count": 5
+},
+{
+"month": "2024-05",
+"department": "BUSINESS DEVELOPMENT",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-05",
+"department": "CENTRAL KITCHEN",
+"company": "Mr. Shawarma",
+"count": 6
+},
+{
+"month": "2024-05",
+"department": "CHAMPION CLEANERS OPERATIONS",
+"company": "Champion Cleaners",
+"count": 21
+},
+{
+"month": "2024-05",
+"department": "CHIEF OPERATIONS OFFICER",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2024-05",
+"department": "DOHA BANK",
+"company": "Top Clean",
+"count": 141
+},
+{
+"month": "2024-05",
+"department": "DOHA BANK TQ",
+"company": "Top Clean",
+"count": 34
+},
+{
+"month": "2024-05",
+"department": "DUKAN FOOD GENERAL",
+"company": "Dukhan Foods",
+"count": 5
+},
+{
+"month": "2024-05",
+"department": "DUKAN FOOD OPERATIONS - BIN OMRAN",
+"company": "Dukhan Foods",
+"count": 3
+},
+{
+"month": "2024-05",
+"department": "FINANCE & ACCOUNTING",
+"company": "Transind Holding",
+"count": 21
+},
+{
+"month": "2024-05",
+"department": "FLEET DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 7
+},
+{
+"month": "2024-05",
+"department": "FOOD DEPARTMENT (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 256
+},
+{
+"month": "2024-05",
+"department": "GENERAL ADMINISTRATION T.C",
+"company": "Transind Holding",
+"count": 3
+},
+{
+"month": "2024-05",
+"department": "GENERAL ADMINISTRATION-REST",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2024-05",
+"department": "GROUP CEO",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-05",
+"department": "HORECA DEPARTMENT (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 26
+},
+{
+"month": "2024-05",
+"department": "HR & ADMIN",
+"company": "Transind Holding",
+"count": 8
+},
+{
+"month": "2024-05",
+"department": "INFORMATION TECHNOLOGY",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2024-05",
+"department": "KAHRAMAA",
+"company": "Top Clean",
+"count": 102
+},
+{
+"month": "2024-05",
+"department": "LAYS & BEVERAGES",
+"company": "Transind Trading and Distribution",
+"count": 2
+},
+{
+"month": "2024-05",
+"department": "LEGAL DEPARTMENT",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2024-05",
+"department": "MAINTENANCE DEPARTMENT",
+"company": "Transind Holding",
+"count": 8
+},
+{
+"month": "2024-05",
+"department": "MANAGEMENT",
+"company": "Transind Holding",
+"count": 39
+},
+{
+"month": "2024-05",
+"department": "MD",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2024-05",
+"department": "MR ABU HAMOUR",
+"company": "Mr. Shawarma",
+"count": 5
+},
+{
+"month": "2024-05",
+"department": "MR GHARAFA",
+"company": "Mr. Shawarma",
+"count": 13
+},
+{
+"month": "2024-05",
+"department": "MR MUSHIREB",
+"company": "Mr. Shawarma",
+"count": 12
+},
+{
+"month": "2024-05",
+"department": "MR QATAR SPORT CLUB",
+"company": "Mr. Shawarma",
+"count": 7
+},
+{
+"month": "2024-05",
+"department": "MR SHAWERMA CENTRAL KITCHEN",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-05",
+"department": "MR UMMSALAL",
+"company": "Mr. Shawarma",
+"count": 5
+},
+{
+"month": "2024-05",
+"department": "NON FOOD DIVISION (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 22
+},
+{
+"month": "2024-05",
+"department": "PAVATI OPERATIONS",
+"company": "Pavati Glamour Lounge",
+"count": 19
+},
+{
+"month": "2024-05",
+"department": "PROCUREMENT & BUSINESS DEPARTMENT",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2024-05",
+"department": "QATAR ENGINEERING LAB",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-05",
+"department": "QATAR EXPRESS OPERATIONS",
+"company": "Qatar Express Customs Clearance",
+"count": 12
+},
+{
+"month": "2024-05",
+"department": "QATAR ISLAMIC INSURANCE",
+"company": "Top Clean",
+"count": 5
+},
+{
+"month": "2024-05",
+"department": "SEDAR CO",
+"company": "Top Clean",
+"count": 3
+},
+{
+"month": "2024-05",
+"department": "TOP CLEAN",
+"company": "Top Clean",
+"count": 2
+},
+{
+"month": "2024-05",
+"department": "TOP EQUIPMENT GENERAL",
+"company": "Top Clean",
+"count": 4
+},
+{
+"month": "2024-05",
+"department": "TOP PERFUMES OPERATION",
+"company": "Top Perfume",
+"count": 1
+},
+{
+"month": "2024-05",
+"department": "TRANS OCEAN OPERATIONS",
+"company": "Trans Ocean",
+"count": 1
+},
+{
+"month": "2024-05",
+"department": "TRANSIND MARKETING",
+"company": "Transind Holding",
+"count": 2
+},
+{
+"month": "2024-05",
+"department": "WAREHOUSE & LOGISTICS",
+"company": "Transind Trading and Distribution",
+"count": 157
+},
+{
+"month": "2024-06",
+"department": "AL MANZIL OPERATIONS",
+"company": "Al Manzil Residence & Suites",
+"count": 14
+},
+{
+"month": "2024-06",
+"department": "ASIAN WOK RESTAURANT",
+"company": "Asian Wok",
+"count": 5
+},
+{
+"month": "2024-06",
+"department": "BUSINESS DEVELOPMENT",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-06",
+"department": "CENTRAL KITCHEN",
+"company": "Mr. Shawarma",
+"count": 6
+},
+{
+"month": "2024-06",
+"department": "CHAMPION CLEANERS OPERATIONS",
+"company": "Champion Cleaners",
+"count": 8
+},
+{
+"month": "2024-06",
+"department": "CHIEF OPERATIONS OFFICER",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2024-06",
+"department": "DOHA BANK",
+"company": "Top Clean",
+"count": 136
+},
+{
+"month": "2024-06",
+"department": "DOHA BANK TQ",
+"company": "Top Clean",
+"count": 33
+},
+{
+"month": "2024-06",
+"department": "DUKAN FOOD GENERAL",
+"company": "Dukhan Foods",
+"count": 5
+},
+{
+"month": "2024-06",
+"department": "DUKAN FOOD OPERATIONS - BIN OMRAN",
+"company": "Dukhan Foods",
+"count": 3
+},
+{
+"month": "2024-06",
+"department": "FINANCE & ACCOUNTING",
+"company": "Transind Holding",
+"count": 21
+},
+{
+"month": "2024-06",
+"department": "FLEET DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 7
+},
+{
+"month": "2024-06",
+"department": "FOOD DEPARTMENT (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 261
+},
+{
+"month": "2024-06",
+"department": "GENERAL ADMINISTRATION T.C",
+"company": "Transind Holding",
+"count": 3
+},
+{
+"month": "2024-06",
+"department": "GENERAL ADMINISTRATION-REST",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2024-06",
+"department": "GROUP CEO",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-06",
+"department": "HORECA DEPARTMENT (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 26
+},
+{
+"month": "2024-06",
+"department": "HR & ADMIN",
+"company": "Transind Holding",
+"count": 8
+},
+{
+"month": "2024-06",
+"department": "INFORMATION TECHNOLOGY",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2024-06",
+"department": "KAHRAMAA",
+"company": "Top Clean",
+"count": 101
+},
+{
+"month": "2024-06",
+"department": "LAYS & BEVERAGES",
+"company": "Transind Trading and Distribution",
+"count": 2
+},
+{
+"month": "2024-06",
+"department": "LEGAL DEPARTMENT",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2024-06",
+"department": "MAINTENANCE DEPARTMENT",
+"company": "Transind Holding",
+"count": 8
+},
+{
+"month": "2024-06",
+"department": "MANAGEMENT",
+"company": "Transind Holding",
+"count": 39
+},
+{
+"month": "2024-06",
+"department": "MD",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2024-06",
+"department": "MR ABU HAMOUR",
+"company": "Mr. Shawarma",
+"count": 6
+},
+{
+"month": "2024-06",
+"department": "MR GHARAFA",
+"company": "Mr. Shawarma",
+"count": 12
+},
+{
+"month": "2024-06",
+"department": "MR MUSHIREB",
+"company": "Mr. Shawarma",
+"count": 12
+},
+{
+"month": "2024-06",
+"department": "MR QATAR SPORT CLUB",
+"company": "Mr. Shawarma",
+"count": 7
+},
+{
+"month": "2024-06",
+"department": "MR SHAWERMA CENTRAL KITCHEN",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-06",
+"department": "MR UMMSALAL",
+"company": "Mr. Shawarma",
+"count": 5
+},
+{
+"month": "2024-06",
+"department": "NON FOOD DIVISION (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 22
+},
+{
+"month": "2024-06",
+"department": "PAVATI OPERATIONS",
+"company": "Pavati Glamour Lounge",
+"count": 19
+},
+{
+"month": "2024-06",
+"department": "PROCUREMENT & BUSINESS DEPARTMENT",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2024-06",
+"department": "QATAR ENGINEERING LAB",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-06",
+"department": "QATAR EXPRESS OPERATIONS",
+"company": "Qatar Express Customs Clearance",
+"count": 13
+},
+{
+"month": "2024-06",
+"department": "QATAR ISLAMIC INSURANCE",
+"company": "Top Clean",
+"count": 5
+},
+{
+"month": "2024-06",
+"department": "SEDAR CO",
+"company": "Top Clean",
+"count": 3
+},
+{
+"month": "2024-06",
+"department": "TOP CLEAN",
+"company": "Top Clean",
+"count": 2
+},
+{
+"month": "2024-06",
+"department": "TOP EQUIPMENT GENERAL",
+"company": "Top Clean",
+"count": 4
+},
+{
+"month": "2024-06",
+"department": "TOP PERFUMES OPERATION",
+"company": "Top Perfume",
+"count": 1
+},
+{
+"month": "2024-06",
+"department": "TRANS OCEAN OPERATIONS",
+"company": "Trans Ocean",
+"count": 1
+},
+{
+"month": "2024-06",
+"department": "TRANSIND MARKETING",
+"company": "Transind Holding",
+"count": 2
+},
+{
+"month": "2024-06",
+"department": "WAREHOUSE & LOGISTICS",
+"company": "Transind Trading and Distribution",
+"count": 157
+},
+{
+"month": "2024-07",
+"department": "AL MANZIL OPERATIONS",
+"company": "Al Manzil Residence & Suites",
+"count": 15
+},
+{
+"month": "2024-07",
+"department": "ASIAN WOK RESTAURANT",
+"company": "Asian Wok",
+"count": 5
+},
+{
+"month": "2024-07",
+"department": "BUSINESS DEVELOPMENT",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-07",
+"department": "CENTRAL KITCHEN",
+"company": "Mr. Shawarma",
+"count": 5
+},
+{
+"month": "2024-07",
+"department": "CHAMPION CLEANERS OPERATIONS",
+"company": "Champion Cleaners",
+"count": 8
+},
+{
+"month": "2024-07",
+"department": "CHIEF OPERATIONS OFFICER",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2024-07",
+"department": "DOHA BANK",
+"company": "Top Clean",
+"count": 138
+},
+{
+"month": "2024-07",
+"department": "DOHA BANK TQ",
+"company": "Top Clean",
+"count": 33
+},
+{
+"month": "2024-07",
+"department": "DUKAN FOOD GENERAL",
+"company": "Dukhan Foods",
+"count": 5
+},
+{
+"month": "2024-07",
+"department": "DUKAN FOOD OPERATIONS - BIN OMRAN",
+"company": "Dukhan Foods",
+"count": 3
+},
+{
+"month": "2024-07",
+"department": "FINANCE & ACCOUNTING",
+"company": "Transind Holding",
+"count": 21
+},
+{
+"month": "2024-07",
+"department": "FLEET DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 7
+},
+{
+"month": "2024-07",
+"department": "FOOD DEPARTMENT (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 259
+},
+{
+"month": "2024-07",
+"department": "GENERAL ADMINISTRATION",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2024-07",
+"department": "GENERAL ADMINISTRATION T.C",
+"company": "Transind Holding",
+"count": 3
+},
+{
+"month": "2024-07",
+"department": "GENERAL ADMINISTRATION-REST",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2024-07",
+"department": "GROUP CEO",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-07",
+"department": "HORECA DEPARTMENT (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 28
+},
+{
+"month": "2024-07",
+"department": "HR & ADMIN",
+"company": "Transind Holding",
+"count": 8
+},
+{
+"month": "2024-07",
+"department": "INFORMATION TECHNOLOGY",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2024-07",
+"department": "KAHRAMAA",
+"company": "Top Clean",
+"count": 100
+},
+{
+"month": "2024-07",
+"department": "LAYS & BEVERAGES",
+"company": "Transind Trading and Distribution",
+"count": 2
+},
+{
+"month": "2024-07",
+"department": "LEGAL DEPARTMENT",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2024-07",
+"department": "MAINTENANCE DEPARTMENT",
+"company": "Transind Holding",
+"count": 7
+},
+{
+"month": "2024-07",
+"department": "MANAGEMENT",
+"company": "Transind Holding",
+"count": 43
+},
+{
+"month": "2024-07",
+"department": "MD",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2024-07",
+"department": "MR ABU HAMOUR",
+"company": "Mr. Shawarma",
+"count": 5
+},
+{
+"month": "2024-07",
+"department": "MR GHARAFA",
+"company": "Mr. Shawarma",
+"count": 12
+},
+{
+"month": "2024-07",
+"department": "MR MUSHIREB",
+"company": "Mr. Shawarma",
+"count": 13
+},
+{
+"month": "2024-07",
+"department": "MR QATAR SPORT CLUB",
+"company": "Mr. Shawarma",
+"count": 7
+},
+{
+"month": "2024-07",
+"department": "MR SHAWERMA CENTRAL KITCHEN",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-07",
+"department": "MR UMMSALAL",
+"company": "Mr. Shawarma",
+"count": 5
+},
+{
+"month": "2024-07",
+"department": "NON FOOD DIVISION (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 22
+},
+{
+"month": "2024-07",
+"department": "PAVATI OPERATIONS",
+"company": "Pavati Glamour Lounge",
+"count": 21
+},
+{
+"month": "2024-07",
+"department": "PROCUREMENT & BUSINESS DEPARTMENT",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2024-07",
+"department": "QATAR ENGINEERING LAB",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-07",
+"department": "QATAR EXPRESS OPERATIONS",
+"company": "Qatar Express Customs Clearance",
+"count": 13
+},
+{
+"month": "2024-07",
+"department": "QATAR ISLAMIC INSURANCE",
+"company": "Top Clean",
+"count": 5
+},
+{
+"month": "2024-07",
+"department": "SEDAR CO",
+"company": "Top Clean",
+"count": 3
+},
+{
+"month": "2024-07",
+"department": "TOP CLEAN",
+"company": "Top Clean",
+"count": 2
+},
+{
+"month": "2024-07",
+"department": "TOP EQUIPMENT GENERAL",
+"company": "Top Clean",
+"count": 4
+},
+{
+"month": "2024-07",
+"department": "TOP PERFUMES OPERATION",
+"company": "Top Perfume",
+"count": 1
+},
+{
+"month": "2024-07",
+"department": "TRANS OCEAN OPERATIONS",
+"company": "Trans Ocean",
+"count": 1
+},
+{
+"month": "2024-07",
+"department": "TRANSIND MARKETING",
+"company": "Transind Holding",
+"count": 2
+},
+{
+"month": "2024-07",
+"department": "WAREHOUSE & LOGISTICS",
+"company": "Transind Trading and Distribution",
+"count": 152
+},
+{
+"month": "2024-08",
+"department": "AL MANZIL OPERATIONS",
+"company": "Al Manzil Residence & Suites",
+"count": 16
+},
+{
+"month": "2024-08",
+"department": "ASIAN WOK RESTAURANT",
+"company": "Asian Wok",
+"count": 5
+},
+{
+"month": "2024-08",
+"department": "BUSINESS DEVELOPMENT",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-08",
+"department": "CENTRAL KITCHEN",
+"company": "Mr. Shawarma",
+"count": 5
+},
+{
+"month": "2024-08",
+"department": "CHAMPION CLEANERS OPERATIONS",
+"company": "Champion Cleaners",
+"count": 8
+},
+{
+"month": "2024-08",
+"department": "CHIEF OPERATIONS OFFICER",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2024-08",
+"department": "DOHA BANK",
+"company": "Top Clean",
+"count": 137
+},
+{
+"month": "2024-08",
+"department": "DOHA BANK TQ",
+"company": "Top Clean",
+"count": 32
+},
+{
+"month": "2024-08",
+"department": "DUKAN FOOD GENERAL",
+"company": "Dukhan Foods",
+"count": 5
+},
+{
+"month": "2024-08",
+"department": "DUKAN FOOD OPERATIONS - BIN OMRAN",
+"company": "Dukhan Foods",
+"count": 3
+},
+{
+"month": "2024-08",
+"department": "FINANCE & ACCOUNTING",
+"company": "Transind Holding",
+"count": 21
+},
+{
+"month": "2024-08",
+"department": "FLEET DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 7
+},
+{
+"month": "2024-08",
+"department": "FOOD DEPARTMENT (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 267
+},
+{
+"month": "2024-08",
+"department": "GENERAL ADMINISTRATION T.C",
+"company": "Transind Holding",
+"count": 3
+},
+{
+"month": "2024-08",
+"department": "GENERAL ADMINISTRATION-REST",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2024-08",
+"department": "GROUP CEO",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-08",
+"department": "HORECA DEPARTMENT (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 27
+},
+{
+"month": "2024-08",
+"department": "HR & ADMIN",
+"company": "Transind Holding",
+"count": 8
+},
+{
+"month": "2024-08",
+"department": "INFORMATION TECHNOLOGY",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2024-08",
+"department": "KAHRAMAA",
+"company": "Top Clean",
+"count": 101
+},
+{
+"month": "2024-08",
+"department": "LAYS & BEVERAGES",
+"company": "Transind Trading and Distribution",
+"count": 2
+},
+{
+"month": "2024-08",
+"department": "LEGAL DEPARTMENT",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2024-08",
+"department": "MAINTENANCE DEPARTMENT",
+"company": "Transind Holding",
+"count": 7
+},
+{
+"month": "2024-08",
+"department": "MANAGEMENT",
+"company": "Transind Holding",
+"count": 45
+},
+{
+"month": "2024-08",
+"department": "MD",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2024-08",
+"department": "MR ABU HAMOUR",
+"company": "Mr. Shawarma",
+"count": 5
+},
+{
+"month": "2024-08",
+"department": "MR GHARAFA",
+"company": "Mr. Shawarma",
+"count": 11
+},
+{
+"month": "2024-08",
+"department": "MR MUSHIREB",
+"company": "Mr. Shawarma",
+"count": 13
+},
+{
+"month": "2024-08",
+"department": "MR QATAR SPORT CLUB",
+"company": "Mr. Shawarma",
+"count": 8
+},
+{
+"month": "2024-08",
+"department": "MR SHAWERMA CENTRAL KITCHEN",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-08",
+"department": "MR UMMSALAL",
+"company": "Mr. Shawarma",
+"count": 5
+},
+{
+"month": "2024-08",
+"department": "NON FOOD DIVISION (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 23
+},
+{
+"month": "2024-08",
+"department": "PAVATI OPERATIONS",
+"company": "Pavati Glamour Lounge",
+"count": 21
+},
+{
+"month": "2024-08",
+"department": "PROCUREMENT & BUSINESS DEPARTMENT",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2024-08",
+"department": "QATAR ENGINEERING LAB",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-08",
+"department": "QATAR EXPRESS OPERATIONS",
+"company": "Qatar Express Customs Clearance",
+"count": 13
+},
+{
+"month": "2024-08",
+"department": "QATAR ISLAMIC INSURANCE",
+"company": "Top Clean",
+"count": 5
+},
+{
+"month": "2024-08",
+"department": "SEDAR CO",
+"company": "Top Clean",
+"count": 2
+},
+{
+"month": "2024-08",
+"department": "TOP CLEAN",
+"company": "Top Clean",
+"count": 3
+},
+{
+"month": "2024-08",
+"department": "TOP EQUIPMENT GENERAL",
+"company": "Top Clean",
+"count": 4
+},
+{
+"month": "2024-08",
+"department": "TOP PERFUMES OPERATION",
+"company": "Top Perfume",
+"count": 1
+},
+{
+"month": "2024-08",
+"department": "TRANS OCEAN OPERATIONS",
+"company": "Trans Ocean",
+"count": 1
+},
+{
+"month": "2024-08",
+"department": "TRANSIND MARKETING",
+"company": "Transind Holding",
+"count": 2
+},
+{
+"month": "2024-08",
+"department": "WAREHOUSE & LOGISTICS",
+"company": "Transind Trading and Distribution",
+"count": 151
+},
+{
+"month": "2024-09",
+"department": "AL MANZIL OPERATIONS",
+"company": "Al Manzil Residence & Suites",
+"count": 17
+},
+{
+"month": "2024-09",
+"department": "ASIAN WOK RESTAURANT",
+"company": "Asian Wok",
+"count": 5
+},
+{
+"month": "2024-09",
+"department": "BUSINESS DEVELOPMENT",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-09",
+"department": "CENTRAL KITCHEN",
+"company": "Mr. Shawarma",
+"count": 5
+},
+{
+"month": "2024-09",
+"department": "CHAMPION CLEANERS OPERATIONS",
+"company": "Champion Cleaners",
+"count": 8
+},
+{
+"month": "2024-09",
+"department": "CHIEF OPERATIONS OFFICER",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2024-09",
+"department": "DOHA BANK",
+"company": "Top Clean",
+"count": 137
+},
+{
+"month": "2024-09",
+"department": "DOHA BANK TQ",
+"company": "Top Clean",
+"count": 32
+},
+{
+"month": "2024-09",
+"department": "DUKAN FOOD GENERAL",
+"company": "Dukhan Foods",
+"count": 5
+},
+{
+"month": "2024-09",
+"department": "DUKAN FOOD OPERATIONS - BIN OMRAN",
+"company": "Dukhan Foods",
+"count": 3
+},
+{
+"month": "2024-09",
+"department": "FINANCE & ACCOUNTING",
+"company": "Transind Holding",
+"count": 21
+},
+{
+"month": "2024-09",
+"department": "FLEET DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 7
+},
+{
+"month": "2024-09",
+"department": "FOOD DEPARTMENT (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 264
+},
+{
+"month": "2024-09",
+"department": "GENERAL ADMINISTRATION T.C",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2024-09",
+"department": "GENERAL ADMINISTRATION-REST",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2024-09",
+"department": "GROUP CEO",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-09",
+"department": "HORECA DEPARTMENT (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 27
+},
+{
+"month": "2024-09",
+"department": "HR & ADMIN",
+"company": "Transind Holding",
+"count": 8
+},
+{
+"month": "2024-09",
+"department": "INFORMATION TECHNOLOGY",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2024-09",
+"department": "KAHRAMAA",
+"company": "Top Clean",
+"count": 101
+},
+{
+"month": "2024-09",
+"department": "LAYS & BEVERAGES",
+"company": "Transind Trading and Distribution",
+"count": 2
+},
+{
+"month": "2024-09",
+"department": "LEGAL DEPARTMENT",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2024-09",
+"department": "MAINTENANCE DEPARTMENT",
+"company": "Transind Holding",
+"count": 7
+},
+{
+"month": "2024-09",
+"department": "MANAGEMENT",
+"company": "Transind Holding",
+"count": 45
+},
+{
+"month": "2024-09",
+"department": "MD",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2024-09",
+"department": "MR ABU HAMOUR",
+"company": "Mr. Shawarma",
+"count": 5
+},
+{
+"month": "2024-09",
+"department": "MR GHARAFA",
+"company": "Mr. Shawarma",
+"count": 11
+},
+{
+"month": "2024-09",
+"department": "MR MUSHIREB",
+"company": "Mr. Shawarma",
+"count": 13
+},
+{
+"month": "2024-09",
+"department": "MR QATAR SPORT CLUB",
+"company": "Mr. Shawarma",
+"count": 8
+},
+{
+"month": "2024-09",
+"department": "MR SHAWERMA CENTRAL KITCHEN",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-09",
+"department": "MR UMMSALAL",
+"company": "Mr. Shawarma",
+"count": 5
+},
+{
+"month": "2024-09",
+"department": "NON FOOD DIVISION (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 23
+},
+{
+"month": "2024-09",
+"department": "PAVATI OPERATIONS",
+"company": "Pavati Glamour Lounge",
+"count": 20
+},
+{
+"month": "2024-09",
+"department": "PROCUREMENT & BUSINESS DEPARTMENT",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2024-09",
+"department": "QATAR ENGINEERING LAB",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-09",
+"department": "QATAR EXPRESS OPERATIONS",
+"company": "Qatar Express Customs Clearance",
+"count": 13
+},
+{
+"month": "2024-09",
+"department": "QATAR ISLAMIC INSURANCE",
+"company": "Top Clean",
+"count": 6
+},
+{
+"month": "2024-09",
+"department": "SEDAR CO",
+"company": "Top Clean",
+"count": 2
+},
+{
+"month": "2024-09",
+"department": "TOP CLEAN",
+"company": "Top Clean",
+"count": 2
+},
+{
+"month": "2024-09",
+"department": "TOP EQUIPMENT GENERAL",
+"company": "Top Clean",
+"count": 4
+},
+{
+"month": "2024-09",
+"department": "TOP PERFUMES OPERATION",
+"company": "Top Perfume",
+"count": 1
+},
+{
+"month": "2024-09",
+"department": "TRANS OCEAN OPERATIONS",
+"company": "Trans Ocean",
+"count": 1
+},
+{
+"month": "2024-09",
+"department": "TRANSIND MARKETING",
+"company": "Transind Holding",
+"count": 2
+},
+{
+"month": "2024-09",
+"department": "WAREHOUSE & LOGISTICS",
+"company": "Transind Trading and Distribution",
+"count": 151
+},
+{
+"month": "2024-10",
+"department": "AL MANZIL OPERATIONS",
+"company": "Al Manzil Residence & Suites",
+"count": 17
+},
+{
+"month": "2024-10",
+"department": "ASIAN WOK RESTAURANT",
+"company": "Asian Wok",
+"count": 5
+},
+{
+"month": "2024-10",
+"department": "BUSINESS DEVELOPMENT",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-10",
+"department": "CENTRAL KITCHEN",
+"company": "Mr. Shawarma",
+"count": 5
+},
+{
+"month": "2024-10",
+"department": "CHAMPION CLEANERS OPERATIONS",
+"company": "Champion Cleaners",
+"count": 1
+},
+{
+"month": "2024-10",
+"department": "CHIEF OPERATIONS OFFICER",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2024-10",
+"department": "DOHA BANK",
+"company": "Top Clean",
+"count": 135
+},
+{
+"month": "2024-10",
+"department": "DOHA BANK TQ",
+"company": "Top Clean",
+"count": 32
+},
+{
+"month": "2024-10",
+"department": "DUKAN FOOD GENERAL",
+"company": "Dukhan Foods",
+"count": 4
+},
+{
+"month": "2024-10",
+"department": "DUKAN FOOD OPERATIONS - BIN OMRAN",
+"company": "Dukhan Foods",
+"count": 3
+},
+{
+"month": "2024-10",
+"department": "FINANCE & ACCOUNTING",
+"company": "Transind Holding",
+"count": 21
+},
+{
+"month": "2024-10",
+"department": "FLEET DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 7
+},
+{
+"month": "2024-10",
+"department": "FOOD DEPARTMENT (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 260
+},
+{
+"month": "2024-10",
+"department": "GENERAL ADMINISTRATION T.C",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2024-10",
+"department": "GENERAL ADMINISTRATION-REST",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2024-10",
+"department": "GROUP CEO",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-10",
+"department": "HORECA DEPARTMENT (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 24
+},
+{
+"month": "2024-10",
+"department": "HR & ADMIN",
+"company": "Transind Holding",
+"count": 8
+},
+{
+"month": "2024-10",
+"department": "INFORMATION TECHNOLOGY",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2024-10",
+"department": "KAHRAMAA",
+"company": "Top Clean",
+"count": 100
+},
+{
+"month": "2024-10",
+"department": "LAYS & BEVERAGES",
+"company": "Transind Trading and Distribution",
+"count": 2
+},
+{
+"month": "2024-10",
+"department": "LEGAL DEPARTMENT",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2024-10",
+"department": "MAINTENANCE DEPARTMENT",
+"company": "Transind Holding",
+"count": 7
+},
+{
+"month": "2024-10",
+"department": "MANAGEMENT",
+"company": "Transind Holding",
+"count": 46
+},
+{
+"month": "2024-10",
+"department": "MD",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2024-10",
+"department": "MR ABU HAMOUR",
+"company": "Mr. Shawarma",
+"count": 5
+},
+{
+"month": "2024-10",
+"department": "MR GHARAFA",
+"company": "Mr. Shawarma",
+"count": 12
+},
+{
+"month": "2024-10",
+"department": "MR MUSHIREB",
+"company": "Mr. Shawarma",
+"count": 13
+},
+{
+"month": "2024-10",
+"department": "MR QATAR SPORT CLUB",
+"company": "Mr. Shawarma",
+"count": 9
+},
+{
+"month": "2024-10",
+"department": "MR SHAWERMA CENTRAL KITCHEN",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-10",
+"department": "MR UMMSALAL",
+"company": "Mr. Shawarma",
+"count": 6
+},
+{
+"month": "2024-10",
+"department": "NON FOOD DIVISION (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 23
+},
+{
+"month": "2024-10",
+"department": "PAVATI OPERATIONS",
+"company": "Pavati Glamour Lounge",
+"count": 20
+},
+{
+"month": "2024-10",
+"department": "PROCUREMENT & BUSINESS DEPARTMENT",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2024-10",
+"department": "QATAR ENGINEERING LAB",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-10",
+"department": "QATAR EXPRESS OPERATIONS",
+"company": "Qatar Express Customs Clearance",
+"count": 13
+},
+{
+"month": "2024-10",
+"department": "QATAR ISLAMIC INSURANCE",
+"company": "Top Clean",
+"count": 5
+},
+{
+"month": "2024-10",
+"department": "SEDAR CO",
+"company": "Top Clean",
+"count": 2
+},
+{
+"month": "2024-10",
+"department": "TOP CLEAN",
+"company": "Top Clean",
+"count": 1
+},
+{
+"month": "2024-10",
+"department": "TOP EQUIPMENT GENERAL",
+"company": "Top Clean",
+"count": 4
+},
+{
+"month": "2024-10",
+"department": "TOP PERFUMES OPERATION",
+"company": "Top Perfume",
+"count": 2
+},
+{
+"month": "2024-10",
+"department": "TRANS OCEAN OPERATIONS",
+"company": "Trans Ocean",
+"count": 1
+},
+{
+"month": "2024-10",
+"department": "TRANSIND MARKETING",
+"company": "Transind Holding",
+"count": 2
+},
+{
+"month": "2024-10",
+"department": "WAREHOUSE & LOGISTICS",
+"company": "Transind Trading and Distribution",
+"count": 143
+},
+{
+"month": "2024-10",
+"department": "WORKSHOP",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-11",
+"department": "AL MANZIL OPERATIONS",
+"company": "Al Manzil Residence & Suites",
+"count": 17
+},
+{
+"month": "2024-11",
+"department": "ASIAN WOK RESTAURANT",
+"company": "Asian Wok",
+"count": 5
+},
+{
+"month": "2024-11",
+"department": "BUSINESS DEVELOPMENT",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-11",
+"department": "CENTRAL KITCHEN",
+"company": "Mr. Shawarma",
+"count": 5
+},
+{
+"month": "2024-11",
+"department": "CHIEF OPERATIONS OFFICER",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2024-11",
+"department": "DOHA BANK",
+"company": "Top Clean",
+"count": 138
+},
+{
+"month": "2024-11",
+"department": "DOHA BANK TQ",
+"company": "Top Clean",
+"count": 32
+},
+{
+"month": "2024-11",
+"department": "DUKAN FOOD GENERAL",
+"company": "Dukhan Foods",
+"count": 4
+},
+{
+"month": "2024-11",
+"department": "DUKAN FOOD OPERATIONS - BIN OMRAN",
+"company": "Dukhan Foods",
+"count": 3
+},
+{
+"month": "2024-11",
+"department": "FINANCE & ACCOUNTING",
+"company": "Transind Holding",
+"count": 20
+},
+{
+"month": "2024-11",
+"department": "FLEET DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 7
+},
+{
+"month": "2024-11",
+"department": "FOOD DEPARTMENT (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 260
+},
+{
+"month": "2024-11",
+"department": "GENERAL ADMINISTRATION T.C",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2024-11",
+"department": "GENERAL ADMINISTRATION-REST",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2024-11",
+"department": "GROUP CEO",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-11",
+"department": "HORECA DEPARTMENT (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 23
+},
+{
+"month": "2024-11",
+"department": "HR & ADMIN",
+"company": "Transind Holding",
+"count": 8
+},
+{
+"month": "2024-11",
+"department": "INFORMATION TECHNOLOGY",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2024-11",
+"department": "KAHRAMAA",
+"company": "Top Clean",
+"count": 101
+},
+{
+"month": "2024-11",
+"department": "LAYS & BEVERAGES",
+"company": "Transind Trading and Distribution",
+"count": 2
+},
+{
+"month": "2024-11",
+"department": "LEGAL DEPARTMENT",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2024-11",
+"department": "MAINTENANCE DEPARTMENT",
+"company": "Transind Holding",
+"count": 8
+},
+{
+"month": "2024-11",
+"department": "MANAGEMENT",
+"company": "Transind Holding",
+"count": 45
+},
+{
+"month": "2024-11",
+"department": "MD",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2024-11",
+"department": "MR ABU HAMOUR",
+"company": "Mr. Shawarma",
+"count": 6
+},
+{
+"month": "2024-11",
+"department": "MR GHARAFA",
+"company": "Mr. Shawarma",
+"count": 11
+},
+{
+"month": "2024-11",
+"department": "MR MUSHIREB",
+"company": "Mr. Shawarma",
+"count": 13
+},
+{
+"month": "2024-11",
+"department": "MR QATAR SPORT CLUB",
+"company": "Mr. Shawarma",
+"count": 9
+},
+{
+"month": "2024-11",
+"department": "MR SHAWERMA CENTRAL KITCHEN",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-11",
+"department": "MR UMMSALAL",
+"company": "Mr. Shawarma",
+"count": 6
+},
+{
+"month": "2024-11",
+"department": "NON FOOD DIVISION (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 23
+},
+{
+"month": "2024-11",
+"department": "PAVATI OPERATIONS",
+"company": "Pavati Glamour Lounge",
+"count": 20
+},
+{
+"month": "2024-11",
+"department": "PROCUREMENT & BUSINESS DEPARTMENT",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2024-11",
+"department": "QATAR ENGINEERING LAB",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-11",
+"department": "QATAR EXPRESS OPERATIONS",
+"company": "Qatar Express Customs Clearance",
+"count": 11
+},
+{
+"month": "2024-11",
+"department": "QATAR ISLAMIC INSURANCE",
+"company": "Top Clean",
+"count": 5
+},
+{
+"month": "2024-11",
+"department": "SEDAR CO",
+"company": "Top Clean",
+"count": 2
+},
+{
+"month": "2024-11",
+"department": "TOP CLEAN",
+"company": "Top Clean",
+"count": 1
+},
+{
+"month": "2024-11",
+"department": "TOP EQUIPMENT GENERAL",
+"company": "Top Clean",
+"count": 4
+},
+{
+"month": "2024-11",
+"department": "TOP PERFUMES OPERATION",
+"company": "Top Perfume",
+"count": 1
+},
+{
+"month": "2024-11",
+"department": "TRANS OCEAN OPERATIONS",
+"company": "Trans Ocean",
+"count": 4
+},
+{
+"month": "2024-11",
+"department": "TRANSIND MARKETING",
+"company": "Transind Holding",
+"count": 2
+},
+{
+"month": "2024-11",
+"department": "WAREHOUSE & LOGISTICS",
+"company": "Transind Trading and Distribution",
+"count": 145
+},
+{
+"month": "2024-11",
+"department": "WORKSHOP",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-12",
+"department": "AL MANZIL OPERATIONS",
+"company": "Al Manzil Residence & Suites",
+"count": 17
+},
+{
+"month": "2024-12",
+"department": "ASIAN WOK RESTAURANT",
+"company": "Asian Wok",
+"count": 5
+},
+{
+"month": "2024-12",
+"department": "BUSINESS DEVELOPMENT",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-12",
+"department": "CENTRAL KITCHEN",
+"company": "Mr. Shawarma",
+"count": 5
+},
+{
+"month": "2024-12",
+"department": "CHIEF OPERATIONS OFFICER",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2024-12",
+"department": "COCA COLA DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 89
+},
+{
+"month": "2024-12",
+"department": "DOHA BANK",
+"company": "Top Clean",
+"count": 137
+},
+{
+"month": "2024-12",
+"department": "DOHA BANK TQ",
+"company": "Top Clean",
+"count": 31
+},
+{
+"month": "2024-12",
+"department": "DUKAN FOOD GENERAL",
+"company": "Dukhan Foods",
+"count": 4
+},
+{
+"month": "2024-12",
+"department": "DUKAN FOOD OPERATIONS - BIN OMRAN",
+"company": "Dukhan Foods",
+"count": 3
+},
+{
+"month": "2024-12",
+"department": "FINANCE & ACCOUNTING",
+"company": "Transind Holding",
+"count": 20
+},
+{
+"month": "2024-12",
+"department": "FLEET DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 7
+},
+{
+"month": "2024-12",
+"department": "FOOD DEPARTMENT (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 261
+},
+{
+"month": "2024-12",
+"department": "GENERAL ADMINISTRATION T.C",
+"company": "Transind Holding",
+"count": 5
+},
+{
+"month": "2024-12",
+"department": "GENERAL ADMINISTRATION-REST",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2024-12",
+"department": "GROUP CEO",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-12",
+"department": "HORECA DEPARTMENT (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 25
+},
+{
+"month": "2024-12",
+"department": "HR & ADMIN",
+"company": "Transind Holding",
+"count": 8
+},
+{
+"month": "2024-12",
+"department": "INFORMATION TECHNOLOGY",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2024-12",
+"department": "KAHRAMAA",
+"company": "Top Clean",
+"count": 99
+},
+{
+"month": "2024-12",
+"department": "LAYS & BEVERAGES",
+"company": "Transind Trading and Distribution",
+"count": 2
+},
+{
+"month": "2024-12",
+"department": "LEGAL DEPARTMENT",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2024-12",
+"department": "MAINTENANCE DEPARTMENT",
+"company": "Transind Holding",
+"count": 8
+},
+{
+"month": "2024-12",
+"department": "MANAGEMENT",
+"company": "Transind Holding",
+"count": 45
+},
+{
+"month": "2024-12",
+"department": "MD",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2024-12",
+"department": "MR ABU HAMOUR",
+"company": "Mr. Shawarma",
+"count": 6
+},
+{
+"month": "2024-12",
+"department": "MR GHARAFA",
+"company": "Mr. Shawarma",
+"count": 11
+},
+{
+"month": "2024-12",
+"department": "MR MUSHIREB",
+"company": "Mr. Shawarma",
+"count": 13
+},
+{
+"month": "2024-12",
+"department": "MR QATAR SPORT CLUB",
+"company": "Mr. Shawarma",
+"count": 8
+},
+{
+"month": "2024-12",
+"department": "MR SHAWERMA CENTRAL KITCHEN",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-12",
+"department": "MR UMMSALAL",
+"company": "Mr. Shawarma",
+"count": 6
+},
+{
+"month": "2024-12",
+"department": "NON FOOD DIVISION (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 23
+},
+{
+"month": "2024-12",
+"department": "PAVATI OPERATIONS",
+"company": "Pavati Glamour Lounge",
+"count": 20
+},
+{
+"month": "2024-12",
+"department": "PROCUREMENT & BUSINESS DEPARTMENT",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2024-12",
+"department": "QATAR ENGINEERING LAB",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2024-12",
+"department": "QATAR EXPRESS OPERATIONS",
+"company": "Qatar Express Customs Clearance",
+"count": 11
+},
+{
+"month": "2024-12",
+"department": "QATAR ISLAMIC INSURANCE",
+"company": "Top Clean",
+"count": 5
+},
+{
+"month": "2024-12",
+"department": "SEDAR CO",
+"company": "Top Clean",
+"count": 2
+},
+{
+"month": "2024-12",
+"department": "TOP CLEAN",
+"company": "Top Clean",
+"count": 1
+},
+{
+"month": "2024-12",
+"department": "TOP EQUIPMENT GENERAL",
+"company": "Top Clean",
+"count": 4
+},
+{
+"month": "2024-12",
+"department": "TOP PERFUMES OPERATION",
+"company": "Top Perfume",
+"count": 1
+},
+{
+"month": "2024-12",
+"department": "TRANS OCEAN OPERATIONS",
+"company": "Trans Ocean",
+"count": 4
+},
+{
+"month": "2024-12",
+"department": "TRANSIND MARKETING",
+"company": "Transind Holding",
+"count": 2
+},
+{
+"month": "2024-12",
+"department": "WAREHOUSE & LOGISTICS",
+"company": "Transind Trading and Distribution",
+"count": 151
+},
+{
+"month": "2024-12",
+"department": "WORKSHOP",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2025-12",
+"department": "86 RESIDENCES",
+"company": "Alsadd 86",
+"count": 1
+},
+{
+"month": "2025-12",
+"department": "AL MANZIL OPERATIONS",
+"company": "Al Manzil Residence & Suites",
+"count": 16
+},
+{
+"month": "2025-12",
+"department": "ASIAN WOK RESTAURANT",
+"company": "Asian Wok",
+"count": 5
+},
+{
+"month": "2025-12",
+"department": "CENTRAL KITCHEN",
+"company": "Mr. Shawarma",
+"count": 4
+},
+{
+"month": "2025-12",
+"department": "CHIEF OPERATIONS OFFICER",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2025-12",
+"department": "COCA COLA DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 95
+},
+{
+"month": "2025-12",
+"department": "DOHA BANK",
+"company": "Top Clean",
+"count": 150
+},
+{
+"month": "2025-12",
+"department": "DOHA BANK TQ",
+"company": "Top Clean",
+"count": 39
+},
+{
+"month": "2025-12",
+"department": "DUKAN FOOD GENERAL",
+"company": "Dukhan Foods",
+"count": 3
+},
+{
+"month": "2025-12",
+"department": "FINANCE & ACCOUNTING",
+"company": "Transind Holding",
+"count": 20
+},
+{
+"month": "2025-12",
+"department": "FLEET DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 8
+},
+{
+"month": "2025-12",
+"department": "FOOD DEPARTMENT (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 291
+},
+{
+"month": "2025-12",
+"department": "GENERAL ADMINISTRATION T.C",
+"company": "Transind Holding",
+"count": 5
+},
+{
+"month": "2025-12",
+"department": "GENERAL ADMINISTRATION-REST",
+"company": "Transind Holding",
+"count": 3
+},
+{
+"month": "2025-12",
+"department": "GROUP CEO",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2025-12",
+"department": "HORECA DEPARTMENT (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 28
+},
+{
+"month": "2025-12",
+"department": "HR & ADMIN",
+"company": "Transind Holding",
+"count": 8
+},
+{
+"month": "2025-12",
+"department": "INFORMATION TECHNOLOGY",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2025-12",
+"department": "LAYS & BEVERAGES",
+"company": "Transind Trading and Distribution",
+"count": 2
+},
+{
+"month": "2025-12",
+"department": "LEGAL DEPARTMENT",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2025-12",
+"department": "MAINTENANCE DEPARTMENT",
+"company": "Transind Holding",
+"count": 8
+},
+{
+"month": "2025-12",
+"department": "MANAGEMENT",
+"company": "Transind Holding",
+"count": 53
+},
+{
+"month": "2025-12",
+"department": "MD",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2025-12",
+"department": "MR ABU HAMOUR",
+"company": "Mr. Shawarma",
+"count": 6
+},
+{
+"month": "2025-12",
+"department": "MR GHARAFA",
+"company": "Mr. Shawarma",
+"count": 10
+},
+{
+"month": "2025-12",
+"department": "MR MUSHIREB",
+"company": "Mr. Shawarma",
+"count": 11
+},
+{
+"month": "2025-12",
+"department": "MR QATAR SPORT CLUB",
+"company": "Mr. Shawarma",
+"count": 6
+},
+{
+"month": "2025-12",
+"department": "MR SHAWERMA BIN OMRAN",
+"company": "Mr. Shawarma",
+"count": 5
+},
+{
+"month": "2025-12",
+"department": "MR SHAWERMA CENTRAL KITCHEN",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2025-12",
+"department": "NON FOOD DIVISION (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 19
+},
+{
+"month": "2025-12",
+"department": "ONE HUNDRED TWENTY ALSADD RESIDENCE",
+"company": "120 Al Sadd Residence & Suites",
+"count": 17
+},
+{
+"month": "2025-12",
+"department": "PAVATI OPERATIONS",
+"company": "Pavati Glamour Lounge",
+"count": 20
+},
+{
+"month": "2025-12",
+"department": "PROCUREMENT & BUSINESS DEPARTMENT",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2025-12",
+"department": "PROTIVITI",
+"company": "Top Clean",
+"count": 1
+},
+{
+"month": "2025-12",
+"department": "QATAR ENGINEERING LAB",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2025-12",
+"department": "QATAR EXPRESS OPERATIONS",
+"company": "Qatar Express Customs Clearance",
+"count": 14
+},
+{
+"month": "2025-12",
+"department": "QATAR ISLAMIC INSURANCE",
+"company": "Top Clean",
+"count": 5
+},
+{
+"month": "2025-12",
+"department": "SEDAR CO",
+"company": "Top Clean",
+"count": 2
+},
+{
+"month": "2025-12",
+"department": "TOP CLEAN",
+"company": "Top Clean",
+"count": 2
+},
+{
+"month": "2025-12",
+"department": "TOP EQUIPMENT GENERAL",
+"company": "Top Clean",
+"count": 4
+},
+{
+"month": "2025-12",
+"department": "TOP PERFUMES OPERATION",
+"company": "Top Perfume",
+"count": 2
+},
+{
+"month": "2025-12",
+"department": "TRANS OCEAN OPERATIONS",
+"company": "Trans Ocean",
+"count": 3
+},
+{
+"month": "2025-12",
+"department": "TRANSIND MARKETING",
+"company": "Transind Holding",
+"count": 2
+},
+{
+"month": "2025-12",
+"department": "WAREHOUSE & LOGISTICS",
+"company": "Transind Trading and Distribution",
+"count": 142
+},
+{
+"month": "2026-01",
+"department": "86 RESIDENCES",
+"company": "Alsadd 86",
+"count": 1
+},
+{
+"month": "2026-01",
+"department": "AL MANZIL OPERATIONS",
+"company": "Al Manzil Residence & Suites",
+"count": 16
+},
+{
+"month": "2026-01",
+"department": "ASIAN WOK RESTAURANT",
+"company": "Asian Wok",
+"count": 4
+},
+{
+"month": "2026-01",
+"department": "CENTRAL KITCHEN",
+"company": "Mr. Shawarma",
+"count": 4
+},
+{
+"month": "2026-01",
+"department": "CHIEF OPERATIONS OFFICER",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2026-01",
+"department": "COCA COLA DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 94
+},
+{
+"month": "2026-01",
+"department": "DOHA BANK",
+"company": "Top Clean",
+"count": 146
+},
+{
+"month": "2026-01",
+"department": "DOHA BANK TQ",
+"company": "Top Clean",
+"count": 37
+},
+{
+"month": "2026-01",
+"department": "DUKAN FOOD GENERAL",
+"company": "Dukhan Foods",
+"count": 3
+},
+{
+"month": "2026-01",
+"department": "FINANCE & ACCOUNTING",
+"company": "Transind Holding",
+"count": 21
+},
+{
+"month": "2026-01",
+"department": "FLEET DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 8
+},
+{
+"month": "2026-01",
+"department": "FOOD DEPARTMENT (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 283
+},
+{
+"month": "2026-01",
+"department": "GENERAL ADMINISTRATION T.C",
+"company": "Transind Holding",
+"count": 5
+},
+{
+"month": "2026-01",
+"department": "GENERAL ADMINISTRATION-REST",
+"company": "Transind Holding",
+"count": 3
+},
+{
+"month": "2026-01",
+"department": "GROUP CEO",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2026-01",
+"department": "HORECA DEPARTMENT (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 14
+},
+{
+"month": "2026-01",
+"department": "HR & ADMIN",
+"company": "Transind Holding",
+"count": 8
+},
+{
+"month": "2026-01",
+"department": "INFORMATION TECHNOLOGY",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2026-01",
+"department": "LAYS & BEVERAGES",
+"company": "Transind Trading and Distribution",
+"count": 2
+},
+{
+"month": "2026-01",
+"department": "LEGAL DEPARTMENT",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2026-01",
+"department": "MAINTENANCE DEPARTMENT",
+"company": "Transind Holding",
+"count": 6
+},
+{
+"month": "2026-01",
+"department": "MANAGEMENT",
+"company": "Transind Holding",
+"count": 53
+},
+{
+"month": "2026-01",
+"department": "MD",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2026-01",
+"department": "MR ABU HAMOUR",
+"company": "Mr. Shawarma",
+"count": 6
+},
+{
+"month": "2026-01",
+"department": "MR GHARAFA",
+"company": "Mr. Shawarma",
+"count": 10
+},
+{
+"month": "2026-01",
+"department": "MR MUSHIREB",
+"company": "Mr. Shawarma",
+"count": 9
+},
+{
+"month": "2026-01",
+"department": "MR QATAR SPORT CLUB",
+"company": "Mr. Shawarma",
+"count": 6
+},
+{
+"month": "2026-01",
+"department": "MR SHAWERMA BIN OMRAN",
+"company": "Mr. Shawarma",
+"count": 6
+},
+{
+"month": "2026-01",
+"department": "MR SHAWERMA CENTRAL KITCHEN",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2026-01",
+"department": "NON FOOD DIVISION (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 15
+},
+{
+"month": "2026-01",
+"department": "ONE HUNDRED TWENTY ALSADD RESIDENCE",
+"company": "120 Al Sadd Residence & Suites",
+"count": 15
+},
+{
+"month": "2026-01",
+"department": "PAVATI OPERATIONS",
+"company": "Pavati Glamour Lounge",
+"count": 19
+},
+{
+"month": "2026-01",
+"department": "PROCUREMENT & BUSINESS DEPARTMENT",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2026-01",
+"department": "PROTIVITI",
+"company": "Top Clean",
+"count": 1
+},
+{
+"month": "2026-01",
+"department": "QATAR ENGINEERING LAB",
+"company": "Unassigned",
+"count": 2
+},
+{
+"month": "2026-01",
+"department": "QATAR EXPRESS OPERATIONS",
+"company": "Qatar Express Customs Clearance",
+"count": 14
+},
+{
+"month": "2026-01",
+"department": "QATAR ISLAMIC INSURANCE",
+"company": "Top Clean",
+"count": 5
+},
+{
+"month": "2026-01",
+"department": "SEDAR CO",
+"company": "Top Clean",
+"count": 2
+},
+{
+"month": "2026-01",
+"department": "TOP CLEAN",
+"company": "Top Clean",
+"count": 2
+},
+{
+"month": "2026-01",
+"department": "TOP EQUIPMENT GENERAL",
+"company": "Top Clean",
+"count": 3
+},
+{
+"month": "2026-01",
+"department": "TOP PERFUMES OPERATION",
+"company": "Top Perfume",
+"count": 1
+},
+{
+"month": "2026-01",
+"department": "TRANS OCEAN OPERATIONS",
+"company": "Trans Ocean",
+"count": 3
+},
+{
+"month": "2026-01",
+"department": "TRANSIND MARKETING",
+"company": "Transind Holding",
+"count": 2
+},
+{
+"month": "2026-01",
+"department": "WAREHOUSE & LOGISTICS",
+"company": "Transind Trading and Distribution",
+"count": 140
+},
+{
+"month": "2026-02",
+"department": "86 RESIDENCES",
+"company": "Alsadd 86",
+"count": 1
+},
+{
+"month": "2026-02",
+"department": "AL MANZIL OPERATIONS",
+"company": "Al Manzil Residence & Suites",
+"count": 16
+},
+{
+"month": "2026-02",
+"department": "CENTRAL KITCHEN",
+"company": "Mr. Shawarma",
+"count": 5
+},
+{
+"month": "2026-02",
+"department": "CHIEF OPERATIONS OFFICER",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2026-02",
+"department": "COCA COLA DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 94
+},
+{
+"month": "2026-02",
+"department": "DOHA BANK",
+"company": "Top Clean",
+"count": 150
+},
+{
+"month": "2026-02",
+"department": "DOHA BANK TQ",
+"company": "Top Clean",
+"count": 37
+},
+{
+"month": "2026-02",
+"department": "DUKAN FOOD GENERAL",
+"company": "Dukhan Foods",
+"count": 4
+},
+{
+"month": "2026-02",
+"department": "FINANCE & ACCOUNTING",
+"company": "Transind Holding",
+"count": 20
+},
+{
+"month": "2026-02",
+"department": "FLEET DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 8
+},
+{
+"month": "2026-02",
+"department": "FOOD DEPARTMENT (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 289
+},
+{
+"month": "2026-02",
+"department": "GENERAL ADMINISTRATION T.C",
+"company": "Transind Holding",
+"count": 5
+},
+{
+"month": "2026-02",
+"department": "GENERAL ADMINISTRATION-REST",
+"company": "Transind Holding",
+"count": 3
+},
+{
+"month": "2026-02",
+"department": "GROUP CEO",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2026-02",
+"department": "HORECA DEPARTMENT (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 13
+},
+{
+"month": "2026-02",
+"department": "HR & ADMIN",
+"company": "Transind Holding",
+"count": 8
+},
+{
+"month": "2026-02",
+"department": "INFORMATION TECHNOLOGY",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2026-02",
+"department": "LAYS & BEVERAGES",
+"company": "Transind Trading and Distribution",
+"count": 2
+},
+{
+"month": "2026-02",
+"department": "LEGAL DEPARTMENT",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2026-02",
+"department": "MAINTENANCE DEPARTMENT",
+"company": "Transind Holding",
+"count": 6
+},
+{
+"month": "2026-02",
+"department": "MANAGEMENT",
+"company": "Transind Holding",
+"count": 53
+},
+{
+"month": "2026-02",
+"department": "MD",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2026-02",
+"department": "MR ABU HAMOUR",
+"company": "Mr. Shawarma",
+"count": 6
+},
+{
+"month": "2026-02",
+"department": "MR GHARAFA",
+"company": "Mr. Shawarma",
+"count": 10
+},
+{
+"month": "2026-02",
+"department": "MR MUSHIREB",
+"company": "Mr. Shawarma",
+"count": 12
+},
+{
+"month": "2026-02",
+"department": "MR QATAR SPORT CLUB",
+"company": "Mr. Shawarma",
+"count": 5
+},
+{
+"month": "2026-02",
+"department": "MR SHAWERMA BIN OMRAN",
+"company": "Mr. Shawarma",
+"count": 7
+},
+{
+"month": "2026-02",
+"department": "MR SHAWERMA CENTRAL KITCHEN",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2026-02",
+"department": "NON FOOD DIVISION (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 15
+},
+{
+"month": "2026-02",
+"department": "ONE HUNDRED TWENTY ALSADD RESIDENCE",
+"company": "120 Al Sadd Residence & Suites",
+"count": 17
+},
+{
+"month": "2026-02",
+"department": "PAVATI OPERATIONS",
+"company": "Pavati Glamour Lounge",
+"count": 20
+},
+{
+"month": "2026-02",
+"department": "PROCUREMENT & BUSINESS DEPARTMENT",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2026-02",
+"department": "PROTIVITI",
+"company": "Top Clean",
+"count": 1
+},
+{
+"month": "2026-02",
+"department": "QATAR ENGINEERING LAB",
+"company": "Unassigned",
+"count": 2
+},
+{
+"month": "2026-02",
+"department": "QATAR EXPRESS OPERATIONS",
+"company": "Qatar Express Customs Clearance",
+"count": 14
+},
+{
+"month": "2026-02",
+"department": "QATAR ISLAMIC INSURANCE",
+"company": "Top Clean",
+"count": 5
+},
+{
+"month": "2026-02",
+"department": "SEDAR CO",
+"company": "Top Clean",
+"count": 2
+},
+{
+"month": "2026-02",
+"department": "TOP CLEAN",
+"company": "Top Clean",
+"count": 2
+},
+{
+"month": "2026-02",
+"department": "TOP EQUIPMENT GENERAL",
+"company": "Top Clean",
+"count": 2
+},
+{
+"month": "2026-02",
+"department": "TOP PERFUMES OPERATION",
+"company": "Top Perfume",
+"count": 1
+},
+{
+"month": "2026-02",
+"department": "TRANS OCEAN OPERATIONS",
+"company": "Trans Ocean",
+"count": 3
+},
+{
+"month": "2026-02",
+"department": "TRANSIND MARKETING",
+"company": "Transind Holding",
+"count": 2
+},
+{
+"month": "2026-02",
+"department": "WAREHOUSE & LOGISTICS",
+"company": "Transind Trading and Distribution",
+"count": 139
+},
+{
+"month": "2026-03",
+"department": "86 RESIDENCES",
+"company": "Alsadd 86",
+"count": 1
+},
+{
+"month": "2026-03",
+"department": "AL MANZIL OPERATIONS",
+"company": "Al Manzil Residence & Suites",
+"count": 16
+},
+{
+"month": "2026-03",
+"department": "CENTRAL KITCHEN",
+"company": "Mr. Shawarma",
+"count": 5
+},
+{
+"month": "2026-03",
+"department": "COCA COLA DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 94
+},
+{
+"month": "2026-03",
+"department": "DOHA BANK",
+"company": "Top Clean",
+"count": 151
+},
+{
+"month": "2026-03",
+"department": "DOHA BANK TQ",
+"company": "Top Clean",
+"count": 36
+},
+{
+"month": "2026-03",
+"department": "DUKAN FOOD GENERAL",
+"company": "Dukhan Foods",
+"count": 4
+},
+{
+"month": "2026-03",
+"department": "FINANCE & ACCOUNTING",
+"company": "Transind Holding",
+"count": 20
+},
+{
+"month": "2026-03",
+"department": "FLEET DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 8
+},
+{
+"month": "2026-03",
+"department": "FOOD DEPARTMENT (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 285
+},
+{
+"month": "2026-03",
+"department": "GENERAL ADMINISTRATION T.C",
+"company": "Transind Holding",
+"count": 5
+},
+{
+"month": "2026-03",
+"department": "GENERAL ADMINISTRATION-REST",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2026-03",
+"department": "HORECA DEPARTMENT (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 19
+},
+{
+"month": "2026-03",
+"department": "HR & ADMIN",
+"company": "Transind Holding",
+"count": 8
+},
+{
+"month": "2026-03",
+"department": "INFORMATION TECHNOLOGY",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2026-03",
+"department": "LAYS & BEVERAGES",
+"company": "Transind Trading and Distribution",
+"count": 2
+},
+{
+"month": "2026-03",
+"department": "LEGAL DEPARTMENT",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2026-03",
+"department": "MAINTENANCE DEPARTMENT",
+"company": "Transind Holding",
+"count": 7
+},
+{
+"month": "2026-03",
+"department": "MANAGEMENT",
+"company": "Transind Holding",
+"count": 53
+},
+{
+"month": "2026-03",
+"department": "MD",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2026-03",
+"department": "MR ABU HAMOUR",
+"company": "Mr. Shawarma",
+"count": 6
+},
+{
+"month": "2026-03",
+"department": "MR GHARAFA",
+"company": "Mr. Shawarma",
+"count": 10
+},
+{
+"month": "2026-03",
+"department": "MR MUSHIREB",
+"company": "Mr. Shawarma",
+"count": 12
+},
+{
+"month": "2026-03",
+"department": "MR QATAR SPORT CLUB",
+"company": "Mr. Shawarma",
+"count": 5
+},
+{
+"month": "2026-03",
+"department": "MR SHAWERMA BIN OMRAN",
+"company": "Mr. Shawarma",
+"count": 7
+},
+{
+"month": "2026-03",
+"department": "MR SHAWERMA CENTRAL KITCHEN",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2026-03",
+"department": "NON FOOD DIVISION (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 15
+},
+{
+"month": "2026-03",
+"department": "ONE HUNDRED TWENTY ALSADD RESIDENCE",
+"company": "120 Al Sadd Residence & Suites",
+"count": 17
+},
+{
+"month": "2026-03",
+"department": "PAVATI OPERATIONS",
+"company": "Pavati Glamour Lounge",
+"count": 20
+},
+{
+"month": "2026-03",
+"department": "PROCUREMENT & BUSINESS DEPARTMENT",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2026-03",
+"department": "PROTIVITI",
+"company": "Top Clean",
+"count": 1
+},
+{
+"month": "2026-03",
+"department": "QATAR ENGINEERING LAB",
+"company": "Unassigned",
+"count": 2
+},
+{
+"month": "2026-03",
+"department": "QATAR EXPRESS OPERATIONS",
+"company": "Qatar Express Customs Clearance",
+"count": 15
+},
+{
+"month": "2026-03",
+"department": "QATAR ISLAMIC INSURANCE",
+"company": "Top Clean",
+"count": 5
+},
+{
+"month": "2026-03",
+"department": "SEDAR CO",
+"company": "Top Clean",
+"count": 2
+},
+{
+"month": "2026-03",
+"department": "TOP CLEAN",
+"company": "Top Clean",
+"count": 2
+},
+{
+"month": "2026-03",
+"department": "TOP EQUIPMENT GENERAL",
+"company": "Top Clean",
+"count": 2
+},
+{
+"month": "2026-03",
+"department": "TOP PERFUMES OPERATION",
+"company": "Top Perfume",
+"count": 2
+},
+{
+"month": "2026-03",
+"department": "TRANS OCEAN OPERATIONS",
+"company": "Trans Ocean",
+"count": 3
+},
+{
+"month": "2026-03",
+"department": "TRANSIND MARKETING",
+"company": "Transind Holding",
+"count": 2
+},
+{
+"month": "2026-03",
+"department": "VICE CHAIRMAN",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2026-03",
+"department": "WAREHOUSE & LOGISTICS",
+"company": "Transind Trading and Distribution",
+"count": 139
+},
+{
+"month": "2026-04",
+"department": "86 RESIDENCES",
+"company": "Alsadd 86",
+"count": 1
+},
+{
+"month": "2026-04",
+"department": "AL MANZIL OPERATIONS",
+"company": "Al Manzil Residence & Suites",
+"count": 16
+},
+{
+"month": "2026-04",
+"department": "CENTRAL KITCHEN",
+"company": "Mr. Shawarma",
+"count": 5
+},
+{
+"month": "2026-04",
+"department": "COCA COLA DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 93
+},
+{
+"month": "2026-04",
+"department": "DOHA BANK",
+"company": "Top Clean",
+"count": 152
+},
+{
+"month": "2026-04",
+"department": "DOHA BANK TQ",
+"company": "Top Clean",
+"count": 36
+},
+{
+"month": "2026-04",
+"department": "DUKAN FOOD GENERAL",
+"company": "Dukhan Foods",
+"count": 4
+},
+{
+"month": "2026-04",
+"department": "EXECUTIVE DIRECTOR",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2026-04",
+"department": "FINANCE & ACCOUNTING",
+"company": "Transind Holding",
+"count": 20
+},
+{
+"month": "2026-04",
+"department": "FLEET DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 8
+},
+{
+"month": "2026-04",
+"department": "FOOD DEPARTMENT (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 276
+},
+{
+"month": "2026-04",
+"department": "GENERAL ADMINISTRATION T.C",
+"company": "Transind Holding",
+"count": 5
+},
+{
+"month": "2026-04",
+"department": "GENERAL ADMINISTRATION-REST",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2026-04",
+"department": "HORECA DEPARTMENT (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 16
+},
+{
+"month": "2026-04",
+"department": "HR & ADMIN",
+"company": "Transind Holding",
+"count": 8
+},
+{
+"month": "2026-04",
+"department": "INFORMATION TECHNOLOGY",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2026-04",
+"department": "LAYS & BEVERAGES",
+"company": "Transind Trading and Distribution",
+"count": 2
+},
+{
+"month": "2026-04",
+"department": "LEGAL DEPARTMENT",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2026-04",
+"department": "LOGISTIC DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 67
+},
+{
+"month": "2026-04",
+"department": "MAINTENANCE DEPARTMENT",
+"company": "Transind Holding",
+"count": 7
+},
+{
+"month": "2026-04",
+"department": "MANAGEMENT",
+"company": "Transind Holding",
+"count": 53
+},
+{
+"month": "2026-04",
+"department": "MD",
+"company": "Transind Holding",
+"count": 2
+},
+{
+"month": "2026-04",
+"department": "MR ABU HAMOUR",
+"company": "Mr. Shawarma",
+"count": 6
+},
+{
+"month": "2026-04",
+"department": "MR GHARAFA",
+"company": "Mr. Shawarma",
+"count": 10
+},
+{
+"month": "2026-04",
+"department": "MR MUSHIREB",
+"company": "Mr. Shawarma",
+"count": 12
+},
+{
+"month": "2026-04",
+"department": "MR QATAR SPORT CLUB",
+"company": "Mr. Shawarma",
+"count": 5
+},
+{
+"month": "2026-04",
+"department": "MR SHAWERMA BIN OMRAN",
+"company": "Mr. Shawarma",
+"count": 7
+},
+{
+"month": "2026-04",
+"department": "MR SHAWERMA CENTRAL KITCHEN",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2026-04",
+"department": "NON FOOD DIVISION (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 15
+},
+{
+"month": "2026-04",
+"department": "ONE HUNDRED TWENTY ALSADD RESIDENCE",
+"company": "120 Al Sadd Residence & Suites",
+"count": 17
+},
+{
+"month": "2026-04",
+"department": "PAVATI OPERATIONS",
+"company": "Pavati Glamour Lounge",
+"count": 18
+},
+{
+"month": "2026-04",
+"department": "PROCUREMENT & BUSINESS DEPARTMENT",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2026-04",
+"department": "PROTIVITI",
+"company": "Top Clean",
+"count": 1
+},
+{
+"month": "2026-04",
+"department": "QATAR ENGINEERING LAB",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2026-04",
+"department": "QATAR EXPRESS OPERATIONS",
+"company": "Qatar Express Customs Clearance",
+"count": 15
+},
+{
+"month": "2026-04",
+"department": "QATAR ISLAMIC INSURANCE",
+"company": "Top Clean",
+"count": 5
+},
+{
+"month": "2026-04",
+"department": "SEDAR CO",
+"company": "Top Clean",
+"count": 2
+},
+{
+"month": "2026-04",
+"department": "TOP CLEAN",
+"company": "Top Clean",
+"count": 2
+},
+{
+"month": "2026-04",
+"department": "TOP EQUIPMENT GENERAL",
+"company": "Top Clean",
+"count": 2
+},
+{
+"month": "2026-04",
+"department": "TOP PERFUMES OPERATION",
+"company": "Top Perfume",
+"count": 2
+},
+{
+"month": "2026-04",
+"department": "TRANS OCEAN OPERATIONS",
+"company": "Trans Ocean",
+"count": 3
+},
+{
+"month": "2026-04",
+"department": "TRANSIND MARKETING",
+"company": "Transind Holding",
+"count": 2
+},
+{
+"month": "2026-04",
+"department": "VICE CHAIRMAN",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2026-04",
+"department": "WAREHOUSE DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 70
+},
+{
+"month": "2026-04",
+"department": "WORKSHOP",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2026-05",
+"department": "86 RESIDENCES",
+"company": "Alsadd 86",
+"count": 2
+},
+{
+"month": "2026-05",
+"department": "AL MANZIL OPERATIONS",
+"company": "Al Manzil Residence & Suites",
+"count": 16
+},
+{
+"month": "2026-05",
+"department": "CENTRAL KITCHEN",
+"company": "Mr. Shawarma",
+"count": 5
+},
+{
+"month": "2026-05",
+"department": "COCA COLA DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 93
+},
+{
+"month": "2026-05",
+"department": "DOHA BANK",
+"company": "Top Clean",
+"count": 149
+},
+{
+"month": "2026-05",
+"department": "DOHA BANK TQ",
+"company": "Top Clean",
+"count": 36
+},
+{
+"month": "2026-05",
+"department": "DUKAN FOOD GENERAL",
+"company": "Dukhan Foods",
+"count": 4
+},
+{
+"month": "2026-05",
+"department": "EXECUTIVE DIRECTOR",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2026-05",
+"department": "FINANCE & ACCOUNTING",
+"company": "Transind Holding",
+"count": 20
+},
+{
+"month": "2026-05",
+"department": "FLEET DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 8
+},
+{
+"month": "2026-05",
+"department": "FOOD DEPARTMENT (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 279
+},
+{
+"month": "2026-05",
+"department": "GENERAL ADMINISTRATION T.C",
+"company": "Transind Holding",
+"count": 5
+},
+{
+"month": "2026-05",
+"department": "GENERAL ADMINISTRATION-REST",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2026-05",
+"department": "HORECA DEPARTMENT (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 17
+},
+{
+"month": "2026-05",
+"department": "HR & ADMIN",
+"company": "Transind Holding",
+"count": 8
+},
+{
+"month": "2026-05",
+"department": "INFORMATION TECHNOLOGY",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2026-05",
+"department": "LAYS & BEVERAGES",
+"company": "Transind Trading and Distribution",
+"count": 2
+},
+{
+"month": "2026-05",
+"department": "LEGAL DEPARTMENT",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2026-05",
+"department": "LOGISTIC DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 67
+},
+{
+"month": "2026-05",
+"department": "MAINTENANCE DEPARTMENT",
+"company": "Transind Holding",
+"count": 8
+},
+{
+"month": "2026-05",
+"department": "MANAGEMENT",
+"company": "Transind Holding",
+"count": 53
+},
+{
+"month": "2026-05",
+"department": "MD",
+"company": "Transind Holding",
+"count": 2
+},
+{
+"month": "2026-05",
+"department": "MR ABU HAMOUR",
+"company": "Mr. Shawarma",
+"count": 6
+},
+{
+"month": "2026-05",
+"department": "MR GHARAFA",
+"company": "Mr. Shawarma",
+"count": 11
+},
+{
+"month": "2026-05",
+"department": "MR MUSHIREB",
+"company": "Mr. Shawarma",
+"count": 12
+},
+{
+"month": "2026-05",
+"department": "MR QATAR SPORT CLUB",
+"company": "Mr. Shawarma",
+"count": 5
+},
+{
+"month": "2026-05",
+"department": "MR SHAWERMA BIN OMRAN",
+"company": "Mr. Shawarma",
+"count": 6
+},
+{
+"month": "2026-05",
+"department": "MR SHAWERMA CENTRAL KITCHEN",
+"company": "Unassigned",
+"count": 1
+},
+{
+"month": "2026-05",
+"department": "NON FOOD DIVISION (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 15
+},
+{
+"month": "2026-05",
+"department": "ONE HUNDRED TWENTY ALSADD RESIDENCE",
+"company": "120 Al Sadd Residence & Suites",
+"count": 17
+},
+{
+"month": "2026-05",
+"department": "PAVATI OPERATIONS",
+"company": "Pavati Glamour Lounge",
+"count": 18
+},
+{
+"month": "2026-05",
+"department": "PROCUREMENT & BUSINESS DEPARTMENT",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2026-05",
+"department": "PROTIVITI",
+"company": "Top Clean",
+"count": 1
+},
+{
+"month": "2026-05",
+"department": "QATAR EXPRESS OPERATIONS",
+"company": "Qatar Express Customs Clearance",
+"count": 15
+},
+{
+"month": "2026-05",
+"department": "QATAR ISLAMIC INSURANCE",
+"company": "Top Clean",
+"count": 6
+},
+{
+"month": "2026-05",
+"department": "SEDAR CO",
+"company": "Top Clean",
+"count": 2
+},
+{
+"month": "2026-05",
+"department": "TOP CLEAN",
+"company": "Top Clean",
+"count": 2
+},
+{
+"month": "2026-05",
+"department": "TOP EQUIPMENT GENERAL",
+"company": "Top Clean",
+"count": 2
+},
+{
+"month": "2026-05",
+"department": "TOP PERFUMES OPERATION",
+"company": "Top Perfume",
+"count": 2
+},
+{
+"month": "2026-05",
+"department": "TRANS OCEAN OPERATIONS",
+"company": "Trans Ocean",
+"count": 3
+},
+{
+"month": "2026-05",
+"department": "TRANSIND MARKETING",
+"company": "Transind Holding",
+"count": 2
+},
+{
+"month": "2026-05",
+"department": "VICE CHAIRMAN",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2026-05",
+"department": "WAREHOUSE DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 70
+},
+{
+"month": "2026-06",
+"department": "86 RESIDENCES",
+"company": "Alsadd 86",
+"count": 2
+},
+{
+"month": "2026-06",
+"department": "AL MANZIL OPERATIONS",
+"company": "Al Manzil Residence & Suites",
+"count": 16
+},
+{
+"month": "2026-06",
+"department": "CENTRAL KITCHEN",
+"company": "Mr. Shawarma",
+"count": 6
+},
+{
+"month": "2026-06",
+"department": "COCA COLA DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 92
+},
+{
+"month": "2026-06",
+"department": "DOHA BANK",
+"company": "Top Clean",
+"count": 153
+},
+{
+"month": "2026-06",
+"department": "DOHA BANK TQ",
+"company": "Top Clean",
+"count": 37
+},
+{
+"month": "2026-06",
+"department": "DUKAN FOOD GENERAL",
+"company": "Dukhan Foods",
+"count": 4
+},
+{
+"month": "2026-06",
+"department": "EXECUTIVE DIRECTOR",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2026-06",
+"department": "FINANCE & ACCOUNTING",
+"company": "Transind Holding",
+"count": 20
+},
+{
+"month": "2026-06",
+"department": "FLEET DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 8
+},
+{
+"month": "2026-06",
+"department": "FOOD DEPARTMENT (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 277
+},
+{
+"month": "2026-06",
+"department": "GENERAL ADMINISTRATION T.C",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2026-06",
+"department": "GENERAL ADMINISTRATION-REST",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2026-06",
+"department": "HORECA DEPARTMENT (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 17
+},
+{
+"month": "2026-06",
+"department": "HR & ADMIN",
+"company": "Transind Holding",
+"count": 8
+},
+{
+"month": "2026-06",
+"department": "INFORMATION TECHNOLOGY",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2026-06",
+"department": "LAYS & BEVERAGES",
+"company": "Transind Trading and Distribution",
+"count": 2
+},
+{
+"month": "2026-06",
+"department": "LEGAL DEPARTMENT",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2026-06",
+"department": "LOGISTIC DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 66
+},
+{
+"month": "2026-06",
+"department": "MAINTENANCE DEPARTMENT",
+"company": "Transind Holding",
+"count": 8
+},
+{
+"month": "2026-06",
+"department": "MANAGEMENT",
+"company": "Transind Holding",
+"count": 53
+},
+{
+"month": "2026-06",
+"department": "MD",
+"company": "Transind Holding",
+"count": 2
+},
+{
+"month": "2026-06",
+"department": "MR ABU HAMOUR",
+"company": "Mr. Shawarma",
+"count": 6
+},
+{
+"month": "2026-06",
+"department": "MR GHARAFA",
+"company": "Mr. Shawarma",
+"count": 11
+},
+{
+"month": "2026-06",
+"department": "MR MUSHIREB",
+"company": "Mr. Shawarma",
+"count": 11
+},
+{
+"month": "2026-06",
+"department": "MR QATAR SPORT CLUB",
+"company": "Mr. Shawarma",
+"count": 5
+},
+{
+"month": "2026-06",
+"department": "MR SHAWERMA BIN OMRAN",
+"company": "Mr. Shawarma",
+"count": 7
+},
+{
+"month": "2026-06",
+"department": "NON FOOD DIVISION (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 15
+},
+{
+"month": "2026-06",
+"department": "ONE HUNDRED TWENTY ALSADD RESIDENCE",
+"company": "120 Al Sadd Residence & Suites",
+"count": 17
+},
+{
+"month": "2026-06",
+"department": "PAVATI OPERATIONS",
+"company": "Pavati Glamour Lounge",
+"count": 18
+},
+{
+"month": "2026-06",
+"department": "PROCUREMENT & BUSINESS DEPARTMENT",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2026-06",
+"department": "PROTIVITI",
+"company": "Top Clean",
+"count": 1
+},
+{
+"month": "2026-06",
+"department": "QATAR EXPRESS OPERATIONS",
+"company": "Qatar Express Customs Clearance",
+"count": 15
+},
+{
+"month": "2026-06",
+"department": "QATAR ISLAMIC INSURANCE",
+"company": "Top Clean",
+"count": 6
+},
+{
+"month": "2026-06",
+"department": "SEDAR CO",
+"company": "Top Clean",
+"count": 2
+},
+{
+"month": "2026-06",
+"department": "TOP EQUIPMENT GENERAL",
+"company": "Top Clean",
+"count": 2
+},
+{
+"month": "2026-06",
+"department": "TOP PERFUMES OPERATION",
+"company": "Top Perfume",
+"count": 2
+},
+{
+"month": "2026-06",
+"department": "TRANS OCEAN OPERATIONS",
+"company": "Trans Ocean",
+"count": 3
+},
+{
+"month": "2026-06",
+"department": "TRANSIND MARKETING",
+"company": "Transind Holding",
+"count": 2
+},
+{
+"month": "2026-06",
+"department": "VICE CHAIRMAN",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2026-06",
+"department": "WAREHOUSE DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 69
+},
+{
+"month": "2026-07",
+"department": "86 RESIDENCES",
+"company": "Alsadd 86",
+"count": 2
+},
+{
+"month": "2026-07",
+"department": "AL MANZIL OPERATIONS",
+"company": "Al Manzil Residence & Suites",
+"count": 16
+},
+{
+"month": "2026-07",
+"department": "CENTRAL KITCHEN",
+"company": "Mr. Shawarma",
+"count": 6
+},
+{
+"month": "2026-07",
+"department": "COCA COLA DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 92
+},
+{
+"month": "2026-07",
+"department": "DOHA BANK",
+"company": "Top Clean",
+"count": 154
+},
+{
+"month": "2026-07",
+"department": "DOHA BANK TQ",
+"company": "Top Clean",
+"count": 37
+},
+{
+"month": "2026-07",
+"department": "DUKAN FOOD GENERAL",
+"company": "Dukhan Foods",
+"count": 3
+},
+{
+"month": "2026-07",
+"department": "EXECUTIVE DIRECTOR",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2026-07",
+"department": "FINANCE & ACCOUNTING",
+"company": "Transind Holding",
+"count": 22
+},
+{
+"month": "2026-07",
+"department": "FLEET DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 8
+},
+{
+"month": "2026-07",
+"department": "FOOD DEPARTMENT (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 280
+},
+{
+"month": "2026-07",
+"department": "GENERAL ADMINISTRATION T.C",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2026-07",
+"department": "GENERAL ADMINISTRATION-REST",
+"company": "Transind Holding",
+"count": 3
+},
+{
+"month": "2026-07",
+"department": "HORECA DEPARTMENT (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 17
+},
+{
+"month": "2026-07",
+"department": "HR & ADMIN",
+"company": "Transind Holding",
+"count": 8
+},
+{
+"month": "2026-07",
+"department": "INFORMATION TECHNOLOGY",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2026-07",
+"department": "LAYS & BEVERAGES",
+"company": "Transind Trading and Distribution",
+"count": 2
+},
+{
+"month": "2026-07",
+"department": "LEGAL DEPARTMENT",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2026-07",
+"department": "LOGISTIC DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 71
+},
+{
+"month": "2026-07",
+"department": "MAINTENANCE DEPARTMENT",
+"company": "Transind Holding",
+"count": 9
+},
+{
+"month": "2026-07",
+"department": "MANAGEMENT",
+"company": "Transind Holding",
+"count": 52
+},
+{
+"month": "2026-07",
+"department": "MD",
+"company": "Transind Holding",
+"count": 2
+},
+{
+"month": "2026-07",
+"department": "MR ABU HAMOUR",
+"company": "Mr. Shawarma",
+"count": 6
+},
+{
+"month": "2026-07",
+"department": "MR GHARAFA",
+"company": "Mr. Shawarma",
+"count": 10
+},
+{
+"month": "2026-07",
+"department": "MR MUSHIREB",
+"company": "Mr. Shawarma",
+"count": 12
+},
+{
+"month": "2026-07",
+"department": "MR QATAR SPORT CLUB",
+"company": "Mr. Shawarma",
+"count": 5
+},
+{
+"month": "2026-07",
+"department": "MR SHAWERMA BIN OMRAN",
+"company": "Mr. Shawarma",
+"count": 7
+},
+{
+"month": "2026-07",
+"department": "NON FOOD DIVISION (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 15
+},
+{
+"month": "2026-07",
+"department": "ONE HUNDRED TWENTY ALSADD RESIDENCE",
+"company": "120 Al Sadd Residence & Suites",
+"count": 19
+},
+{
+"month": "2026-07",
+"department": "PAVATI OPERATIONS",
+"company": "Pavati Glamour Lounge",
+"count": 17
+},
+{
+"month": "2026-07",
+"department": "PROCUREMENT & BUSINESS DEPARTMENT",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2026-07",
+"department": "PROTIVITI",
+"company": "Top Clean",
+"count": 1
+},
+{
+"month": "2026-07",
+"department": "QATAR EXPRESS OPERATIONS",
+"company": "Qatar Express Customs Clearance",
+"count": 15
+},
+{
+"month": "2026-07",
+"department": "QATAR ISLAMIC INSURANCE",
+"company": "Top Clean",
+"count": 6
+},
+{
+"month": "2026-07",
+"department": "SEDAR CO",
+"company": "Top Clean",
+"count": 2
+},
+{
+"month": "2026-07",
+"department": "TOP CLEAN",
+"company": "Top Clean",
+"count": 1
+},
+{
+"month": "2026-07",
+"department": "TOP EQUIPMENT GENERAL",
+"company": "Top Clean",
+"count": 2
+},
+{
+"month": "2026-07",
+"department": "TOP PERFUMES OPERATION",
+"company": "Top Perfume",
+"count": 2
+},
+{
+"month": "2026-07",
+"department": "TRANS OCEAN OPERATIONS",
+"company": "Trans Ocean",
+"count": 3
+},
+{
+"month": "2026-07",
+"department": "TRANSIND MARKETING",
+"company": "Transind Holding",
+"count": 2
+},
+{
+"month": "2026-07",
+"department": "VICE CHAIRMAN",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2026-07",
+"department": "WAREHOUSE DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 69
+},
+{
+"month": "2026-08",
+"department": "86 RESIDENCES",
+"company": "Alsadd 86",
+"count": 2
+},
+{
+"month": "2026-08",
+"department": "AL MANZIL OPERATIONS",
+"company": "Al Manzil Residence & Suites",
+"count": 17
+},
+{
+"month": "2026-08",
+"department": "CENTRAL KITCHEN",
+"company": "Mr. Shawarma",
+"count": 6
+},
+{
+"month": "2026-08",
+"department": "COCA COLA DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 101
+},
+{
+"month": "2026-08",
+"department": "DOHA BANK",
+"company": "Top Clean",
+"count": 152
+},
+{
+"month": "2026-08",
+"department": "DOHA BANK TQ",
+"company": "Top Clean",
+"count": 36
+},
+{
+"month": "2026-08",
+"department": "DUKAN FOOD GENERAL",
+"company": "Dukhan Foods",
+"count": 4
+},
+{
+"month": "2026-08",
+"department": "EXECUTIVE DIRECTOR",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2026-08",
+"department": "FINANCE & ACCOUNTING",
+"company": "Transind Holding",
+"count": 22
+},
+{
+"month": "2026-08",
+"department": "FLEET DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 7
+},
+{
+"month": "2026-08",
+"department": "FOOD DEPARTMENT (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 285
+},
+{
+"month": "2026-08",
+"department": "GENERAL ADMINISTRATION T.C",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2026-08",
+"department": "GENERAL ADMINISTRATION-REST",
+"company": "Transind Holding",
+"count": 3
+},
+{
+"month": "2026-08",
+"department": "HORECA DEPARTMENT (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 17
+},
+{
+"month": "2026-08",
+"department": "HR & ADMIN",
+"company": "Transind Holding",
+"count": 8
+},
+{
+"month": "2026-08",
+"department": "INFORMATION TECHNOLOGY",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2026-08",
+"department": "LAYS & BEVERAGES",
+"company": "Transind Trading and Distribution",
+"count": 1
+},
+{
+"month": "2026-08",
+"department": "LEGAL DEPARTMENT",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2026-08",
+"department": "LOGISTIC DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 77
+},
+{
+"month": "2026-08",
+"department": "MAINTENANCE DEPARTMENT",
+"company": "Transind Holding",
+"count": 12
+},
+{
+"month": "2026-08",
+"department": "MANAGEMENT",
+"company": "Transind Holding",
+"count": 51
+},
+{
+"month": "2026-08",
+"department": "MD",
+"company": "Transind Holding",
+"count": 2
+},
+{
+"month": "2026-08",
+"department": "MR ABU HAMOUR",
+"company": "Mr. Shawarma",
+"count": 7
+},
+{
+"month": "2026-08",
+"department": "MR GHARAFA",
+"company": "Mr. Shawarma",
+"count": 10
+},
+{
+"month": "2026-08",
+"department": "MR MUSHIREB",
+"company": "Mr. Shawarma",
+"count": 11
+},
+{
+"month": "2026-08",
+"department": "MR QATAR SPORT CLUB",
+"company": "Mr. Shawarma",
+"count": 5
+},
+{
+"month": "2026-08",
+"department": "MR SHAWERMA BIN OMRAN",
+"company": "Mr. Shawarma",
+"count": 6
+},
+{
+"month": "2026-08",
+"department": "NON FOOD DIVISION (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 13
+},
+{
+"month": "2026-08",
+"department": "ONE HUNDRED TWENTY ALSADD RESIDENCE",
+"company": "120 Al Sadd Residence & Suites",
+"count": 19
+},
+{
+"month": "2026-08",
+"department": "PAVATI OPERATIONS",
+"company": "Pavati Glamour Lounge",
+"count": 16
+},
+{
+"month": "2026-08",
+"department": "PROCUREMENT & BUSINESS DEPARTMENT",
+"company": "Transind Holding",
+"count": 5
+},
+{
+"month": "2026-08",
+"department": "PROTIVITI",
+"company": "Top Clean",
+"count": 1
+},
+{
+"month": "2026-08",
+"department": "QATAR EXPRESS OPERATIONS",
+"company": "Qatar Express Customs Clearance",
+"count": 15
+},
+{
+"month": "2026-08",
+"department": "QATAR ISLAMIC INSURANCE",
+"company": "Top Clean",
+"count": 6
+},
+{
+"month": "2026-08",
+"department": "SEDAR CO",
+"company": "Top Clean",
+"count": 2
+},
+{
+"month": "2026-08",
+"department": "TOP CLEAN",
+"company": "Top Clean",
+"count": 1
+},
+{
+"month": "2026-08",
+"department": "TOP EQUIPMENT GENERAL",
+"company": "Top Clean",
+"count": 3
+},
+{
+"month": "2026-08",
+"department": "TOP PERFUMES OPERATION",
+"company": "Top Perfume",
+"count": 2
+},
+{
+"month": "2026-08",
+"department": "TRANS OCEAN OPERATIONS",
+"company": "Trans Ocean",
+"count": 3
+},
+{
+"month": "2026-08",
+"department": "TRANSIND MARKETING",
+"company": "Transind Holding",
+"count": 2
+},
+{
+"month": "2026-08",
+"department": "VICE CHAIRMAN",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2026-08",
+"department": "WAREHOUSE DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 73
+},
+{
+"month": "2026-09",
+"department": "86 RESIDENCES",
+"company": "Alsadd 86",
+"count": 2
+},
+{
+"month": "2026-09",
+"department": "AL MANZIL OPERATIONS",
+"company": "Al Manzil Residence & Suites",
+"count": 17
+},
+{
+"month": "2026-09",
+"department": "CENTRAL KITCHEN",
+"company": "Mr. Shawarma",
+"count": 6
+},
+{
+"month": "2026-09",
+"department": "COCA COLA DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 102
+},
+{
+"month": "2026-09",
+"department": "DOHA BANK",
+"company": "Top Clean",
+"count": 152
+},
+{
+"month": "2026-09",
+"department": "DOHA BANK TQ",
+"company": "Top Clean",
+"count": 36
+},
+{
+"month": "2026-09",
+"department": "DUKAN FOOD GENERAL",
+"company": "Dukhan Foods",
+"count": 4
+},
+{
+"month": "2026-09",
+"department": "EXECUTIVE DIRECTOR",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2026-09",
+"department": "FINANCE & ACCOUNTING",
+"company": "Transind Holding",
+"count": 22
+},
+{
+"month": "2026-09",
+"department": "FLEET DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 7
+},
+{
+"month": "2026-09",
+"department": "FOOD DEPARTMENT (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 286
+},
+{
+"month": "2026-09",
+"department": "GENERAL ADMINISTRATION T.C",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2026-09",
+"department": "GENERAL ADMINISTRATION-REST",
+"company": "Transind Holding",
+"count": 3
+},
+{
+"month": "2026-09",
+"department": "HORECA DEPARTMENT (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 16
+},
+{
+"month": "2026-09",
+"department": "HR & ADMIN",
+"company": "Transind Holding",
+"count": 8
+},
+{
+"month": "2026-09",
+"department": "INFORMATION TECHNOLOGY",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2026-09",
+"department": "LAYS & BEVERAGES",
+"company": "Transind Trading and Distribution",
+"count": 1
+},
+{
+"month": "2026-09",
+"department": "LEGAL DEPARTMENT",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2026-09",
+"department": "LOGISTIC DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 76
+},
+{
+"month": "2026-09",
+"department": "MAINTENANCE DEPARTMENT",
+"company": "Transind Holding",
+"count": 12
+},
+{
+"month": "2026-09",
+"department": "MANAGEMENT",
+"company": "Transind Holding",
+"count": 51
+},
+{
+"month": "2026-09",
+"department": "MD",
+"company": "Transind Holding",
+"count": 2
+},
+{
+"month": "2026-09",
+"department": "MR ABU HAMOUR",
+"company": "Mr. Shawarma",
+"count": 7
+},
+{
+"month": "2026-09",
+"department": "MR GHARAFA",
+"company": "Mr. Shawarma",
+"count": 10
+},
+{
+"month": "2026-09",
+"department": "MR MUSHIREB",
+"company": "Mr. Shawarma",
+"count": 11
+},
+{
+"month": "2026-09",
+"department": "MR QATAR SPORT CLUB",
+"company": "Mr. Shawarma",
+"count": 5
+},
+{
+"month": "2026-09",
+"department": "MR SHAWERMA BIN OMRAN",
+"company": "Mr. Shawarma",
+"count": 6
+},
+{
+"month": "2026-09",
+"department": "NON FOOD DIVISION (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 13
+},
+{
+"month": "2026-09",
+"department": "ONE HUNDRED TWENTY ALSADD RESIDENCE",
+"company": "120 Al Sadd Residence & Suites",
+"count": 19
+},
+{
+"month": "2026-09",
+"department": "PAVATI OPERATIONS",
+"company": "Pavati Glamour Lounge",
+"count": 16
+},
+{
+"month": "2026-09",
+"department": "PROCUREMENT & BUSINESS DEPARTMENT",
+"company": "Transind Holding",
+"count": 5
+},
+{
+"month": "2026-09",
+"department": "PROTIVITI",
+"company": "Top Clean",
+"count": 1
+},
+{
+"month": "2026-09",
+"department": "QATAR EXPRESS OPERATIONS",
+"company": "Qatar Express Customs Clearance",
+"count": 15
+},
+{
+"month": "2026-09",
+"department": "QATAR ISLAMIC INSURANCE",
+"company": "Top Clean",
+"count": 6
+},
+{
+"month": "2026-09",
+"department": "SEDAR CO",
+"company": "Top Clean",
+"count": 2
+},
+{
+"month": "2026-09",
+"department": "TOP CLEAN",
+"company": "Top Clean",
+"count": 1
+},
+{
+"month": "2026-09",
+"department": "TOP EQUIPMENT GENERAL",
+"company": "Top Clean",
+"count": 3
+},
+{
+"month": "2026-09",
+"department": "TOP PERFUMES OPERATION",
+"company": "Top Perfume",
+"count": 2
+},
+{
+"month": "2026-09",
+"department": "TRANS OCEAN OPERATIONS",
+"company": "Trans Ocean",
+"count": 3
+},
+{
+"month": "2026-09",
+"department": "TRANSIND MARKETING",
+"company": "Transind Holding",
+"count": 2
+},
+{
+"month": "2026-09",
+"department": "VICE CHAIRMAN",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2026-09",
+"department": "WAREHOUSE DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 73
+},
+{
+"month": "2026-10",
+"department": "86 RESIDENCES",
+"company": "Alsadd 86",
+"count": 2
+},
+{
+"month": "2026-10",
+"department": "AL MANZIL OPERATIONS",
+"company": "Al Manzil Residence & Suites",
+"count": 17
+},
+{
+"month": "2026-10",
+"department": "CENTRAL KITCHEN",
+"company": "Mr. Shawarma",
+"count": 6
+},
+{
+"month": "2026-10",
+"department": "COCA COLA DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 100
+},
+{
+"month": "2026-10",
+"department": "DOHA BANK",
+"company": "Top Clean",
+"count": 150
+},
+{
+"month": "2026-10",
+"department": "DOHA BANK TQ",
+"company": "Top Clean",
+"count": 36
+},
+{
+"month": "2026-10",
+"department": "DUKAN FOOD GENERAL",
+"company": "Dukhan Foods",
+"count": 4
+},
+{
+"month": "2026-10",
+"department": "EXECUTIVE DIRECTOR",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2026-10",
+"department": "FINANCE & ACCOUNTING",
+"company": "Transind Holding",
+"count": 22
+},
+{
+"month": "2026-10",
+"department": "FLEET DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 7
+},
+{
+"month": "2026-10",
+"department": "FOOD DEPARTMENT (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 284
+},
+{
+"month": "2026-10",
+"department": "GENERAL ADMINISTRATION T.C",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2026-10",
+"department": "GENERAL ADMINISTRATION-REST",
+"company": "Transind Holding",
+"count": 3
+},
+{
+"month": "2026-10",
+"department": "HORECA DEPARTMENT (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 18
+},
+{
+"month": "2026-10",
+"department": "HR & ADMIN",
+"company": "Transind Holding",
+"count": 9
+},
+{
+"month": "2026-10",
+"department": "INFORMATION TECHNOLOGY",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2026-10",
+"department": "LAYS & BEVERAGES",
+"company": "Transind Trading and Distribution",
+"count": 1
+},
+{
+"month": "2026-10",
+"department": "LEGAL DEPARTMENT",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2026-10",
+"department": "LOGISTIC DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 74
+},
+{
+"month": "2026-10",
+"department": "MAINTENANCE DEPARTMENT",
+"company": "Transind Holding",
+"count": 12
+},
+{
+"month": "2026-10",
+"department": "MANAGEMENT",
+"company": "Transind Holding",
+"count": 53
+},
+{
+"month": "2026-10",
+"department": "MD",
+"company": "Transind Holding",
+"count": 2
+},
+{
+"month": "2026-10",
+"department": "MR ABU HAMOUR",
+"company": "Mr. Shawarma",
+"count": 7
+},
+{
+"month": "2026-10",
+"department": "MR GHARAFA",
+"company": "Mr. Shawarma",
+"count": 10
+},
+{
+"month": "2026-10",
+"department": "MR MUSHIREB",
+"company": "Mr. Shawarma",
+"count": 10
+},
+{
+"month": "2026-10",
+"department": "MR QATAR SPORT CLUB",
+"company": "Mr. Shawarma",
+"count": 6
+},
+{
+"month": "2026-10",
+"department": "MR SHAWERMA BIN OMRAN",
+"company": "Mr. Shawarma",
+"count": 6
+},
+{
+"month": "2026-10",
+"department": "NON FOOD DIVISION (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 13
+},
+{
+"month": "2026-10",
+"department": "ONE HUNDRED TWENTY ALSADD RESIDENCE",
+"company": "120 Al Sadd Residence & Suites",
+"count": 19
+},
+{
+"month": "2026-10",
+"department": "PAVATI OPERATIONS",
+"company": "Pavati Glamour Lounge",
+"count": 17
+},
+{
+"month": "2026-10",
+"department": "PROCUREMENT & BUSINESS DEPARTMENT",
+"company": "Transind Holding",
+"count": 5
+},
+{
+"month": "2026-10",
+"department": "PROTIVITI",
+"company": "Top Clean",
+"count": 1
+},
+{
+"month": "2026-10",
+"department": "QATAR EXPRESS OPERATIONS",
+"company": "Qatar Express Customs Clearance",
+"count": 15
+},
+{
+"month": "2026-10",
+"department": "QATAR ISLAMIC INSURANCE",
+"company": "Top Clean",
+"count": 6
+},
+{
+"month": "2026-10",
+"department": "SEDAR CO",
+"company": "Top Clean",
+"count": 2
+},
+{
+"month": "2026-10",
+"department": "TOP CLEAN",
+"company": "Top Clean",
+"count": 2
+},
+{
+"month": "2026-10",
+"department": "TOP EQUIPMENT GENERAL",
+"company": "Top Clean",
+"count": 3
+},
+{
+"month": "2026-10",
+"department": "TOP PERFUMES OPERATION",
+"company": "Top Perfume",
+"count": 1
+},
+{
+"month": "2026-10",
+"department": "TRANS OCEAN OPERATIONS",
+"company": "Trans Ocean",
+"count": 3
+},
+{
+"month": "2026-10",
+"department": "TRANSIND MARKETING",
+"company": "Transind Holding",
+"count": 2
+},
+{
+"month": "2026-10",
+"department": "VICE CHAIRMAN",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2026-10",
+"department": "WAREHOUSE DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 76
+},
+{
+"month": "2026-11",
+"department": "86 RESIDENCES",
+"company": "Alsadd 86",
+"count": 2
+},
+{
+"month": "2026-11",
+"department": "AL MANZIL OPERATIONS",
+"company": "Al Manzil Residence & Suites",
+"count": 16
+},
+{
+"month": "2026-11",
+"department": "CENTRAL KITCHEN",
+"company": "Mr. Shawarma",
+"count": 6
+},
+{
+"month": "2026-11",
+"department": "COCA COLA DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 99
+},
+{
+"month": "2026-11",
+"department": "DOHA BANK",
+"company": "Top Clean",
+"count": 146
+},
+{
+"month": "2026-11",
+"department": "DOHA BANK TQ",
+"company": "Top Clean",
+"count": 36
+},
+{
+"month": "2026-11",
+"department": "DUKAN FOOD GENERAL",
+"company": "Dukhan Foods",
+"count": 4
+},
+{
+"month": "2026-11",
+"department": "EXECUTIVE DIRECTOR",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2026-11",
+"department": "FINANCE & ACCOUNTING",
+"company": "Transind Holding",
+"count": 22
+},
+{
+"month": "2026-11",
+"department": "FLEET DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 6
+},
+{
+"month": "2026-11",
+"department": "FOOD DEPARTMENT (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 284
+},
+{
+"month": "2026-11",
+"department": "GENERAL ADMINISTRATION T.C",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2026-11",
+"department": "GENERAL ADMINISTRATION-REST",
+"company": "Transind Holding",
+"count": 3
+},
+{
+"month": "2026-11",
+"department": "HORECA DEPARTMENT (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 18
+},
+{
+"month": "2026-11",
+"department": "HR & ADMIN",
+"company": "Transind Holding",
+"count": 9
+},
+{
+"month": "2026-11",
+"department": "INFORMATION TECHNOLOGY",
+"company": "Transind Holding",
+"count": 4
+},
+{
+"month": "2026-11",
+"department": "LAYS & BEVERAGES",
+"company": "Transind Trading and Distribution",
+"count": 1
+},
+{
+"month": "2026-11",
+"department": "LEGAL DEPARTMENT",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2026-11",
+"department": "LOGISTIC DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 70
+},
+{
+"month": "2026-11",
+"department": "MAINTENANCE DEPARTMENT",
+"company": "Transind Holding",
+"count": 12
+},
+{
+"month": "2026-11",
+"department": "MANAGEMENT",
+"company": "Transind Holding",
+"count": 54
+},
+{
+"month": "2026-11",
+"department": "MD",
+"company": "Transind Holding",
+"count": 2
+},
+{
+"month": "2026-11",
+"department": "MR ABU HAMOUR",
+"company": "Mr. Shawarma",
+"count": 6
+},
+{
+"month": "2026-11",
+"department": "MR GHARAFA",
+"company": "Mr. Shawarma",
+"count": 10
+},
+{
+"month": "2026-11",
+"department": "MR MUSHIREB",
+"company": "Mr. Shawarma",
+"count": 9
+},
+{
+"month": "2026-11",
+"department": "MR QATAR SPORT CLUB",
+"company": "Mr. Shawarma",
+"count": 6
+},
+{
+"month": "2026-11",
+"department": "MR SHAWERMA BIN OMRAN",
+"company": "Mr. Shawarma",
+"count": 7
+},
+{
+"month": "2026-11",
+"department": "NON FOOD DIVISION (NEW)",
+"company": "Transind Trading and Distribution",
+"count": 13
+},
+{
+"month": "2026-11",
+"department": "ONE HUNDRED TWENTY ALSADD RESIDENCE",
+"company": "120 Al Sadd Residence & Suites",
+"count": 19
+},
+{
+"month": "2026-11",
+"department": "PAVATI OPERATIONS",
+"company": "Pavati Glamour Lounge",
+"count": 17
+},
+{
+"month": "2026-11",
+"department": "PROCUREMENT & BUSINESS DEPARTMENT",
+"company": "Transind Holding",
+"count": 5
+},
+{
+"month": "2026-11",
+"department": "PROTIVITI",
+"company": "Top Clean",
+"count": 1
+},
+{
+"month": "2026-11",
+"department": "QATAR EXPRESS OPERATIONS",
+"company": "Qatar Express Customs Clearance",
+"count": 18
+},
+{
+"month": "2026-11",
+"department": "QATAR ISLAMIC INSURANCE",
+"company": "Top Clean",
+"count": 6
+},
+{
+"month": "2026-11",
+"department": "SEDAR CO",
+"company": "Top Clean",
+"count": 2
+},
+{
+"month": "2026-11",
+"department": "TOP CLEAN",
+"company": "Top Clean",
+"count": 3
+},
+{
+"month": "2026-11",
+"department": "TOP EQUIPMENT GENERAL",
+"company": "Top Clean",
+"count": 3
+},
+{
+"month": "2026-11",
+"department": "TOP PERFUMES OPERATION",
+"company": "Top Perfume",
+"count": 1
+},
+{
+"month": "2026-11",
+"department": "TRANSIND MARKETING",
+"company": "Transind Holding",
+"count": 2
+},
+{
+"month": "2026-11",
+"department": "VICE CHAIRMAN",
+"company": "Transind Holding",
+"count": 1
+},
+{
+"month": "2026-11",
+"department": "WAREHOUSE DEPARTMENT",
+"company": "Transind Trading and Distribution",
+"count": 77
+}
+]

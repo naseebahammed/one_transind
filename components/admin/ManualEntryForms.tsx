@@ -35,7 +35,7 @@ type SalesDeptOption = { code: string; label: string };
 
 function StatusBanner({ state }: { state: ManualActionState }) {
   if (state.error) return <p role="alert" className="text-sm font-medium text-destructive">{state.error}</p>;
-  if (state.ok) return <p className="text-sm font-medium text-emerald-600">{state.ok}</p>;
+  if (state.ok) return <p className="text-sm font-medium text-success">{state.ok}</p>;
   return null;
 }
 
@@ -703,39 +703,6 @@ export function ManualOverdueInvoiceForm({ companies, defaultDate }: { companies
   );
 }
 
-export function ManualCustomerOpportunityForm() {
-  const [state, action, pending] = useActionState<ManualActionState, FormData>(saveManualFinanceCustomerAction, {});
-
-  return (
-    <form action={action} className="grid gap-4">
-      <input type="hidden" name="recordKind" value="customerOpportunity" />
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Field label="Customer code" hint="Matches ERP customer ID on Customers page"><Input name="customerCode" placeholder="e.g. C1024" /></Field>
-        <Field label="Customer name *"><Input name="customerName" required placeholder="Customer name" /></Field>
-        <Field label="Opportunity title *"><Input name="title" required placeholder="e.g. Ramadan frozen listing" /></Field>
-        <Field label="Stage">
-          <NativeSelect name="stage" defaultValue="Qualification">
-            <option value="Qualification">Qualification</option>
-            <option value="Proposal">Proposal</option>
-            <option value="Negotiation">Negotiation</option>
-            <option value="Committed">Committed</option>
-            <option value="Won">Won</option>
-            <option value="Lost">Lost</option>
-          </NativeSelect>
-        </Field>
-        <Field label="Estimated value (QAR)"><Input name="value" type="number" step="0.01" min="0" placeholder="0.00" /></Field>
-        <Field label="Expected close date"><Input name="expectedClose" type="date" /></Field>
-        <Field label="Owner"><Input name="owner" placeholder="Account manager" /></Field>
-        <Field label="Notes"><Input name="notes" placeholder="Next step or context" /></Field>
-      </div>
-      <div className="flex flex-wrap items-center gap-3">
-        <Button type="submit" size="sm" disabled={pending}>{pending ? "Saving…" : "Save opportunity"}</Button>
-        <StatusBanner state={state} />
-      </div>
-    </form>
-  );
-}
-
 export function ManualEmployeeForm({ departments, defaultDate }: { departments: string[]; defaultDate: string }) {
   const [state, action, pending] = useActionState<ManualActionState, FormData>(saveManualHrAction, {});
 
@@ -758,95 +725,6 @@ export function ManualEmployeeForm({ departments, defaultDate }: { departments: 
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <Button type="submit" size="sm" disabled={pending}>{pending ? "Saving…" : "Save employee"}</Button>
-        <StatusBanner state={state} />
-      </div>
-    </form>
-  );
-}
-
-export function ManualLeaveRequestForm({ companies, defaultDate }: { companies: CompanyOption[]; defaultDate: string }) {
-  const [state, action, pending] = useActionState<ManualActionState, FormData>(saveManualHrAction, {});
-
-  return (
-    <form action={action} className="grid gap-4">
-      <input type="hidden" name="recordKind" value="leaveRequest" />
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Field label="Employee ID"><Input name="employeeId" placeholder="Optional ID" /></Field>
-        <Field label="Employee name *"><Input name="employeeName" required placeholder="Employee name" /></Field>
-        <Field label="Company">
-          <NativeSelect name="companyId" defaultValue="">
-            <option value="">Unassigned</option>
-            {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </NativeSelect>
-        </Field>
-        <Field label="Leave type">
-          <NativeSelect name="leaveType" defaultValue="Annual">
-            <option value="Annual">Annual</option>
-            <option value="Sick">Sick</option>
-            <option value="Emergency">Emergency</option>
-            <option value="Unpaid">Unpaid</option>
-            <option value="Maternity / Paternity">Maternity / Paternity</option>
-          </NativeSelect>
-        </Field>
-        <Field label="Start date *"><Input name="startDate" type="date" required defaultValue={defaultDate} /></Field>
-        <Field label="End date *"><Input name="endDate" type="date" required defaultValue={defaultDate} /></Field>
-        <Field label="Days *"><Input name="days" type="number" step="0.5" min="0.5" max="366" required defaultValue="1" /></Field>
-        <Field label="Status">
-          <NativeSelect name="status" defaultValue="Pending">
-            <option value="Pending">Pending</option>
-            <option value="Approved">Approved</option>
-            <option value="Rejected">Rejected</option>
-          </NativeSelect>
-        </Field>
-      </div>
-      <div className="flex flex-wrap items-center gap-3">
-        <Button type="submit" size="sm" disabled={pending}>{pending ? "Saving…" : "Save leave request"}</Button>
-        <StatusBanner state={state} />
-      </div>
-    </form>
-  );
-}
-
-export function ManualExpiringDocumentForm({ companies }: { companies: CompanyOption[] }) {
-  const [state, action, pending] = useActionState<ManualActionState, FormData>(saveManualHrAction, {});
-
-  return (
-    <form action={action} className="grid gap-4">
-      <input type="hidden" name="recordKind" value="expiringDocument" />
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Field label="Employee ID"><Input name="employeeId" placeholder="Optional ID" /></Field>
-        <Field label="Holder name *"><Input name="holderName" required placeholder="Employee or entity name" /></Field>
-        <Field label="Company">
-          <NativeSelect name="companyId" defaultValue="">
-            <option value="">Unassigned</option>
-            {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </NativeSelect>
-        </Field>
-        <Field label="Document type *">
-          <Input name="documentType" list="manual-doc-types" required placeholder="e.g. QID / Residence Permit" />
-          <datalist id="manual-doc-types">
-            <option value="QID / Residence Permit" />
-            <option value="Passport" />
-            <option value="Health Card" />
-            <option value="Driving License" />
-            <option value="Employment Visa" />
-            <option value="Trade License" />
-            <option value="Vehicle Istimara" />
-          </datalist>
-        </Field>
-        <Field label="Document no."><Input name="documentNo" placeholder="Document number" /></Field>
-        <Field label="Expiry date *"><Input name="expiryDate" type="date" required /></Field>
-        <Field label="Status">
-          <NativeSelect name="status" defaultValue="Expiring soon">
-            <option value="Expiring soon">Expiring soon</option>
-            <option value="Expired">Expired</option>
-            <option value="Renewal in progress">Renewal in progress</option>
-            <option value="Valid">Valid</option>
-          </NativeSelect>
-        </Field>
-      </div>
-      <div className="flex flex-wrap items-center gap-3">
-        <Button type="submit" size="sm" disabled={pending}>{pending ? "Saving…" : "Save document record"}</Button>
         <StatusBanner state={state} />
       </div>
     </form>

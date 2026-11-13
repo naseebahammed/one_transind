@@ -1,8 +1,9 @@
 "use server";
 import { GuardError, requireAdmin } from "@/lib/guard";
 import { cleanText, parsePositiveIntId } from "@/lib/input-validation";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { createBranch, setCompanyHasBranches, toggleBranchActive } from "@/lib/branches";
+import { REPORTS_CACHE_TAG } from "@/lib/reports";
 
 export type BranchState = { error?: string };
 
@@ -19,6 +20,7 @@ export async function addBranch(companyId: number, _: BranchState, f: FormData):
   if (!name) return { error: "Name is required." };
   const res = await createBranch(safeCompanyId, name);
   if (res.error) return res;
+  updateTag(REPORTS_CACHE_TAG);
   revalidatePath("/", "layout");
   return {};
 }
@@ -29,6 +31,7 @@ export async function setHasBranches(f: FormData) {
   const id = parsePositiveIntId(f.get("id"));
   if (!id) return;
   await setCompanyHasBranches(id, f.get("enabled") === "on");
+  updateTag(REPORTS_CACHE_TAG);
   revalidatePath("/", "layout");
 }
 
@@ -38,5 +41,6 @@ export async function toggleBranch(f: FormData) {
   const id = parsePositiveIntId(f.get("id"));
   if (!id) return;
   await toggleBranchActive(id);
+  updateTag(REPORTS_CACHE_TAG);
   revalidatePath("/", "layout");
 }

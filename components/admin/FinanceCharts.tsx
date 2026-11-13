@@ -17,29 +17,36 @@ export function MonthBars({ months, series, label }: { months: string[]; series:
   const ticks: number[] = []; for (let v = lo; v <= hi; v += step) ticks.push(v);
   return (
     <ChartTip>
-      <svg viewBox={`0 0 ${W} ${H}`} width="100%" role="img" aria-label={label}>
-        {ticks.map((v) => (
-          <g key={v} opacity={0.7}>
-            <line x1={PL} x2={W - PR} y1={y(v)} y2={y(v)} stroke="currentColor" strokeOpacity={v === 0 ? 0.6 : 0.15} />
-            <text x={PL - 6} y={y(v) + 4} textAnchor="end" fontSize="11" fill="currentColor">{k(v)}</text>
-          </g>
+      <div className="tw">
+        <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ minWidth: 440, direction: "ltr" }} role="img" aria-label={label}>
+          {ticks.map((v) => (
+            <g key={v}>
+              <line x1={PL} x2={W - PR} y1={y(v)} y2={y(v)} stroke={v === 0 ? "var(--line-strong, var(--border))" : "var(--line, var(--border))"} />
+              <text x={PL - 6} y={y(v) + 4} textAnchor="end" fontSize="12" fill="var(--muted-foreground, var(--muted))">{k(v)}</text>
+            </g>
+          ))}
+          {months.map((m, i) => (
+            <g key={m}>
+              {series.map((s, j) => {
+                const v = s.data[i], top = y(Math.max(v, 0)), h = Math.max(1, Math.abs(y(v) - y(0)));
+                return <rect key={s.name} x={PL + i * gw + bw / 2 + j * bw} y={top} width={Math.max(2, bw - 2)} height={h} rx="3" fill={s.color} />;
+              })}
+              <rect className="chit" tabIndex={0} aria-label={`${m} figures`} x={PL + i * gw} y={PT} width={gw} height={H - PT - PB} data-tip={tip({
+                t: m,
+                r: series.map((s) => [s.name, `${s.data[i] < 0 ? "−" : ""}${fmt(Math.abs(s.data[i]), 2, 0)} QAR`, s.color]),
+              })} />
+              <text x={PL + i * gw + gw / 2} y={H - 8} textAnchor="middle" fontSize="12" fill="var(--muted-foreground, var(--muted))" style={{ fontFamily: "var(--f-body, inherit)" }}>{m}</text>
+            </g>
+          ))}
+        </svg>
+      </div>
+      <div className="legend">
+        {series.map((s) => (
+          <span key={s.name}>
+            <i style={{ background: s.color, width: 10, height: 10, borderRadius: 2 }} />
+            {s.name}
+          </span>
         ))}
-        {months.map((m, i) => (
-          <g key={m}>
-            {series.map((s, j) => {
-              const v = s.data[i], top = y(Math.max(v, 0)), h = Math.max(1, Math.abs(y(v) - y(0)));
-              return <rect key={s.name} x={PL + i * gw + bw / 2 + j * bw} y={top} width={bw - 2} height={h} rx="2" fill={s.color} />;
-            })}
-            <rect className="chit" tabIndex={0} x={PL + i * gw} y={PT} width={gw} height={H - PT - PB} data-tip={tip({
-              t: m,
-              r: series.map((s) => [s.name, `${s.data[i] < 0 ? "−" : ""}${fmt(Math.abs(s.data[i]), 2, 0)} QAR`, s.color]),
-            })} />
-            <text x={PL + i * gw + gw / 2} y={H - 8} textAnchor="middle" fontSize="11" fill="currentColor" opacity={0.7}>{m}</text>
-          </g>
-        ))}
-      </svg>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 16, fontSize: 13, opacity: 0.7 }}>
-        {series.map((s) => <span key={s.name} style={{ display: "flex", alignItems: "center", gap: 6 }}><i style={{ background: s.color, width: 10, height: 10, borderRadius: 2 }} />{s.name}</span>)}
       </div>
     </ChartTip>
   );
@@ -51,9 +58,9 @@ export function HBars({ rows }: { rows: [string, number][] }) {
   return (
     <div className="space-y-2">
       {rows.map(([name, v]) => (
-        <div key={name} className="grid grid-cols-[9rem_1fr_9rem] items-center gap-3 text-sm">
+        <div key={name} className="grid grid-cols-[7rem_1fr_auto] sm:grid-cols-[9rem_1fr_9rem] items-center gap-3 text-sm">
           <span className="truncate">{name}</span>
-          <div className="h-3 rounded bg-muted"><div className="h-3 rounded bg-primary" style={{ width: `${(v / max) * 100}%` }} /></div>
+          <div className="h-3 rounded-sm bg-muted"><div className="h-3 rounded-sm bg-primary" style={{ width: `${(v / max) * 100}%` }} /></div>
           <span className="text-right tabular-nums text-muted-foreground">{fmt(v, 2, 0)} · {total ? ((v / total) * 100).toFixed(1) : "0.0"}%</span>
         </div>
       ))}

@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { apiStatus, type Role } from "@/lib/access";
+import { canOpen, type Access } from "@/lib/access-levels";
 import { currentRole } from "@/lib/current-role";
 import {
   acquireConcurrency,
@@ -13,7 +14,7 @@ import {
   type ConcurrencyRule,
   type RateLimitRule,
 } from "@/lib/rate-limit";
-import { isListedEmail } from "@/lib/users";
+import { isListedEmail, userAccess } from "@/lib/users";
 
 if (typeof window !== "undefined") {
   throw new Error("lib/guard.ts is server-only and must never run in the browser.");
@@ -37,7 +38,9 @@ const who = cache(async () => {
   const session = await auth();
   const email = session?.user?.email;
   const name = session?.user?.name;
-  return { email, name, role: await currentRole(email, isListedEmail) };
+  const role = await currentRole(email, isListedEmail);
+  const access: Access = role === "user" && email ? await userAccess(email) : "full";
+  return { email, name, role, access };
 });
 
 function apiBucketRules(bucket: ApiBucket, email: string, clientIp: string): {
@@ -99,12 +102,16 @@ function apiBucketRules(bucket: ApiBucket, email: string, clientIp: string): {
   };
 }
 
-/** Call first in every page, layout and Server Action. The list is re-read each time, so removing someone takes effect on their next request. */
-export async function requireUser() {
-  const { email, name, role } = await who();
+/**
+ * Call first in every page, layout and Server Action. The list is re-read each time, so removing someone takes effect on their next request.
+ * Pass the page's top-level area (e.g. "finance") to also enforce the person's access level.
+ */
+export async function requireUser(area?: string) {
+  const { email, name, role, access } = await who();
   if (!email) redirect("/signin");
   if (!role) redirect("/no-access");
-  return { email, name, role };
+  if (area && !canOpen(access, area)) redirect("/no-access");
+  return { email, name, role, access };
 }
 
 /**

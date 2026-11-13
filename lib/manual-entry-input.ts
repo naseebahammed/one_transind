@@ -1,6 +1,6 @@
 // Pure validation and parsing helpers for Admin -> Manual data entry (no database or Next imports so `node --test` and client forms can share it).
 import { checkFigureCell, LINES, MONTHS, type GridSection } from "./company-data.ts";
-import { cleanMultilineText, cleanText, isValidFigureAmount, parseNonNegativeInt, parsePositiveIntId } from "./input-validation.ts";
+import { cleanText, isValidFigureAmount, parseNonNegativeInt, parsePositiveIntId } from "./input-validation.ts";
 import { parseMoneyString, roundMoney } from "./money.ts";
 
 export const MANUAL_TABS = [
@@ -633,33 +633,6 @@ export function parseManualOverdueInvoice(f: FormData): ParseResult<{
   return { data: { invoiceNo, accountName, companyId, dueDate, amount, balance, status } };
 }
 
-export function parseManualCustomerOpportunity(f: FormData): ParseResult<{
-  customerCode: string; customerName: string; title: string; stage: string; value: number; expectedClose: string | null; owner: string; notes: string;
-}> {
-  const customerCode = cleanText(f.get("customerCode"), 60);
-  const customerName = cleanText(f.get("customerName"), 160);
-  const title = cleanText(f.get("title"), 160);
-  if (!customerName || !title) return { error: "Customer name and opportunity title are required." };
-  const stage = cleanText(f.get("stage"), 40) || "Qualification";
-  const value = parseOptionalAmount(f.get("value"), false);
-  if (value === "bad") return { error: "Opportunity value must be a non-negative amount in QAR." };
-  const closeRaw = cleanText(f.get("expectedClose"), 20);
-  const expectedClose = closeRaw ? parseIsoDate(closeRaw) : null;
-  if (closeRaw && !expectedClose) return { error: "Expected close date must be YYYY-MM-DD." };
-  return {
-    data: {
-      customerCode,
-      customerName,
-      title,
-      stage,
-      value: value ?? 0,
-      expectedClose,
-      owner: cleanText(f.get("owner"), 80),
-      notes: cleanMultilineText(f.get("notes"), 500),
-    },
-  };
-}
-
 export function parseManualEmployee(f: FormData): ParseResult<{
   id: string; name: string; department: string; designation: string; nationality: string; joined: string; left: string | null;
 }> {
@@ -682,39 +655,6 @@ export function parseManualEmployee(f: FormData): ParseResult<{
       left,
     },
   };
-}
-
-export function parseManualLeaveRequest(f: FormData): ParseResult<{
-  employeeId: string; employeeName: string; companyId: number | null; leaveType: string; startDate: string; endDate: string; days: number; status: string;
-}> {
-  const employeeId = cleanText(f.get("employeeId"), 40);
-  const employeeName = cleanText(f.get("employeeName"), 120);
-  const companyId = optionalCompanyId(f.get("companyId"));
-  if (companyId === "bad") return { error: "Invalid company." };
-  const leaveType = cleanText(f.get("leaveType"), 40) || "Annual";
-  const startDate = parseIsoDate(f.get("startDate"));
-  const endDate = parseIsoDate(f.get("endDate"));
-  if (!employeeName || !startDate || !endDate) return { error: "Employee name, start date, and end date are required." };
-  if (endDate < startDate) return { error: "End date cannot be earlier than start date." };
-  const days = parseRequiredAmount(f.get("days"), false);
-  if (days === null || days <= 0 || days > 366) return { error: "Leave days must be between 0.5 and 366." };
-  const status = cleanText(f.get("status"), 40) || "Pending";
-  return { data: { employeeId, employeeName, companyId, leaveType, startDate, endDate, days, status } };
-}
-
-export function parseManualExpiringDocument(f: FormData): ParseResult<{
-  employeeId: string; holderName: string; companyId: number | null; documentType: string; documentNo: string; expiryDate: string; status: string;
-}> {
-  const employeeId = cleanText(f.get("employeeId"), 40);
-  const holderName = cleanText(f.get("holderName"), 120);
-  const companyId = optionalCompanyId(f.get("companyId"));
-  if (companyId === "bad") return { error: "Invalid company." };
-  const documentType = cleanText(f.get("documentType"), 60);
-  const documentNo = cleanText(f.get("documentNo"), 60);
-  const expiryDate = parseIsoDate(f.get("expiryDate"));
-  if (!holderName || !documentType || !expiryDate) return { error: "Holder name, document type, and expiry date are required." };
-  const status = cleanText(f.get("status"), 40) || "Expiring soon";
-  return { data: { employeeId, holderName, companyId, documentType, documentNo, expiryDate, status } };
 }
 
 export function parseManualLogisticsKpis(f: FormData): ParseResult<{ fleetCount: number | null; onRouteCount: number | null; outletsReached: number | null }> {

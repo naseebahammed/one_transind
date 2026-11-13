@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { canOpen } from "./access-levels.ts";
 import test from "node:test";
 import { apiStatus, devLoginEnabled, hashPassword, inTenant, normalizeEmail, parseAdminEmails, passwordMatches, roleOf, userDisplayName, userInitials } from "./access.ts";
 
@@ -71,4 +72,12 @@ test("userInitials extracts up to two uppercase initials", () => {
   assert.equal(userInitials("Aisha Al-Thani", "aisha@transind.com"), "AA");
   assert.equal(userInitials(undefined, "mohammed.ali@transind.com"), "MA");
   assert.equal(userInitials(null, "admin@transind.com"), "A");
+});
+
+test("canOpen: full opens everything, finance and operations only their own pages", () => {
+  assert.equal(canOpen("full", "hr"), true);
+  assert.equal(canOpen("finance", "finance"), true);
+  assert.equal(canOpen("finance", "hr"), false);
+  assert.equal(canOpen("operations", "logistics"), true);
+  assert.equal(canOpen("operations", "finance"), false);
 });

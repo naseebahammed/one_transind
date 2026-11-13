@@ -1,13 +1,21 @@
-import { connection } from "next/server";
+import { cacheLife, cacheTag } from "next/cache";
 import { q } from "@/lib/db";
 import { getSectors } from "@/lib/data";
+import { SALES_CACHE_TAG } from "@/lib/sales-targets";
 
 type Override = { code: string; label: string | null; hidden: number; sector: string | null };
-export const listOverrides = () => q<Override>("SELECT code, label, hidden, sector FROM app.sales_departments");
+export async function listOverrides() {
+  "use cache";
+  cacheTag(SALES_CACHE_TAG);
+  cacheLife("hours");
+  return q<Override>("SELECT code, label, hidden, sector FROM app.sales_departments");
+}
 
 /** Sales departments from Postgres with the admin's rename/hide overrides applied (hidden ones dropped unless `all`). */
 export async function getSalesSectors(all = false) {
-  await connection(); // overrides live in Postgres and must not be baked in at build time
+  "use cache";
+  cacheTag(SALES_CACHE_TAG);
+  cacheLife("hours");
   const [overrides, sectors] = await Promise.all([listOverrides(), getSectors()]);
   const ov = new Map(overrides.map((o) => [o.code, o]));
   return sectors

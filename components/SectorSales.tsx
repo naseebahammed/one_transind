@@ -6,17 +6,20 @@ import { keyFor, plRows, report, years, loadReports, type Reports } from "@/lib/
 import { listCompanies } from "@/lib/companies";
 import { fmt, money, MONTHS, pct, sum } from "@/lib/format";
 import { link } from "@/lib/url";
+import { translator } from "@/lib/i18n";
+import { getLanguage } from "@/lib/language";
 import { CompareChart } from "@/components/charts";
 import { CompanySelect } from "@/components/CompanySelect";
 import { YearSelect } from "@/components/YearSelect";
 import { Change, Kpi, Panel } from "@/components/ui";
+import { PageSkeleton } from "@/components/PageSkeleton";
 
 type Params = Promise<{ year?: string; company?: string }>;
 /** One sector's monthly sales page (Health & Beauty, Retail): sector = admin sector key, path = the page's route. */
 type Props = { searchParams: Params; sector: string; path: string; title: string; kind?: "sales" | "pnl" }; // kind "pnl": the sector has no sales grid, so revenue comes from the P&L
 
 export function SectorSales(p: Props) {
-  return <Suspense fallback={<p className="empty">Loading…</p>}><Content {...p} /></Suspense>;
+  return <Suspense fallback={<PageSkeleton kpis={4} hasFilters panels={2} />}><Content {...p} /></Suspense>;
 }
 
 // Monthly sales per company, entered under Admin → Finance (sales grid).
@@ -26,7 +29,8 @@ async function Content({ searchParams, sector, path, title, kind = "sales" }: Pr
   const sales = (reports: Reports, y: number, key: string | string[]) => revenueOf(reports, y, key, kind);
   const noun = kind === "pnl" ? "Revenue" : "Sales";
   await connection(); // sales files change when figures are edited in admin
-  await requireUser();
+  await requireUser(path.split("/")[1]);
+  const language = await getLanguage(), translate = translator(language);
   const [reports, { year, company }, allCompanies] = await Promise.all([loadReports(), searchParams, listCompanies("", sector)]);
   const cos = allCompanies.filter((c) => c.active && !c.hidden && years(reports, keyFor(c), kind).length);
   const all = cos.map(keyFor);
@@ -40,7 +44,7 @@ async function Content({ searchParams, sector, path, title, kind = "sales" }: Pr
   // Compare against the same months last year: the current year is usually only partly loaded.
   const upto = Math.max(1, ...total.map((v, i) => (v ? i + 1 : 0)));
   const grandUpto = Math.max(1, ...grand.map((v, i) => (v ? i + 1 : 0)));
-  const period = upto < 12 ? `Jan–${MONTHS[upto - 1]}` : "full year";
+  const period = upto < 12 ? `Jan–${MONTHS[upto - 1]}` : translate("full year");
   const ytd = (a: number[]) => sum(a.slice(0, upto));
   const ownYears = years(reports, keys, kind);
   const prev = ownYears.includes(cur - 1) ? sales(reports, cur - 1, keys) : null;
@@ -61,24 +65,24 @@ async function Content({ searchParams, sector, path, title, kind = "sales" }: Pr
   return (
     <>
       <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-        <h2 style={{ marginInlineEnd: "auto" }}>{sel?.name ?? title} {noun.toLowerCase()} · {cur}</h2>
-        {cos.length > 1 && <CompanySelect companies={cos} value={sel?.id ?? "all"} allLabel="All companies" base={link(path, { year })} />}
+        <h2 style={{ marginInlineEnd: "auto" }}>{language === "ar" ? `${translate(noun.toLowerCase())} ${sel?.name ?? translate(title)}` : `${sel?.name ?? title} ${noun.toLowerCase()}`} · {cur}</h2>
+        {cos.length > 1 && <CompanySelect companies={cos} value={sel?.id ?? "all"} allLabel={translate("All companies")} base={link(path, { year })} />}
         <YearSelect years={ys} value={cur} base={link(path, { company: sel && String(sel.id) })} />
       </div>
       <div className="kpis">
-        <Kpi label={`${noun} ${cur} (${period})`} value={money(ytd(total))} delta={prev ? <>{diff >= 0 ? "+" : "-"}{money(Math.abs(diff))} <Change pct={pct(ytd(total), ytd(prev))} /></> : undefined} spark={total.slice(0, upto).map((v) => v / 1e6)} up={!prev || ytd(total) >= ytd(prev)} />
-        <Kpi label={`Same period ${cur - 1}`} value={prev ? money(ytd(prev)) : "—"} />
-        <Kpi label="Monthly average" value={money(ytd(total) / filled)} delta={`${filled} month${filled > 1 ? "s" : ""} with sales`} />
-        <Kpi label="Best month" value={total[best] ? MONTHS[best] : "—"} delta={total[best] ? money(total[best]) : undefined} />
-        {cogs !== null && <Kpi label={`Gross profit (${period})`} value={money(ytd(total) - cogs)} delta={`${fmt(ytd(total) ? ((ytd(total) - cogs) / ytd(total)) * 100 : 0, 1)}% margin · COGS ${money(cogs)}`} />}
+        <Kpi label={`${translate(noun)} ${cur} (${period})`} value={money(ytd(total))} delta={prev ? <>{diff >= 0 ? "+" : "-"}{money(Math.abs(diff))} <Change pct={pct(ytd(total), ytd(prev))} /></> : undefined} spark={total.slice(0, upto).map((v) => v / 1e6)} up={!prev || ytd(total) >= ytd(prev)} />
+        <Kpi label={`${translate("Same period")} ${cur - 1}`} value={prev ? money(ytd(prev)) : "—"} />
+        <Kpi label={translate("Monthly average")} value={money(ytd(total) / filled)} delta={`${filled} ${translate(filled > 1 ? "months" : "month")} ${translate("with sales")}`} />
+        <Kpi label={translate("Best month")} value={total[best] ? MONTHS[best] : "—"} delta={total[best] ? money(total[best]) : undefined} />
+        {cogs !== null && <Kpi label={`${translate("Gross profit")} (${period})`} value={money(ytd(total) - cogs)} delta={`${fmt(ytd(total) ? ((ytd(total) - cogs) / ytd(total)) * 100 : 0, 1)}% ${translate("margin")} · ${translate("COGS")} ${money(cogs)}`} />}
       </div>
       <div className="grid">
-        <Panel span={12} title={`${noun} by month`}>
+        <Panel span={12} title={translate(`${noun} by month`)}>
           <CompareChart years={shown} series={shown.map((y) => sales(reports, y, keys).map((v) => v / 1e6 || null))} sel={upto - 1} />
         </Panel>
-        <Panel span={12} title={`Monthly figures ${cur} vs ${cur - 1}`}>
+        <Panel span={12} title={`${translate("Monthly figures")} ${cur} ${translate("vs")} ${cur - 1}`}>
           <div className="tw"><table>
-            <thead><tr><th>Month</th><th className="n">{cur}</th><th className="n">{cur - 1}</th><th className="n">Difference</th><th className="n">Change</th></tr></thead>
+            <thead><tr><th>{translate("Month")}</th><th className="n">{cur}</th><th className="n">{cur - 1}</th><th className="n">{translate("Difference")}</th><th className="n">{translate("Change")}</th></tr></thead>
             <tbody>{MONTHS.map((m, i) => {
               const a = total[i], b = prev?.[i] ?? 0;
               return (
@@ -93,9 +97,9 @@ async function Content({ searchParams, sector, path, title, kind = "sales" }: Pr
             })}</tbody>
           </table></div>
         </Panel>
-        <Panel span={12} title={`Companies (${period} ${cur})`}>
+        <Panel span={12} title={`${translate("Companies")} (${period} ${cur})`}>
           <div className="tw"><table>
-            <thead><tr><th>Company</th><th className="n">{cur}</th><th className="n">{cur - 1} same period</th><th className="n">Change</th><th style={{ width: "30%" }}>Share of sales</th></tr></thead>
+            <thead><tr><th>{translate("Company")}</th><th className="n">{cur}</th><th className="n">{cur - 1} {translate("same period")}</th><th className="n">{translate("Change")}</th><th style={{ width: "30%" }}>{translate("Share of sales")}</th></tr></thead>
             <tbody>{per.map((x) => {
               const share = grandYtd ? (x.s / grandYtd) * 100 : 0;
               return (

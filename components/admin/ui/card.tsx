@@ -1,12 +1,25 @@
 import * as React from "react"
 import { cn } from "@/lib/cn"
 
-function Card({ className, ...props }: React.ComponentProps<"div">) {
+function Card({
+  className,
+  compact = false,
+  flush = false,
+  tone = "default",
+  ...props
+}: React.ComponentProps<"div"> & {
+  compact?: boolean
+  flush?: boolean
+  tone?: "default" | "danger"
+}) {
   return (
     <div
       data-slot="card"
       className={cn(
         "flex flex-col gap-6 rounded-xl border bg-card py-6 text-card-foreground shadow-sm",
+        compact && "gap-3 py-4 [&_[data-slot=card-content]]:px-4 [&_[data-slot=card-header]]:px-4",
+        flush && "gap-0 overflow-hidden py-0",
+        tone === "danger" && "border-destructive/40 [&_[data-slot=card-title]]:text-destructive",
         className
       )}
       {...props}
@@ -31,7 +44,7 @@ function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="card-title"
-      className={cn("leading-none font-semibold", className)}
+      className={cn("text-base leading-snug font-semibold", className)}
       {...props}
     />
   )

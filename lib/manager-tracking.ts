@@ -3,6 +3,7 @@
 import { roundMoney } from "./money.ts";
 
 const db = () => import("@/lib/db");
+const salesCache = () => import("@/lib/sales-cache");
 
 export type ManagerTrackingRow = {
   manager: string;
@@ -107,47 +108,67 @@ export function trackSalesmen(inputs: SalesmanInput[], year: number, month: numb
   return { supervisors, ...days };
 }
 
-/** Manager targets for the month against ERP sales up to the latest day the ERP view has. Reads app.sales_clean, which exists only where the ERP data has been loaded. */
-export async function getManagerTracking(periodIso: string): Promise<ManagerTracking> {
+export type PeriodTracking = {
+  manager: ManagerTracking;
+  salesman: { supervisors: SupervisorTracking[] } & Days;
+};
+
+/** Single monthly ERP + assignment query feeding both manager and salesman pace tables. Reads app.sales_clean, which exists only where ERP data is loaded. */
+export async function queryPeriodTracking(periodIso: string): Promise<PeriodTracking> {
   const { q } = await db();
-  const [targets, actuals, through] = await Promise.all([
+  const [managerTargets, salesmanTargets, actualRows, through] = await Promise.all([
     q<{ manager: string; target: number }>(`SELECT manager, target::float8 AS target FROM app.manager_targets WHERE period = $1::date`, [periodIso]),
+    q<Omit<SalesmanInput, "sales">>(
+      `SELECT a.salesman_code AS code, COALESCE(s.name, a.salesman_code) AS salesman, a.supervisor, a.channel, a.department, SUM(a.target)::float8 AS target
+       FROM app.sales_assignments a LEFT JOIN app.salesmen s ON s.code = a.salesman_code WHERE a.period = $1::date GROUP BY 1, 2, 3, 4, 5`,
+      [periodIso],
+    ),
     // app.sales_clean is the app's cached copy of the ERP sales (the raw ERP view takes over a minute). It has the salesman's name, not code, so one salesman row is picked per name (an active one first).
-    q<{ manager: string | null; channel: string | null; sales: number }>(
-      `SELECT sm.manager, a.channel, SUM(l."NET_AMOUNT")::float8 AS sales
+    q<{
+      code: string | null;
+      manager: string | null;
+      salesman: string | null;
+      supervisor: string | null;
+      channel: string | null;
+      department: string | null;
+      sales: number;
+    }>(
+      `SELECT sm.code, sm.manager, max(l."SMAN_NAME") AS salesman, a.supervisor, a.channel, a.department, SUM(l."NET_AMOUNT")::float8 AS sales
        FROM app.sales_clean l
        LEFT JOIN (SELECT DISTINCT ON (upper(trim(name))) upper(trim(name)) AS name_key, code, manager FROM app.salesmen ORDER BY upper(trim(name)), (upper(status) = 'ACTIVE') DESC, code) sm ON sm.name_key = upper(trim(l."SMAN_NAME"))
        LEFT JOIN app.sales_assignments a ON a.period = $1::date AND a.salesman_code = sm.code AND a.brand = upper(trim(l."BRAND"))
-       WHERE l."DOC_DATE" >= $1::date AND l."DOC_DATE" < ($1::date + interval '1 month') GROUP BY 1, 2`,
+       WHERE l."DOC_DATE" >= $1::date AND l."DOC_DATE" < ($1::date + interval '1 month') GROUP BY 1, 2, 4, 5, 6`,
       [periodIso],
     ),
     q<{ through: string | null }>(`SELECT to_char(max("DOC_DATE"), 'YYYY-MM-DD') AS through FROM app.sales_clean WHERE "DOC_DATE" >= $1::date AND "DOC_DATE" < ($1::date + interval '1 month')`, [periodIso]),
   ]);
   const throughDate = through[0]?.through ?? null;
   const [year, month] = periodIso.split("-").map(Number);
-  return { ...trackManagers(targets, actuals, year, month - 1, throughDate ? Number(throughDate.slice(8)) : 0), throughDate };
+  const throughDay = throughDate ? Number(throughDate.slice(8)) : 0;
+  const managerActuals = actualRows.map((r) => ({ manager: r.manager, channel: r.channel, sales: r.sales }));
+  const salesmanActuals = actualRows
+    .filter((r): r is typeof r & { code: string } => r.code !== null)
+    .map((r) => ({
+      code: r.code,
+      salesman: r.salesman ?? r.code,
+      supervisor: r.supervisor,
+      channel: r.channel,
+      department: r.department,
+      target: 0,
+      sales: r.sales,
+    }));
+  return {
+    manager: { ...trackManagers(managerTargets, managerActuals, year, month - 1, throughDay), throughDate },
+    salesman: trackSalesmen([...salesmanTargets.map((t) => ({ ...t, sales: 0 })), ...salesmanActuals], year, month - 1, throughDay),
+  };
+}
+
+/** Manager targets for the month against ERP sales up to the latest day the ERP view has. */
+export async function getManagerTracking(periodIso: string): Promise<ManagerTracking> {
+  return (await (await salesCache()).loadCachedPeriodTracking(periodIso)).manager;
 }
 
 /** Salesman targets against ERP sales for the month, same data source and day cut-off as getManagerTracking. */
 export async function getSalesmanTracking(periodIso: string): Promise<{ supervisors: SupervisorTracking[] } & Days> {
-  const { q } = await db();
-  const [targets, actuals, through] = await Promise.all([
-    q<Omit<SalesmanInput, "sales">>(
-      `SELECT a.salesman_code AS code, COALESCE(s.name, a.salesman_code) AS salesman, a.supervisor, a.channel, a.department, SUM(a.target)::float8 AS target
-       FROM app.sales_assignments a LEFT JOIN app.salesmen s ON s.code = a.salesman_code WHERE a.period = $1::date GROUP BY 1, 2, 3, 4, 5`,
-      [periodIso],
-    ),
-    q<Omit<SalesmanInput, "target">>(
-      `SELECT sm.code, max(l."SMAN_NAME") AS salesman, a.supervisor, a.channel, a.department, SUM(l."NET_AMOUNT")::float8 AS sales
-       FROM app.sales_clean l
-       JOIN (SELECT DISTINCT ON (upper(trim(name))) upper(trim(name)) AS name_key, code FROM app.salesmen ORDER BY upper(trim(name)), (upper(status) = 'ACTIVE') DESC, code) sm ON sm.name_key = upper(trim(l."SMAN_NAME"))
-       LEFT JOIN app.sales_assignments a ON a.period = $1::date AND a.salesman_code = sm.code AND a.brand = upper(trim(l."BRAND"))
-       WHERE l."DOC_DATE" >= $1::date AND l."DOC_DATE" < ($1::date + interval '1 month') GROUP BY 1, 3, 4, 5`,
-      [periodIso],
-    ),
-    q<{ through: string | null }>(`SELECT to_char(max("DOC_DATE"), 'YYYY-MM-DD') AS through FROM app.sales_clean WHERE "DOC_DATE" >= $1::date AND "DOC_DATE" < ($1::date + interval '1 month')`, [periodIso]),
-  ]);
-  const [year, month] = periodIso.split("-").map(Number);
-  const throughDay = through[0]?.through ? Number(through[0].through.slice(8)) : 0;
-  return trackSalesmen([...targets.map((t) => ({ ...t, sales: 0 })), ...actuals.map((a) => ({ ...a, target: 0 }))], year, month - 1, throughDay);
+  return (await (await salesCache()).loadCachedPeriodTracking(periodIso)).salesman;
 }

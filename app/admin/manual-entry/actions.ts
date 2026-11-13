@@ -13,17 +13,14 @@ import {
   parseManualBrand,
   parseManualCogs,
   parseManualConsignment,
-  parseManualCustomerOpportunity,
   parseManualCustoms,
   parseManualDailyStay,
   parseManualDailyTakings,
   parseManualDeliveryVariance,
   parseManualEmployee,
-  parseManualExpiringDocument,
   parseManualFleetVehicle,
   parseManualFmcgCustomer,
   parseManualFmcgItem,
-  parseManualLeaveRequest,
   parseManualLogisticsKpis,
   parseManualManagerTarget,
   parseManualMonthlyFigures,
@@ -44,7 +41,6 @@ import {
 import {
   deleteCogsMonthEntries,
   deleteCompanyFigureEntry,
-  deleteCustomerOpportunity,
   deleteCustomsClearance,
   deleteDailyReceiptEntry,
   deleteDailyStayRow,
@@ -59,8 +55,6 @@ import {
   deleteFmcgSalesman,
   deleteFmcgStockExpiry,
   deleteFmcgStockSnapshot,
-  deleteHrExpiringDocument,
-  deleteHrLeaveRequest,
   deleteOverdueInvoice,
   deleteReceivablesSnapshot,
   deleteShipment,
@@ -68,7 +62,6 @@ import {
   deleteWarehouse,
   deleteFleetVehicle,
   saveCogsMonthEntries,
-  saveCustomerOpportunity,
   saveCustomsClearance,
   saveDailyReceiptDay,
   saveDailyStayRow,
@@ -83,8 +76,6 @@ import {
   saveFmcgSalesman,
   saveFmcgStockExpiry,
   saveFmcgStockSnapshot,
-  saveHrExpiringDocument,
-  saveHrLeaveRequest,
   saveLogisticsKpis,
   saveManualEmployeeRecord,
   saveManualMonthlySection,
@@ -100,6 +91,7 @@ import { REPORTS_CACHE_TAG } from "@/lib/reports";
 import {
   deleteSalesDepartmentTarget,
   deleteSalesSectorIndicator,
+  SALES_CACHE_TAG,
   saveSalesDepartmentTarget,
   saveSalesSectorIndicators,
 } from "@/lib/sales-targets";
@@ -115,6 +107,7 @@ function refreshCompanyReports(companyId?: number) {
     "/admin/companies",
     "/admin/activity",
     "/dashboard",
+    "/sales",
     "/finance",
     "/finance/pnl",
     "/real-estate",
@@ -129,6 +122,9 @@ function refreshCompanyReports(companyId?: number) {
 }
 
 function refreshRoutes(...paths: string[]) {
+  if (paths.some((p) => p === "/sales" || p === "/finance" || p === "/logistics" || p === "/products")) {
+    updateTag(SALES_CACHE_TAG);
+  }
   for (const p of ["/admin/manual-entry", "/admin/activity", ...paths]) revalidatePath(p);
 }
 
@@ -432,15 +428,6 @@ export async function saveManualFinanceCustomerAction(_: ManualActionState, f: F
     refreshRoutes("/dashboard", "/finance");
     return { ok: `Saved overdue invoice ${parsed.data.invoiceNo}.` };
   }
-  if (kind === "customerOpportunity") {
-    const parsed = parseManualCustomerOpportunity(f);
-    if ("error" in parsed) return parsed;
-    const id = parsePositiveIntId(f.get("id"));
-    await saveCustomerOpportunity(parsed.data, id);
-    await addLog(`Customer opportunity "${parsed.data.title}" (${parsed.data.customerName}) saved`);
-    refreshRoutes("/customers");
-    return { ok: `Saved opportunity "${parsed.data.title}" for ${parsed.data.customerName}.` };
-  }
   return { error: "Unknown finance/customer record type." };
 }
 
@@ -459,28 +446,6 @@ export async function saveManualHrAction(_: ManualActionState, f: FormData): Pro
     await addLog(`Employee ${parsed.data.id} (${parsed.data.name}) saved manually`);
     refreshRoutes("/dashboard", "/hr", "/admin/employees");
     return { ok: `Saved employee ${parsed.data.name} (${parsed.data.id}).` };
-  }
-  if (kind === "leaveRequest") {
-    const parsed = parseManualLeaveRequest(f);
-    if ("error" in parsed) return parsed;
-    const co = await resolveOptionalCompany(parsed.data.companyId);
-    if (!co.ok) return { error: "Selected company not found." };
-    const id = parsePositiveIntId(f.get("id"));
-    await saveHrLeaveRequest({ ...parsed.data, companyId: co.id }, id);
-    await addLog(`HR leave request for ${parsed.data.employeeName} (${parsed.data.startDate}) saved`);
-    refreshRoutes("/dashboard", "/hr");
-    return { ok: `Saved leave request for ${parsed.data.employeeName}.` };
-  }
-  if (kind === "expiringDocument") {
-    const parsed = parseManualExpiringDocument(f);
-    if ("error" in parsed) return parsed;
-    const co = await resolveOptionalCompany(parsed.data.companyId);
-    if (!co.ok) return { error: "Selected company not found." };
-    const id = parsePositiveIntId(f.get("id"));
-    await saveHrExpiringDocument({ ...parsed.data, companyId: co.id }, id);
-    await addLog(`HR expiring document (${parsed.data.documentType}) for ${parsed.data.holderName} saved`);
-    refreshRoutes("/dashboard", "/hr");
-    return { ok: `Saved document expiry record for ${parsed.data.holderName}.` };
   }
   return { error: "Unknown HR record type." };
 }
@@ -754,18 +719,6 @@ export async function deleteManualRecordAction(f: FormData) {
     await deleteOverdueInvoice(id);
     await addLog(`Deleted overdue invoice #${id}`);
     refreshRoutes("/dashboard", "/finance");
-  } else if (kind === "customerOpportunity") {
-    await deleteCustomerOpportunity(id);
-    await addLog(`Deleted customer opportunity #${id}`);
-    refreshRoutes("/customers");
-  } else if (kind === "leaveRequest") {
-    await deleteHrLeaveRequest(id);
-    await addLog(`Deleted HR leave request #${id}`);
-    refreshRoutes("/dashboard", "/hr");
-  } else if (kind === "expiringDocument") {
-    await deleteHrExpiringDocument(id);
-    await addLog(`Deleted HR expiring document #${id}`);
-    refreshRoutes("/dashboard", "/hr");
   } else if (kind === "fleetVehicle") {
     await deleteFleetVehicle(id);
     await addLog(`Deleted fleet vehicle #${id}`);

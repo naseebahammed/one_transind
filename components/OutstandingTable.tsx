@@ -17,7 +17,7 @@ export function OutstandingTable({ rows }: { rows: CustomerOutstanding[] }) {
   const visible = showAll ? sorted : sorted.slice(0, 10);
   return (
     <>
-    <div className="tw"><table>
+    <div className="tw"><table className="sticky-col">
       <thead><tr>{COLUMNS.map(([key, label]) => (
         <th key={key} className={key === "name" ? undefined : "n"} aria-sort={sort.key === key ? (sort.down ? "descending" : "ascending") : "none"}>
           <button type="button" onClick={() => setSort({ key, down: sort.key === key ? !sort.down : key !== "name" })} style={{ all: "inherit", cursor: "pointer" }}>

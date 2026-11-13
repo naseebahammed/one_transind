@@ -62,10 +62,13 @@ export function computeGroupMonthlyTargetsMillions(params: {
 }
 
 const loadDb = () => import("@/lib/db");
+const salesCache = () => import("@/lib/sales-cache");
 
-export async function listSubsidiaryMonthlyRevenue(yearsList: number[]): Promise<SubsidiaryRevenueRow[]> {
+export async function querySubsidiaryMonthlyRevenue(yearsList: number[]): Promise<SubsidiaryRevenueRow[]> {
   if (!yearsList.length) return [];
   const { q } = await loadDb();
+  const minYear = Math.min(...yearsList);
+  const maxYear = Math.max(...yearsList);
   return q<SubsidiaryRevenueRow>(
     `SELECT
        company_id AS "companyId",
@@ -73,13 +76,20 @@ export async function listSubsidiaryMonthlyRevenue(yearsList: number[]): Promise
        EXTRACT(month FROM period)::int - 1 AS month,
        COALESCE(SUM(amount_qar), 0)::float8 AS amount
      FROM rpt.company_monthly_revenue
-     WHERE EXTRACT(year FROM period)::int = ANY($1::int[])
+     WHERE period >= make_date($2::int, 1, 1)
+       AND period < make_date($3::int + 1, 1, 1)
+       AND EXTRACT(year FROM period)::int = ANY($1::int[])
      GROUP BY company_id, EXTRACT(year FROM period)::int, EXTRACT(month FROM period)::int`,
-    [yearsList],
+    [yearsList, minYear, maxYear],
   );
 }
 
-export async function listSubsidiaryMonthlyBudgetRevenue(year: number): Promise<number[]> {
+export async function listSubsidiaryMonthlyRevenue(yearsList: number[]): Promise<SubsidiaryRevenueRow[]> {
+  if (!yearsList.length) return [];
+  return (await salesCache()).loadCachedSubsidiaryMonthlyRevenue(yearsList);
+}
+
+export async function querySubsidiaryMonthlyBudgetRevenue(year: number): Promise<number[]> {
   const { q } = await loadDb();
   const rows = await q<{ month: number; amount: number }>(
     `SELECT
@@ -102,5 +112,9 @@ export async function listSubsidiaryMonthlyBudgetRevenue(year: number): Promise<
     if (row.month >= 0 && row.month < 12) months[row.month] = roundMoney(row.amount);
   }
   return months;
+}
+
+export async function listSubsidiaryMonthlyBudgetRevenue(year: number): Promise<number[]> {
+  return (await salesCache()).loadCachedSubsidiaryMonthlyBudgetRevenue(year);
 }
 

@@ -2,6 +2,7 @@
 import { SECTOR } from "@/lib/org";
 import { startTransition, useActionState, useState } from "react";
 import { uploadReport, type UploadState } from "@/app/admin/al-manzil/actions";
+import { FileDropzone } from "@/components/admin/FileDropzone";
 import { Button } from "@/components/admin/ui/button";
 import { Input } from "@/components/admin/ui/input";
 import { NativeSelect } from "@/components/admin/ui/native-select";
@@ -29,8 +30,8 @@ export function UploadReport({ companyId, sector, branchId, initialType = "pnl" 
   const template = `/api/companies/${companyId}/template?${new URLSearchParams({ section: type, ...(month && type !== "sales" && { month }), ...(/^\d{4}$/.test(year) && { year }) })}`;
   // Submit by hand: React's automatic reset after a form action puts the report select back on its first option, and the next file would load as the wrong type.
   return (
-    <form action={act} className="space-y-1" onSubmit={(e) => { e.preventDefault(); const data = new FormData(e.currentTarget); startTransition(() => act(data)); }}>
-      <div className="flex flex-wrap items-center gap-2">
+    <form action={act} className="space-y-1.5" onSubmit={(e) => { e.preventDefault(); const data = new FormData(e.currentTarget); startTransition(() => act(data)); }}>
+      <div className="flex flex-wrap items-start gap-2">
         <input type="hidden" name="companyId" value={companyId} />
         <input type="hidden" name="branchId" value={branchId ?? ""} />
         <NativeSelect name="type" value={type} onChange={(e) => setType(e.target.value as keyof typeof TYPES)}>
@@ -42,10 +43,10 @@ export function UploadReport({ companyId, sector, branchId, initialType = "pnl" 
         </NativeSelect>}
         {!NO_TEMPLATE.includes(type) && <Input type="number" name="year" placeholder="Year" title="Template year. Also used for a P&L file with no year in its headers." className="w-24" value={year} onChange={(e) => setYear(e.target.value)} />}
         {!NO_TEMPLATE.includes(type) && <Button asChild variant="outline"><a href={template}>Download template</a></Button>}
-        <input key={type} type="file" name="file" accept={TYPES[type].accept} required className="text-sm" />
+        <FileDropzone key={type} name="file" accept={TYPES[type].accept} ariaLabel={`${TYPES[type].label} file`} disabled={pending} resetToken={s.ok ? s : undefined} />
         <Button type="submit" disabled={pending}>{pending ? "Uploading..." : "Upload"}</Button>
-        {s.error && <span className="text-sm text-destructive">{s.error}</span>}
-        {s.ok && <span className="text-sm text-success">{s.ok}</span>}
+        {s.error && <span role="alert" className="self-center text-sm text-destructive">{s.error}</span>}
+        {s.ok && <span role="status" className="self-center text-sm text-success">{s.ok}</span>}
       </div>
       <p className="text-xs text-muted-foreground">{TYPES[type].hint}</p>
     </form>

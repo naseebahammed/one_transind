@@ -92,6 +92,8 @@ export function resolveDepartmentTargetsWithFallback(
   return [...byKey.values()].sort((a, b) => a.code.localeCompare(b.code) || a.month - b.month);
 }
 
+const salesCache = () => import("@/lib/sales-cache");
+
 const loadDbDeps = async () => {
   const [pgMod, periodMod, configMod, cleanMod, targetsMod, sectorsMod] = await Promise.all([
     import("@/lib/pg"),
@@ -104,7 +106,7 @@ const loadDbDeps = async () => {
   return { pgMod, periodMod, configMod, cleanMod, targetsMod, sectorsMod };
 };
 
-export async function getComputedSalesIndicators(
+export async function queryComputedSalesIndicators(
   month: number,
   departmentCode = "",
   departmentLabel = "",
@@ -203,10 +205,18 @@ export async function getComputedSalesIndicators(
   return out;
 }
 
-export async function listEffectiveDepartmentTargets(year: number): Promise<SalesDepartmentTargetRow[]> {
+export async function getComputedSalesIndicators(
+  month: number,
+  departmentCode = "",
+  departmentLabel = "",
+): Promise<Partial<Record<SalesIndicatorKey, number>>> {
+  return (await salesCache()).loadCachedComputedSalesIndicators(month, departmentCode, departmentLabel);
+}
+
+export async function queryEffectiveDepartmentTargets(year: number): Promise<SalesDepartmentTargetRow[]> {
   const { pgMod, targetsMod, sectorsMod } = await loadDbDeps();
   const [explicit, sectors, assignRes] = await Promise.all([
-    targetsMod.listSalesDepartmentTargets(year),
+    targetsMod.querySalesDepartmentTargets(year),
     sectorsMod.getSalesSectors(false),
     pgMod.pg.query<{ dept: string; month: number; target: number }>(
       `SELECT
@@ -238,5 +248,9 @@ export async function listEffectiveDepartmentTargets(year: number): Promise<Sale
     .filter((r): r is { code: string; year: number; month: number; target: number } => r !== null);
 
   return resolveDepartmentTargetsWithFallback(explicit, mappedAssignments);
+}
+
+export async function listEffectiveDepartmentTargets(year: number): Promise<SalesDepartmentTargetRow[]> {
+  return (await salesCache()).loadCachedEffectiveDepartmentTargets(year);
 }
 

@@ -4,23 +4,27 @@ import { connection } from "next/server";
 import { getBreakdown, getDrill, getDrillLabels, getMonthly, getOverview, getStats } from "@/lib/data";
 import { fmt, MONTHS, sum } from "@/lib/format";
 import { link, parsePath } from "@/lib/url";
+import { translator } from "@/lib/i18n";
+import { getLanguage } from "@/lib/language";
 import { Drill } from "@/components/Drill";
 import { MonthSelect } from "@/components/MonthSelect";
 import { YearSelect } from "@/components/YearSelect";
 import { Insights, Kpi, MarginChip, Panel } from "@/components/ui";
+import { PageSkeleton } from "@/components/PageSkeleton";
 
 export const metadata = { title: "Trading sales (actual) · One Transind" };
 type Params = Promise<{ m?: string; year?: string; p?: string; c?: string; q?: string; all?: string }>;
 
 export default function Page({ searchParams }: { searchParams: Params }) {
-  return <Suspense fallback={<p className="empty">Loading…</p>}><Content searchParams={searchParams} /></Suspense>;
+  return <Suspense fallback={<PageSkeleton kpis={4} hasFilters panels={2} />}><Content searchParams={searchParams} /></Suspense>;
 }
 
 const mPct = (s: number, c: number) => (s ? (s - c) / s * 100 : 0);
 
 async function Content({ searchParams }: { searchParams: Params }) {
   await connection();
-  await requireUser();
+  await requireUser("trading");
+  const translate = translator(await getLanguage());
   const [{ m, year: rawYear, p, c, q, all }, o, monthly] = await Promise.all([searchParams, getOverview(), getMonthly()]);
   const rawM = Number(m);
   const allMonths = m === "all";
@@ -34,7 +38,7 @@ async function Content({ searchParams }: { searchParams: Params }) {
   ]);
   const tot = sum(dept.rows.map((r) => r.value)), cost = sum(dept.rows.map((r) => r.cost)), ret = sum(dept.rows.map((r) => r.creditNotes));
   const active = dept.customers;
-  const mn = month === "all" ? `All months ${year}` : `${MONTHS[month]} ${year}`;
+  const mn = month === "all" ? `${translate("All months")} ${year}` : `${MONTHS[month]} ${year}`;
   const monthParam = month === "all" ? "all" : String(month + 1);
   const href = (kind: "p" | "c") => (path: string[], a?: boolean) =>
     link("/trading", { m: monthParam, year: String(year), p: kind === "p" ? path.join("|") : pp.join("|"), c: kind === "c" ? path.join("|") : cp.join("|"), q, all: a ? kind : undefined });
@@ -55,33 +59,33 @@ async function Content({ searchParams }: { searchParams: Params }) {
   return (
     <>
       <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-        <h2 style={{ marginInlineEnd: "auto" }}>Trading sales (actual) · {mn}</h2>
-        <MonthSelect value={month} allLabel="All months" max={11} names={MONTHS} year={year} base={link("/trading", { year: String(year) })} />
+        <h2 style={{ marginInlineEnd: "auto" }}>{translate("Trading sales (actual)")} · {mn}</h2>
+        <MonthSelect value={month} allLabel={translate("All months")} max={11} names={MONTHS} year={year} base={link("/trading", { year: String(year) })} />
         <YearSelect years={years} value={year} base={link("/trading", { m: monthParam })} />
-        <span className="live"><i></i>Actual</span>
-        <form action="/trading"><input type="hidden" name="m" value={monthParam} /><input type="hidden" name="year" value={year} />{p && <input type="hidden" name="p" value={p} />}{c && <input type="hidden" name="c" value={c} />}{all && <input type="hidden" name="all" value={all} />}<input className="search" name="q" type="search" defaultValue={q ?? ""} placeholder="Search brand, product or customer" aria-label="Search" /></form>
+        <span className="live"><i></i>{translate("Actual")}</span>
+        <form action="/trading"><input type="hidden" name="m" value={monthParam} /><input type="hidden" name="year" value={year} />{p && <input type="hidden" name="p" value={p} />}{c && <input type="hidden" name="c" value={c} />}{all && <input type="hidden" name="all" value={all} />}<input className="search" name="q" type="search" defaultValue={q ?? ""} placeholder={translate("Search brand, product or customer")} aria-label={translate("Search")} /></form>
       </div>
       <div className="kpis">
-        <Kpi label={`Sales ${mn}`} value={`${fmt(tot / 1e6, 2)} M`} delta={fmt(tot)} up />
-        <Kpi label="Gross margin" value={`${fmt(mPct(tot, cost), 1)}%`} delta={`Cost: ${fmt(cost / 1e6, 2)} M`} up />
-        <Kpi label="Active customers" value={fmt(active)} delta={`${groups.length} chains`} />
-        <Kpi label="Items sold" value={fmt(dept.items)} delta={`${brands.length} brands`} />
-        <Kpi label="Returns" value={`${fmt(ret / 1e6, 2)} M`} delta={`${fmt(tot ? -ret / tot * 100 : 0, 1)}% of sales`} />
-        <Kpi label="Avg per customer" value={fmt(active ? tot / active : 0)} up />
+        <Kpi label={`${translate("Sales")} ${mn}`} value={`${fmt(tot / 1e6, 2)} M`} delta={fmt(tot)} up />
+        <Kpi label={translate("Gross margin")} value={`${fmt(mPct(tot, cost), 1)}%`} delta={`${translate("Cost")}: ${fmt(cost / 1e6, 2)} M`} up />
+        <Kpi label={translate("Active customers")} value={fmt(active)} delta={`${groups.length} ${translate("chains")}`} />
+        <Kpi label={translate("Items sold")} value={fmt(dept.items)} delta={`${brands.length} ${translate("brands")}`} />
+        <Kpi label={translate("Returns")} value={`${fmt(ret / 1e6, 2)} M`} delta={`${fmt(tot ? -ret / tot * 100 : 0, 1)}% ${translate("of sales")}`} />
+        <Kpi label={translate("Avg per customer")} value={fmt(active ? tot / active : 0)} up />
       </div>
       <div className="grid">
-        <Drill span={6} title="Products drill-down" mode="margin" rows={prow} labels={plab} path={pp} levels={["Departments", "Brands", "Products"]} rootLabel="All" q={q} all={all === "p"} href={href("p")} />
-        <Drill span={6} title="Customers drill-down" limit={10} mode="margin" rows={crow} labels={clab} path={cp} levels={["Groups", "Branches / customers", "Brands", "Products"]} rootLabel="All" q={q} all={all === "c"} href={href("c")} />
-        <Insights title="Analysis" items={insights} />
-        <Panel span={6} title="Top customer groups">
+        <Drill span={6} title={translate("Products drill-down")} mode="margin" rows={prow} labels={plab} path={pp} levels={["Departments", "Brands", "Products"].map((level) => translate(level))} rootLabel={translate("All")} q={q} all={all === "p"} href={href("p")} />
+        <Drill span={6} title={translate("Customers drill-down")} limit={10} mode="margin" rows={crow} labels={clab} path={cp} levels={["Groups", "Branches / customers", "Brands", "Products"].map((level) => translate(level))} rootLabel={translate("All")} q={q} all={all === "c"} href={href("c")} />
+        <Insights title={translate("Analysis")} items={insights} />
+        <Panel span={6} title={translate("Top customer groups")}>
           <div className="tw"><table>
-            <thead><tr><th>Group</th><th className="n">Value</th><th className="n">Share</th><th className="n">Margin</th><th className="n">Branches</th></tr></thead>
+            <thead><tr><th>{translate("Group")}</th><th className="n">{translate("Value")}</th><th className="n">{translate("Share")}</th><th className="n">{translate("Margin")}</th><th className="n">{translate("Branches")}</th></tr></thead>
             <tbody>{topGroups.map((x) => <tr key={x.key}><td>{x.key}</td><td className="n num">{fmt(x.value)}</td><td className="n num">{fmt(tot ? x.value / tot * 100 : 0, 1)}%</td><td className="n"><MarginChip s={x.value} c={x.cost} /></td><td className="n num">{x.customers}</td></tr>)}</tbody>
           </table></div>
         </Panel>
-        <Panel span={6} title="Top brands" src="Top 10 by sales">
+        <Panel span={6} title={translate("Top brands")} src={translate("Top 10 by sales")}>
           <div className="tw scroll"><table>
-            <thead><tr><th>Brand</th><th className="n">Value</th><th className="n">Margin</th><th className="n">Items</th><th className="n">Customers</th></tr></thead>
+            <thead><tr><th>{translate("Brand")}</th><th className="n">{translate("Value")}</th><th className="n">{translate("Margin")}</th><th className="n">{translate("Items")}</th><th className="n">{translate("Customers")}</th></tr></thead>
             <tbody>{[...brands].sort((a, b) => b.value - a.value).slice(0, 10).map((x) => <tr key={x.key}><td>{x.key}</td><td className="n num">{fmt(x.value)}</td><td className="n"><MarginChip s={x.value} c={x.cost} /></td><td className="n num">{x.items}</td><td className="n num">{x.customers}</td></tr>)}</tbody>
           </table></div>
         </Panel>

@@ -58,7 +58,7 @@ export function AskAI() {
   }
 
   return (
-    <div ref={box} style={{ position: "fixed", right: 20, bottom: 20, zIndex: 20, display: "grid", gap: 10, justifyItems: "end", transform: `translate(${pos.x}px, ${pos.y}px)` }}>
+    <div ref={box} className="ask-ai-container" style={pos.x || pos.y ? { transform: `translate(${pos.x}px, ${pos.y}px)` } : undefined}>
       {open && (
         <div className="panel ask-ai-panel ai-widget">
           <header className="ai-widget-head" onPointerDown={startDrag} style={{ cursor: "move", touchAction: "none" }}>

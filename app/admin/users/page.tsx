@@ -1,4 +1,5 @@
-import { AddUserForm } from "@/components/admin/AddUserForm";
+import { AccessSelect, AddUserForm } from "@/components/admin/AddUserForm";
+import { Button } from "@/components/admin/ui/button";
 import { ConfirmButton } from "@/components/admin/ConfirmButton";
 import { Page } from "@/components/admin/Page";
 import { Badge } from "@/components/admin/ui/badge";
@@ -7,10 +8,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { requireAdmin } from "@/lib/guard";
 import { adminEmails } from "@/lib/server-config";
 import { listUsers } from "@/lib/users";
-import { removeUserAction } from "./actions";
+import { removeUserAction, setUserAccessAction } from "./actions";
 
 export default function Users() {
-  return <Page title="Users" description="People who can sign in to One Transind with their Microsoft account."><Rows /></Page>;
+  return <Page title="Users" description="People who can sign in to One Transind with their Microsoft account, and which pages each can open. Administrators always see everything."><Rows /></Page>;
 }
 
 async function Rows() {
@@ -19,7 +20,7 @@ async function Rows() {
   return (
     <div className="space-y-6">
       <AddUserForm />
-      <Card className="gap-0 overflow-hidden py-0">
+      <Card flush>
         <Table>
           <TableHeader><TableRow><TableHead>Email</TableHead><TableHead>Role</TableHead><TableHead className="w-24" /></TableRow></TableHeader>
           <TableBody>
@@ -29,7 +30,13 @@ async function Rows() {
             {users.map((u) => (
               <TableRow key={u.email}>
                 <TableCell>{u.email}</TableCell>
-                <TableCell>User</TableCell>
+                <TableCell>
+                  <form action={setUserAccessAction} className="flex items-center gap-2">
+                    <input type="hidden" name="email" value={u.email} />
+                    <AccessSelect defaultValue={u.access} />
+                    <Button type="submit" size="sm" variant="outline">Save</Button>
+                  </form>
+                </TableCell>
                 <TableCell>
                   <form action={removeUserAction}>
                     <input type="hidden" name="email" value={u.email} />

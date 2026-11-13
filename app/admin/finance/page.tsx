@@ -90,11 +90,11 @@ async function Summary({ searchParams }: { searchParams: Search }) {
       <Card className="gap-2 py-3"><CardHeader><CardTitle className="text-sm">Profit &amp; loss</CardTitle></CardHeader><CardContent>
       <Table>
         <TableHeader>
-          <TableRow>{!one && <><TableHead>Company</TableHead><TableHead>Sector</TableHead></>}<TableHead>Period</TableHead><TableHead className="text-right">Revenue</TableHead><TableHead className="text-right">Total cost</TableHead><TableHead className="text-right">Net</TableHead><TableHead className="text-right">Margin</TableHead><TableHead className="text-right">Report</TableHead>{!one && <TableHead className="text-right">Visible</TableHead>}</TableRow>
+          <TableRow>{!one && <><TableHead className="admin-sticky-col">Company</TableHead><TableHead>Sector</TableHead></>}<TableHead>Period</TableHead><TableHead className="text-right">Revenue</TableHead><TableHead className="text-right">Total cost</TableHead><TableHead className="text-right">Net</TableHead><TableHead className="text-right">Margin</TableHead><TableHead className="text-right">Report</TableHead>{!one && <TableHead className="text-right">Visible</TableHead>}</TableRow>
         </TableHeader>
         <TableBody>
           {pnlAll.map((x) => {
-            const { c, r } = x, head = one ? null : (<><TableCell className="font-medium">{c.name}</TableCell><TableCell>{sectors.find(([k]) => k === c.sector)?.[1] ?? c.sector}</TableCell></>);
+            const { c, r } = x, head = one ? null : (<><TableCell className="admin-sticky-col font-medium">{c.name}</TableCell><TableCell>{sectors.find(([k]) => k === c.sector)?.[1] ?? c.sector}</TableCell></>);
             if (!r) return <TableRow key={`${c.id}-none`}>{head}<TableCell colSpan={6}><Badge variant="neutral">No P&amp;L data yet</Badge></TableCell>{!one && <TableCell className="text-right"><HideToggle c={c} /></TableCell>}</TableRow>;
             const rv = sum(r.revenue), nt = sum(r.net);
             return (
@@ -127,11 +127,11 @@ async function Summary({ searchParams }: { searchParams: Search }) {
       <Card className="gap-2 py-3"><CardHeader><CardTitle className="text-sm">Monthly sales</CardTitle></CardHeader><CardContent>
       <Table>
         <TableHeader>
-          <TableRow>{!one && <><TableHead>Company</TableHead><TableHead>Sector</TableHead></>}<TableHead>Period</TableHead><TableHead className="text-right">Revenue</TableHead><TableHead className="text-right">Report</TableHead></TableRow>
+          <TableRow>{!one && <><TableHead className="admin-sticky-col">Company</TableHead><TableHead>Sector</TableHead></>}<TableHead>Period</TableHead><TableHead className="text-right">Revenue</TableHead><TableHead className="text-right">Report</TableHead></TableRow>
         </TableHeader>
         <TableBody>
           {salesAll.map((x) => {
-            const { c, r } = x, head = one ? null : (<><TableCell className="font-medium">{c.name}</TableCell><TableCell>{sectors.find(([k]) => k === c.sector)?.[1] ?? c.sector}</TableCell></>);
+            const { c, r } = x, head = one ? null : (<><TableCell className="admin-sticky-col font-medium">{c.name}</TableCell><TableCell>{sectors.find(([k]) => k === c.sector)?.[1] ?? c.sector}</TableCell></>);
             if (!r) return <TableRow key={`${c.id}-none`}>{head}<TableCell colSpan={3}><Badge variant="neutral">No monthly sales report yet</Badge></TableCell></TableRow>;
             return (
               <TableRow key={`${c.id}-sales-${r.year}`}>
@@ -159,12 +159,12 @@ async function Summary({ searchParams }: { searchParams: Search }) {
       <Card className="gap-2 py-3"><CardHeader><CardTitle className="text-sm">Expenses (QAR)</CardTitle></CardHeader><CardContent>
       <Table>
         <TableHeader>
-          <TableRow>{!one && <TableHead>Company</TableHead>}<TableHead>Year</TableHead>{MONTHS.map((m) => <TableHead key={m} className="text-right">{m}</TableHead>)}<TableHead className="text-right">Total</TableHead></TableRow>
+          <TableRow>{!one && <TableHead className="admin-sticky-col">Company</TableHead>}<TableHead>Year</TableHead>{MONTHS.map((m) => <TableHead key={m} className="text-right">{m}</TableHead>)}<TableHead className="text-right">Total</TableHead></TableRow>
         </TableHeader>
         <TableBody>
           {expenseRows.map(({ c, year, m }) => (
             <TableRow key={`${c.id}-exp-${year}`}>
-              {!one && <TableCell className="font-medium">{c.name}</TableCell>}
+              {!one && <TableCell className="admin-sticky-col font-medium">{c.name}</TableCell>}
               <TableCell>{year}</TableCell>
               {m.map((v, i) => <TableCell key={i} className="text-right tabular-nums">{qar(v)}</TableCell>)}
               <TableCell className="text-right font-semibold tabular-nums">{qar(sum(m.map((v) => v ?? 0)))}</TableCell>
