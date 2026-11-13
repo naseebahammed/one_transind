@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { branchSummary, receiptTable } from "./receipts.ts";
+import { branchSummary, deliveryAppTotals, receiptTable } from "./receipts.ts";
 
 const day = (date: string, v: Record<string, number>) => Object.entries(v).map(([line, value]) => ({ date, line, value }));
 
@@ -36,4 +36,20 @@ test("receiptTable: excludes singular or uppercase bank deposit variants from gr
   assert.equal(t.days[0].gross, 0.3);
   assert.equal(t.totals["Bank deposits"], 75);
   assert.equal(t.gross, 1.31);
+});
+
+test("deliveryAppTotals: groups an app's lines under its name and leaves out cash, card and bank deposits", () => {
+  const rows = day("2026-02-01", { "Bank deposits": 110.5, "Cash sales": 110.5, "Credit card sales": 333, "Talabat credit card": 1490, "Talabat discount": -90, "Snoonu cash": 10, Snoonu: 28, Rafeeq: 204, Deliveroo: 0 });
+  assert.deepEqual(deliveryAppTotals(receiptTable(rows, 2026, 1)), { Talabat: 1400, Snoonu: 38, Rafeeq: 204 });
+});
+
+test("a heading that is just Cash counts as the shop's cash, not as a delivery app", () => {
+  const table = receiptTable(day("2026-02-01", { "Cash sales": 100, Cash: 20, "Credit card sales": 50, Keeta: 30 }), 2026, 1);
+  assert.equal(branchSummary(table).cash, 120);
+  assert.deepEqual(deliveryAppTotals(table), { Keeta: 30 });
+});
+
+test("deliveryAppTotals: the same app typed in different cases is one app", () => {
+  const rows = day("2026-02-01", { Keeta: 10, KEETA: 5, "snoonu cash": 2, Snoonu: 3 });
+  assert.deepEqual(deliveryAppTotals(receiptTable(rows, 2026, 1)), { Keeta: 15, Snoonu: 5 });
 });

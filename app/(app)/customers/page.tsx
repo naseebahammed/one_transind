@@ -8,29 +8,34 @@ import { getOutstandingByCustomer, getReceivables } from "@/lib/receivables";
 import { fmt, MONTHS, pct } from "@/lib/format";
 import { OutstandingTable } from "@/components/OutstandingTable";
 import { MonthSelect } from "@/components/MonthSelect";
+import { CompanySelect } from "@/components/CompanySelect";
 import { YearSelect } from "@/components/YearSelect";
 import { BrandList, Kpi, MonthBars, Panel } from "@/components/ui";
 
 export const metadata = { title: "Customers · One Transind" };
 
-export default function Page({ searchParams }: { searchParams: Promise<{ c?: string; all?: string; pending?: string; m?: string; year?: string }> }) {
+export default function Page({ searchParams }: { searchParams: Promise<{ c?: string; all?: string; pending?: string; m?: string; year?: string; g?: string }> }) {
   return <Suspense fallback={<p className="empty">Loading…</p>}><Content searchParams={searchParams} /></Suspense>;
 }
 
-async function Content({ searchParams }: { searchParams: Promise<{ c?: string; all?: string; pending?: string; m?: string; year?: string }> }) {
+async function Content({ searchParams }: { searchParams: Promise<{ c?: string; all?: string; pending?: string; m?: string; year?: string; g?: string }> }) {
   await connection();
   await requireUser();
-  const { c: id, all, pending, m, year: rawYear } = await searchParams;
+  const { c: id, all, pending, m, year: rawYear, g } = await searchParams;
   const pickMonth = Number(m), pickYear = Number(rawYear);
   const d = await getCustomers(Number.isInteger(pickYear) && pickYear > 0 ? pickYear : undefined, Number.isInteger(pickMonth) && pickMonth >= 1 && pickMonth <= 12 ? pickMonth - 1 : undefined);
   // Keep the chosen month and year in every link on this page.
-  const href = (params: Record<string, string | undefined>) => link("/customers", { m, year: rawYear, ...params });
+  const href = (params: Record<string, string | undefined>) => link("/customers", { m, year: rawYear, g, ...params });
   const years = [d.latest.year - 2, d.latest.year - 1, d.latest.year];
-  const c = d.customers.find((x) => x.id === id) ?? d.customers[0];
+  // Groups come from the customers loaded here (top 60 by YTD sales).
+  const groups = [...new Set(d.customers.map((x) => x.group).filter(Boolean))].sort();
+  const group = groups.includes(g ?? "") ? g : undefined;
+  const list = group ? d.customers.filter((x) => x.group === group) : d.customers;
+  const c = list.find((x) => x.id === id) ?? list[0];
   if (!c) return <p className="empty">No customers.</p>;
   const [ar, owing] = await Promise.all([
     getReceivables(c.id),
-    getOutstandingByCustomer(),
+    getOutstandingByCustomer(50, group),
   ]);
   const label = `${MONTHS[d.month]} ${d.year}`, ch = pct(c.mtd, c.lastMonth);
   const series = [Array.from({ length: 12 }, (_, i) => (i <= d.month ? c.months[i] ?? 0 : null))];
@@ -38,23 +43,24 @@ async function Content({ searchParams }: { searchParams: Promise<{ c?: string; a
   return (
     <div style={{ display: "grid", gap: 16 }}>
     <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-      <MonthSelect value={d.month} max={d.year === d.latest.year ? d.latest.month : 11} names={MONTHS} year={d.year} base={link("/customers", { year: String(d.year), c: id, all })} />
-      <YearSelect years={years} value={d.year} base={link("/customers", { m: String(d.month + 1), c: id, all })} />
+      <MonthSelect value={d.month} max={d.year === d.latest.year ? d.latest.month : 11} names={MONTHS} year={d.year} base={link("/customers", { year: String(d.year), c: id, all, g: group })} />
+      <YearSelect years={years} value={d.year} base={link("/customers", { m: String(d.month + 1), c: id, all, g: group })} />
+      <CompanySelect label="Customer group" param="g" companies={groups.map((x) => ({ id: x, name: x }))} value={group ?? "all"} allLabel="All groups" base={link("/customers", { m: String(d.month + 1), year: String(d.year) })} />
     </div>
     <div className="split" style={{ alignItems: "start" }}>
       <div style={{ display: "grid", gap: 16, alignContent: "start", minWidth: 0 }}>
-      <Panel title="Customers" src={`Top ${d.customers.length} / ${fmt(d.customerCount)} by YTD sales`}>
+      <Panel title="Customers" src={`Top ${list.length} / ${fmt(d.customerCount)} by YTD sales`}>
         <div className="list">
-          {(all ? d.customers : d.customers.slice(0, 10)).map((x) => (
+          {(all ? list : list.slice(0, 10)).map((x) => (
             <Link key={x.id} className="row" href={href({ c: x.id, all })} aria-current={x.id === c.id}>
               <span><b style={{ color: "var(--ink)" }}>{x.name}</b><br /><span className="mono" style={{ fontSize: 11.5, color: "var(--muted)" }}>{x.id} · {x.category}</span></span>
               <span className="num">{fmt(x.mtd)}</span>
             </Link>
           ))}
         </div>
-        {!all && d.customers.length > 10 && <Link className="btn sm" href={href({ c: c.id, all: "1" })} style={{ marginTop: 10, display: "inline-block" }}>Show all ({fmt(d.customers.length)})</Link>}
+        {!all && list.length > 10 && <Link className="btn sm" href={href({ c: c.id, all: "1" })} style={{ marginTop: 10, display: "inline-block" }}>Show all ({fmt(list.length)})</Link>}
       </Panel>
-      <Panel title="Outstanding by customer" src="QAR, top 50 by overdue amount">
+      <Panel title="Outstanding by customer" src={`QAR, top 50 by overdue amount${group ? ` · ${group}` : ""}`}>
         <OutstandingTable rows={owing} />
       </Panel>
       </div>

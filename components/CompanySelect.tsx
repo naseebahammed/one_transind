@@ -2,7 +2,7 @@
 import { useRouter } from "next/navigation";
 
 /** Company dropdown that keeps the other query params. An "all" value combines every listed company. */
-export function CompanySelect({ companies, value, base, allLabel, param = "company", label = "Company" }: { companies: { id: number; name: string }[]; value?: number | "all"; base: string; allLabel?: string; param?: string; label?: string }) {
+export function CompanySelect({ companies, value, base, allLabel, param = "company", label = "Company" }: { companies: { id: number | string; name: string }[]; value?: number | string; base: string; allLabel?: string; param?: string; label?: string }) {
   const router = useRouter();
   return (
     <label className="ctl">{label}

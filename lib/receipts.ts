@@ -8,10 +8,24 @@ const RECEIPT_COLUMNS = [BANK_DEPOSITS_LINE, "Cash sales", "Credit card sales", 
 type ReceiptDay = { day: number; values: Record<string, number>; gross: number | null }; // a channel with no entry = not submitted, kept apart from a real 0
 type ReceiptTable = { columns: string[]; days: ReceiptDay[]; totals: Record<string, number>; gross: number };
 
+/** The shop's own cash: "Cash sales", or a workbook heading that is just "Cash". An app's cash ("Snoonu cash") starts with the app name, so it does not match. */
+const isOwnCash = (line: string) => /^cash(\s|$)/i.test(line);
+
 /** Cash and card are the shop's own tills; everything else in gross sales (delivery apps and their discounts) is deliveryApps. days = days with figures. */
 export function branchSummary(table: ReceiptTable) {
-  const cash = table.totals["Cash sales"] ?? 0, card = table.totals["Credit card sales"] ?? 0;
+  const cash = sumMoney(Object.entries(table.totals).filter(([line]) => isOwnCash(line)).map(([, value]) => value)), card = table.totals["Credit card sales"] ?? 0;
   return { gross: table.gross, cash, card, deliveryApps: roundMoney(table.gross - cash - card), days: table.days.filter((d) => d.gross !== null).length };
+}
+
+/** Delivery-app sales by app: every channel except the shop's own cash, card and bank deposits, grouped by the app's name (first word), so "Talabat cash", "Talabat credit card" and "Talabat discount" add up to Talabat. */
+export function deliveryAppTotals(table: ReceiptTable): Record<string, number> {
+  const apps: Record<string, number> = {};
+  for (const [line, value] of Object.entries(table.totals)) {
+    if (isBankDepositLine(line) || isOwnCash(line) || line === "Credit card sales" || !value) continue;
+    const word = line.trim().split(/\s+/)[0].toLowerCase(), app = word[0].toUpperCase() + word.slice(1); // "KEETA" and "Keeta" are one app
+    apps[app] = roundMoney((apps[app] ?? 0) + value);
+  }
+  return apps;
 }
 
 export function receiptTable(rows: ReceiptRow[], year: number, month: number): ReceiptTable {

@@ -17,7 +17,15 @@ const PAGES = [
   { href: "/finance", title: "Finance", icon: "M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" },
 ];
 
-export function Nav() {
+const SECTOR_ICON = "M3 21h18M5 21V3h14v18M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2";
+type MenuSector = { key: string; name: string };
+const withSectors = (sectors: MenuSector[]) => [
+  ...PAGES.slice(0, -1), // Finance stays last
+  ...sectors.map((s) => ({ href: `/sectors/${s.key}`, title: s.name, icon: SECTOR_ICON })),
+  PAGES[PAGES.length - 1],
+];
+
+export function Nav({ sectors = [] }: { sectors?: MenuSector[] }) {
   const path = usePathname();
   const [mini, setMini] = useState(false);
   useEffect(() => {
@@ -41,7 +49,7 @@ export function Nav() {
           <path d={"M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zM9 3v18" + (mini ? "M14 9l3 3-3 3" : "M16 15l-3-3 3-3")} />
         </svg>
       </button>
-      {PAGES.map((p) => (
+      {withSectors(sectors).map((p) => (
         <Link key={p.href} href={p.href} title={p.title} aria-current={path.startsWith(p.href) ? "page" : undefined}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <path d={p.icon} />
@@ -53,7 +61,7 @@ export function Nav() {
   );
 }
 
-export function Title() {
+export function Title({ sectors = [] }: { sectors?: MenuSector[] }) {
   const path = usePathname();
-  return <h1>{PAGES.find((p) => path.startsWith(p.href))?.title ?? "One Transind"}</h1>;
+  return <h1>{withSectors(sectors).find((p) => path.startsWith(p.href))?.title ?? "One Transind"}</h1>;
 }

@@ -52,7 +52,7 @@ export const Change = ({ pct }: { pct: number }) => (
   <span className={`d ${pct >= 0 ? "up" : "down"}`}>{pct >= 0 ? "▲" : "▼"} {fmt(Math.abs(pct), 1)}%</span>
 );
 
-export function HBars({ rows, unit = "", max: fixed }: { rows: { l: string; v: number; extra?: string; cls?: string }[]; unit?: string; max?: number }) {
+export function HBars({ rows, unit = "", max: fixed }: { rows: { l: string; v: number; extra?: string; cls?: string; after?: string }[]; unit?: string; max?: number }) {
   const max = fixed || Math.max(1, ...rows.map((r) => r.v));
   if (!rows.length) return <p className="empty">—</p>;
   return (
@@ -61,7 +61,7 @@ export function HBars({ rows, unit = "", max: fixed }: { rows: { l: string; v: n
         <div className="hbar" key={r.l} title={r.extra}>
           <span className="lab">{r.l}</span>
           <span className="track"><span className={`fill ${r.cls ?? ""}`} style={{ display: "block", width: `${Math.max(1, Math.max(0, r.v) / max * 100)}%` }} /></span>
-          <span className="num">{unit !== " M" ? `${fmt(r.v)}${unit}` : r.v && Math.abs(r.v) < 1 ? `${fmt(r.v * 1000)} QAR K` : `${fmt(r.v)} QAR M`}</span>
+          <span className="num">{unit !== " M" ? `${fmt(r.v)}${unit}` : r.v && Math.abs(r.v) < 1 ? `${fmt(r.v * 1000)} QAR K` : `${fmt(r.v)} QAR M`}{r.after ? ` · ${r.after}` : ""}</span>
         </div>
       ))}
     </div>
@@ -96,6 +96,34 @@ export function MonthBars({ series, labels, colors = ["var(--series)"] }: { seri
               t: m,
               r: series.map((s, j) => [labels?.[j] ?? "Sales", s[i] == null ? "—" : `${fmt(s[i]!)} QAR`, colors[j % colors.length]]),
             })} />
+          </g>
+        ))}
+      </svg>
+    </div></ChartTip>
+  );
+}
+
+/** One bar per day. `values[i]` is the day's sales (null = no figure). `compare` is the same days a year earlier, drawn as a wider faded bar behind. */
+export function DayBars({ days, values, compare, compareLabel = "Last year" }: { days: string[]; values: (number | null)[]; compare?: (number | null)[]; compareLabel?: string }) {
+  const W = 640, H = 380, pl = 48, pb = 24, pt = 10, iw = W - pl - 10, ih = H - pt - pb, bw = iw / days.length;
+  const mx = Math.max(1, ...values.map((v) => v ?? 0), ...(compare ?? []).map((v) => v ?? 0));
+  const step = Math.pow(10, Math.floor(Math.log10(mx))), top = Math.ceil(mx / step) * step;
+  const y = (v: number) => pt + ih - Math.max(0, v) / top * ih;
+  return (
+    <ChartTip><div className="tw">
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ minWidth: 420, direction: "ltr" }} role="img" aria-label="Daily gross sales">
+        {[0, 1, 2, 3, 4].map((i) => (
+          <g key={i}>
+            <line x1={pl} x2={W - 10} y1={y(top * i / 4)} y2={y(top * i / 4)} stroke="var(--line)" />
+            <text x={pl - 6} y={y(top * i / 4) + 4} textAnchor="end">{k(top * i / 4)}</text>
+          </g>
+        ))}
+        {days.map((d, i) => (
+          <g key={d}>
+            {compare?.[i] != null && <rect x={pl + i * bw + 0.5} y={y(compare[i]!)} width={Math.max(2, bw - 1)} height={Math.max(1, pt + ih - y(compare[i]!))} rx="3" fill="var(--cyan)" opacity="0.28" />}
+            {i % 2 === 0 && <text x={pl + i * bw + bw / 2} y={H - 6} textAnchor="middle">{i + 1}</text>}
+            {values[i] != null && <rect x={pl + i * bw + 1.5} y={y(values[i]!)} width={Math.max(2, bw - 3)} height={Math.max(1, pt + ih - y(values[i]!))} rx="3" fill="var(--series)" />}
+            <rect className="chit" tabIndex={0} x={pl + i * bw} y={pt} width={bw} height={ih} data-tip={tip({ t: d, r: [["Gross sales", values[i] == null ? "—" : `${fmt(values[i]!)} QAR`, "var(--series)"], ...(compare ? [[compareLabel, compare[i] == null ? "—" : `${fmt(compare[i]!)} QAR`, "var(--cyan)"] as [string, string, string]] : [])] })} />
           </g>
         ))}
       </svg>

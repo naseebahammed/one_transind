@@ -1,15 +1,16 @@
 import { requireUser } from "@/lib/guard";
 import { Suspense } from "react";
 import { connection } from "next/server";
-import { getBreakdown, getDrill, getDrillLabels, getOverview, getStats } from "@/lib/data";
+import { getBreakdown, getDrill, getDrillLabels, getMonthly, getOverview, getStats } from "@/lib/data";
 import { fmt, MONTHS, sum } from "@/lib/format";
 import { link, parsePath } from "@/lib/url";
 import { Drill } from "@/components/Drill";
 import { MonthSelect } from "@/components/MonthSelect";
+import { YearSelect } from "@/components/YearSelect";
 import { Insights, Kpi, MarginChip, Panel } from "@/components/ui";
 
 export const metadata = { title: "Trading sales (actual) · One Transind" };
-type Params = Promise<{ m?: string; p?: string; c?: string; q?: string; all?: string }>;
+type Params = Promise<{ m?: string; year?: string; p?: string; c?: string; q?: string; all?: string }>;
 
 export default function Page({ searchParams }: { searchParams: Params }) {
   return <Suspense fallback={<p className="empty">Loading…</p>}><Content searchParams={searchParams} /></Suspense>;
@@ -20,19 +21,23 @@ const mPct = (s: number, c: number) => (s ? (s - c) / s * 100 : 0);
 async function Content({ searchParams }: { searchParams: Params }) {
   await connection();
   await requireUser();
-  const [{ m, p, c, q, all }, o] = await Promise.all([searchParams, getOverview()]);
+  const [{ m, year: rawYear, p, c, q, all }, o, monthly] = await Promise.all([searchParams, getOverview(), getMonthly()]);
   const rawM = Number(m);
-  const month = Math.min(o.month, Math.max(0, m && Number.isInteger(rawM) && rawM >= 1 ? rawM - 1 : o.month));
+  const allMonths = m === "all";
+  const month = allMonths ? "all" as const : Math.min(11, Math.max(0, m && Number.isInteger(rawM) && rawM >= 1 ? rawM - 1 : o.month));
+  const years = [...new Set([o.year, ...monthly.map((r) => r.year)])].sort((a, b) => b - a);
+  const year = years.includes(Number(rawYear)) ? Number(rawYear) : o.year;
   const pp = parsePath(p), cp = parsePath(c);
   const [prow, plab, crow, clab, groups, brands, dept] = await Promise.all([
-    getDrill(month, "p", pp), getDrillLabels(month, "p", pp), getDrill(month, "c", cp), getDrillLabels(month, "c", cp),
-    getStats(month, "group"), getStats(month, "brand"), getBreakdown(month, "dept"),
+    getDrill(month, "p", pp, [], year), getDrillLabels(month, "p", pp), getDrill(month, "c", cp, [], year), getDrillLabels(month, "c", cp),
+    getStats(month, "group", year), getStats(month, "brand", year), getBreakdown(month, "dept", year),
   ]);
   const tot = sum(dept.rows.map((r) => r.value)), cost = sum(dept.rows.map((r) => r.cost)), ret = sum(dept.rows.map((r) => r.creditNotes));
   const active = dept.customers;
-  const mn = `${MONTHS[month]} ${o.year}`;
+  const mn = month === "all" ? `All months ${year}` : `${MONTHS[month]} ${year}`;
+  const monthParam = month === "all" ? "all" : String(month + 1);
   const href = (kind: "p" | "c") => (path: string[], a?: boolean) =>
-    link("/trading", { m: String(month + 1), p: kind === "p" ? path.join("|") : pp.join("|"), c: kind === "c" ? path.join("|") : cp.join("|"), q, all: a ? kind : undefined });
+    link("/trading", { m: monthParam, year: String(year), p: kind === "p" ? path.join("|") : pp.join("|"), c: kind === "c" ? path.join("|") : cp.join("|"), q, all: a ? kind : undefined });
 
   const topGroups = groups.slice(0, 10), top10 = sum(topGroups.map((g) => g.value));
   const delivery = sum(groups.filter((g) => /talabat|snoonu/i.test(g.key)).map((g) => g.value));
@@ -44,16 +49,17 @@ async function Content({ searchParams }: { searchParams: Params }) {
     ["good", `Delivery apps (Talabat, Snoonu) sold ${fmt(delivery / 1e6, 2)} M, ${fmt(delivery / tot * 100, 1)}% of sales.`],
     ["bad", `Credit notes total ${fmt(-ret / 1e6, 2)} M (${fmt(-ret / tot * 100, 1)}% of sales)${worstDept ? `, most in ${worstDept.key}` : ""}.`],
     ["plain", `Gross margin is ${fmt(mPct(tot, cost), 1)}%. Brands above 50k QAR under 15% margin: ${lowBrands.slice(0, 5).join(", ") || "none"}.`],
-    ["plain", `${fmt(active)} customers bought ${fmt(dept.items)} different items this month.`],
+    ["plain", `${fmt(active)} customers bought ${fmt(dept.items)} different items ${allMonths ? "in this period" : "this month"}.`],
   ] : [];
 
   return (
     <>
       <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
         <h2 style={{ marginInlineEnd: "auto" }}>Trading sales (actual) · {mn}</h2>
-        <MonthSelect value={month} max={o.month} names={MONTHS} year={o.year} base="/trading" />
+        <MonthSelect value={month} allLabel="All months" max={11} names={MONTHS} year={year} base={link("/trading", { year: String(year) })} />
+        <YearSelect years={years} value={year} base={link("/trading", { m: monthParam })} />
         <span className="live"><i></i>Actual</span>
-        <form action="/trading"><input type="hidden" name="m" value={month + 1} />{p && <input type="hidden" name="p" value={p} />}{c && <input type="hidden" name="c" value={c} />}{all && <input type="hidden" name="all" value={all} />}<input className="search" name="q" type="search" defaultValue={q ?? ""} placeholder="Search brand, product or customer" aria-label="Search" /></form>
+        <form action="/trading"><input type="hidden" name="m" value={monthParam} /><input type="hidden" name="year" value={year} />{p && <input type="hidden" name="p" value={p} />}{c && <input type="hidden" name="c" value={c} />}{all && <input type="hidden" name="all" value={all} />}<input className="search" name="q" type="search" defaultValue={q ?? ""} placeholder="Search brand, product or customer" aria-label="Search" /></form>
       </div>
       <div className="kpis">
         <Kpi label={`Sales ${mn}`} value={`${fmt(tot / 1e6, 2)} M`} delta={fmt(tot)} up />
@@ -73,10 +79,10 @@ async function Content({ searchParams }: { searchParams: Params }) {
             <tbody>{topGroups.map((x) => <tr key={x.key}><td>{x.key}</td><td className="n num">{fmt(x.value)}</td><td className="n num">{fmt(tot ? x.value / tot * 100 : 0, 1)}%</td><td className="n"><MarginChip s={x.value} c={x.cost} /></td><td className="n num">{x.customers}</td></tr>)}</tbody>
           </table></div>
         </Panel>
-        <Panel span={6} title="Brand margin" src="Brands above QAR 100k">
+        <Panel span={6} title="Top brands" src="Top 10 by sales">
           <div className="tw scroll"><table>
             <thead><tr><th>Brand</th><th className="n">Value</th><th className="n">Margin</th><th className="n">Items</th><th className="n">Customers</th></tr></thead>
-            <tbody>{brands.filter((b) => b.value > 100000).sort((a, b) => mPct(b.value, b.cost) - mPct(a.value, a.cost)).map((x) => <tr key={x.key}><td>{x.key}</td><td className="n num">{fmt(x.value)}</td><td className="n"><MarginChip s={x.value} c={x.cost} /></td><td className="n num">{x.items}</td><td className="n num">{x.customers}</td></tr>)}</tbody>
+            <tbody>{[...brands].sort((a, b) => b.value - a.value).slice(0, 10).map((x) => <tr key={x.key}><td>{x.key}</td><td className="n num">{fmt(x.value)}</td><td className="n"><MarginChip s={x.value} c={x.cost} /></td><td className="n num">{x.items}</td><td className="n num">{x.customers}</td></tr>)}</tbody>
           </table></div>
         </Panel>
       </div>

@@ -1,8 +1,14 @@
-import { Pool } from "pg";
+import { Pool, types } from "pg";
+import { roundMoney } from "@/lib/money";
 import { databaseConfig } from "@/lib/server-config";
 
 if (typeof window !== "undefined") {
   throw new Error("lib/pg.ts is server-only and must never run in the browser.");
+}
+
+// Every NUMERIC / FLOAT column comes back as a number rounded to 2 decimals (pg returns NUMERIC as text by default).
+for (const oid of [types.builtins.NUMERIC, types.builtins.FLOAT8, types.builtins.FLOAT4]) {
+  types.setTypeParser(oid, (text) => roundMoney(parseFloat(text)));
 }
 
 const g = globalThis as unknown as { _pg?: Pool };

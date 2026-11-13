@@ -3,7 +3,7 @@ import { connection } from "next/server";
 import { signOut } from "@/auth";
 import { userDisplayName, userInitials } from "@/lib/access";
 import { allowPublicAction, requireUser } from "@/lib/guard";
-import { getSalesSectors } from "@/lib/sales-sectors";
+import { listMenuSectors, listSectors } from "@/lib/sectors";
 import { SalesToolbar } from "@/components/SalesToolbar";
 import { Nav, Title } from "@/components/Shell";
 import { AskAI } from "@/components/AskAI";
@@ -11,8 +11,21 @@ import { AskAI } from "@/components/AskAI";
 async function Toolbar() {
   await connection();
   await requireUser();
-  const sectors = (await getSalesSectors()).map(({ key, label }) => ({ key, label }));
+  const sectors = (await listSectors()).map(([key, name]) => ({ key, name }));
   return <SalesToolbar sectors={sectors} />;
+}
+
+// Sectors added in admin appear in the menu and page title; the plain versions render until they load.
+async function MenuNav() {
+  await connection();
+  await requireUser();
+  return <Nav sectors={await listMenuSectors()} />;
+}
+
+async function MenuTitle() {
+  await connection();
+  await requireUser();
+  return <Title sectors={await listMenuSectors()} />;
 }
 
 async function SidebarUser() {
@@ -53,12 +66,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <img src="/logo.webp" alt="Transind Holding" />
           <b>One Transind</b>
         </div>
-        <Nav />
+        <Suspense fallback={<Nav />}><MenuNav /></Suspense>
         <Suspense fallback={null}><SidebarUser /></Suspense>
       </aside>
       <div className="main">
         <div className="top">
-          <Title />
+          <Suspense fallback={<Title />}><MenuTitle /></Suspense>
           <Suspense fallback={null}><Toolbar /></Suspense>
         </div>
         <main className="content">{children}</main>

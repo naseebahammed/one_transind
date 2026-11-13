@@ -55,6 +55,15 @@ export function Drill({ title, src, mode, rows, labels, path, levels, rootLabel,
         </nav>
         <span className="src">{levels[Math.min(path.length, levels.length - 1)]} · {fmt(shown.length)}{leaf ? "" : " · click any row to drill down"}</span>
       </div>
+      {mode === "margin" && (
+        <div className="src" style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 8 }} aria-label="Gross margin colour legend">
+          <span>Gross margin:</span>
+          <span><span className="chip good" style={{ fontSize: 10.5 }}>30%+</span> good</span>
+          <span><span className="chip plain" style={{ fontSize: 10.5 }}>15–30%</span> fair</span>
+          <span><span className="chip warn" style={{ fontSize: 10.5 }}>5–15%</span> low</span>
+          <span><span className="chip bad" style={{ fontSize: 10.5 }}>&lt;5%</span> very low or loss</span>
+        </div>
+      )}
       <div className="drill">
         {list.map((r) => {
           const inner = (

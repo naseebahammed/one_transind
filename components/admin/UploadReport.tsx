@@ -34,7 +34,7 @@ export function UploadReport({ companyId, sector, branchId, initialType = "pnl" 
         <input type="hidden" name="companyId" value={companyId} />
         <input type="hidden" name="branchId" value={branchId ?? ""} />
         <NativeSelect name="type" value={type} onChange={(e) => setType(e.target.value as keyof typeof TYPES)}>
-          {Object.entries(TYPES).filter(([k]) => (sector === SECTOR.realEstate ? FOR_REAL_ESTATE : sector === SECTOR.foodBeverage ? FOR_FOOD_BEVERAGE : sector === SECTOR.retail ? FOR_RETAIL : sector === SECTOR.fmcg || sector === SECTOR.trading ? FOR_FMCG : FOR_OTHERS).includes(k)).map(([k, t]) => <option key={k} value={k}>{t.label}</option>)}
+          {Object.entries(TYPES).filter(([k]) => (sector === SECTOR.realEstate ? FOR_REAL_ESTATE : sector === SECTOR.foodBeverage ? FOR_FOOD_BEVERAGE : sector === SECTOR.retail ? FOR_RETAIL : sector === SECTOR.trading ? FOR_FMCG : FOR_OTHERS).includes(k)).map(([k, t]) => <option key={k} value={k}>{t.label}</option>)}
         </NativeSelect>
         {type !== "sales" && !NO_TEMPLATE.includes(type) && <NativeSelect aria-label="Template month" value={month} onChange={(e) => setMonth(e.target.value)}>
           <option value="">Last month</option>

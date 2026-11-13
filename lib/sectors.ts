@@ -1,8 +1,14 @@
 import { q, q1 } from "@/lib/db";
-import { SECTORS } from "@/lib/org";
+import { SECTOR, SECTORS } from "@/lib/org";
 
 export const listSectors = async () =>
   (await q<{ key: string; name: string }>("SELECT key, name FROM app.sectors ORDER BY lower(name)")).map((r) => [r.key, r.name] as [string, string]);
+
+/** Sectors that already have their own menu page; every other admin sector gets the generic /sectors/[key] page. */
+const OWN_PAGE_KEYS = new Set<string>([SECTOR.realEstate, SECTOR.retail, SECTOR.healthBeauty, SECTOR.logistics, SECTOR.foodBeverage, SECTOR.trading]);
+
+export const listMenuSectors = async () =>
+  (await listSectors()).filter(([key]) => !OWN_PAGE_KEYS.has(key)).map(([key, name]) => ({ key, name }));
 
 export const countCompanies = async (key: string) =>
   (await q1<{ n: number }>("SELECT COUNT(*)::int AS n FROM app.companies WHERE sector=$1", [key]))!.n;
