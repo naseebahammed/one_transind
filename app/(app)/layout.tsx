@@ -72,12 +72,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <img src="/logo.webp" alt="Transind Holding" />
           <b>One Transind</b>
         </div>
-        <Suspense fallback={<Nav />}><MenuNav /></Suspense>
+        <Suspense fallback={<Suspense fallback={null}><Nav /></Suspense>}><MenuNav /></Suspense>
         <Suspense fallback={null}><SidebarUser /></Suspense>
       </aside>
       <div className="main">
         <div className="top">
-          <Suspense fallback={<Title />}><MenuTitle /></Suspense>
+          <Suspense fallback={<Suspense fallback={null}><Title /></Suspense>}><MenuTitle /></Suspense>
           <Suspense fallback={null}><Toolbar /></Suspense>
         </div>
         <main className="content">{children}</main>
