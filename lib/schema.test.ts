@@ -173,7 +173,7 @@ test("migrate applies 031_manual_report_data additively for all manual report ta
   const recordStep = executed.find((step) => step.sql.startsWith("INSERT INTO app.schema_migrations"));
   assert.ok(recordStep, "expected 031_manual_report_data to be recorded");
   assert.deepEqual(recordStep.params, ["031_manual_report_data"]);
-  assert.equal(LATEST_MIGRATION_ID, "036_user_access");
+  assert.equal(LATEST_MIGRATION_ID, "037_user_modules");
 
   const sql = executed[executed.indexOf(recordStep) - 1].sql;
   assert.doesNotMatch(sql, /\b(DROP\s|DELETE\s+FROM|TRUNCATE\s|UPDATE\s|ALTER\s)\b/i);

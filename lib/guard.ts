@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { apiStatus, type Role } from "@/lib/access";
-import { canOpen, type Access } from "@/lib/access-levels";
+import { canOpen } from "@/lib/modules";
 import { currentRole } from "@/lib/current-role";
 import {
   acquireConcurrency,
@@ -14,7 +14,7 @@ import {
   type ConcurrencyRule,
   type RateLimitRule,
 } from "@/lib/rate-limit";
-import { isListedEmail, userAccess } from "@/lib/users";
+import { isListedEmail, userModules } from "@/lib/users";
 
 if (typeof window !== "undefined") {
   throw new Error("lib/guard.ts is server-only and must never run in the browser.");
@@ -39,8 +39,8 @@ const who = cache(async () => {
   const email = session?.user?.email;
   const name = session?.user?.name;
   const role = await currentRole(email, isListedEmail);
-  const access: Access = role === "user" && email ? await userAccess(email) : "full";
-  return { email, name, role, access };
+  const modules = role === "user" && email ? await userModules(email) : null;
+  return { email, name, role, modules };
 });
 
 function apiBucketRules(bucket: ApiBucket, email: string, clientIp: string): {
@@ -104,14 +104,14 @@ function apiBucketRules(bucket: ApiBucket, email: string, clientIp: string): {
 
 /**
  * Call first in every page, layout and Server Action. The list is re-read each time, so removing someone takes effect on their next request.
- * Pass the page's top-level area (e.g. "finance") to also enforce the person's access level.
+ * Pass the page's top-level area (e.g. "finance") to also enforce the person's modules.
  */
 export async function requireUser(area?: string) {
-  const { email, name, role, access } = await who();
+  const { email, name, role, modules } = await who();
   if (!email) redirect("/signin");
   if (!role) redirect("/no-access");
-  if (area && !canOpen(access, area)) redirect("/no-access");
-  return { email, name, role, access };
+  if (area && !canOpen(modules, area)) redirect("/no-access");
+  return { email, name, role, modules };
 }
 
 /**

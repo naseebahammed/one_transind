@@ -2,7 +2,6 @@ import { Suspense } from "react";
 import { connection } from "next/server";
 import { signOut } from "@/auth";
 import { userDisplayName, userInitials } from "@/lib/access";
-import { areasFor } from "@/lib/access-levels";
 import { allowPublicAction, requireUser } from "@/lib/guard";
 import { translator } from "@/lib/i18n";
 import { getLanguage } from "@/lib/language";
@@ -22,9 +21,9 @@ async function Toolbar() {
 // Sectors added in admin appear in the menu and page title; the plain versions render until they load.
 async function MenuNav() {
   await connection();
-  const { access } = await requireUser();
+  const { modules } = await requireUser();
   const [sectors, language] = await Promise.all([listMenuSectors(), getLanguage()]);
-  return <Nav sectors={sectors} language={language} areas={areasFor(access)} />;
+  return <Nav sectors={sectors} language={language} areas={modules} />;
 }
 
 async function MenuTitle() {

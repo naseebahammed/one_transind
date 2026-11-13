@@ -123,7 +123,7 @@ async function Summary({ searchParams }: { searchParams: Search }) {
         </TableBody>
       </Table>
       </CardContent></Card>
-      {one && edit && <GridSection title={`P&L - ${edit}`}><AccountGrid year={edit} rows={plRows(reports, edit, key!)} onSave={savePnlCell.bind(null, edit, key!)} /></GridSection>}
+      {one && edit && <GridSection title={`P&L - ${edit}`}><AccountGrid gridId={`pnl-${edit}`} year={edit} rows={plRows(reports, edit, key!)} onSave={savePnlCell.bind(null, edit, key!)} /></GridSection>}
       <Card className="gap-2 py-3"><CardHeader><CardTitle className="text-sm">Monthly sales</CardTitle></CardHeader><CardContent>
       <Table>
         <TableHeader>
@@ -155,7 +155,7 @@ async function Summary({ searchParams }: { searchParams: Search }) {
         </TableBody>
       </Table>
       </CardContent></Card>
-      {one && salesYear && <GridSection title={`Monthly sales - ${salesYear}`}><AccountGrid year={salesYear} rows={plRows(reports, salesYear, key!, "sales")} onSave={one.sector === SECTOR.realEstate ? undefined : saveSalesCell.bind(null, salesYear, key!)} /></GridSection>}
+      {one && salesYear && <GridSection title={`Monthly sales - ${salesYear}`}><AccountGrid gridId={`sales-${salesYear}`} year={salesYear} rows={plRows(reports, salesYear, key!, "sales")} onSave={one.sector === SECTOR.realEstate ? undefined : saveSalesCell.bind(null, salesYear, key!)} /></GridSection>}
       <Card className="gap-2 py-3"><CardHeader><CardTitle className="text-sm">Expenses (QAR)</CardTitle></CardHeader><CardContent>
       <Table>
         <TableHeader>
@@ -179,7 +179,7 @@ async function Summary({ searchParams }: { searchParams: Search }) {
           {unitYears.map((y) => <Button key={y} asChild variant={y === unitsYear ? "secondary" : "outline"} size="sm"><Link href={toggle(one, "units", y)}>{y === unitsYear ? "Hide" : "View"} {y}</Link></Button>)}
         </CardContent></Card>
       )}
-      {one && unitsYear && <GridSection title={`Sales by unit type - ${unitsYear}`}><AccountGrid year={unitsYear} rows={plRows(reports, unitsYear, key!, "units")} onSave={saveUnitsCell.bind(null, unitsYear, key!)} /></GridSection>}
+      {one && unitsYear && <GridSection title={`Sales by unit type - ${unitsYear}`}><AccountGrid gridId={`units-${unitsYear}`} year={unitsYear} rows={plRows(reports, unitsYear, key!, "units")} onSave={saveUnitsCell.bind(null, unitsYear, key!)} /></GridSection>}
       {!company && !!withData.length && (
         <div className="grid gap-4 lg:grid-cols-2">
           {byYear.map(({ year, top }) => <Card key={year}><CardHeader><CardTitle>Cost breakdown - {year}</CardTitle></CardHeader><CardContent><HBars rows={top} /></CardContent></Card>)}
@@ -193,24 +193,49 @@ const GridSection = ({ title, children }: { title: string; children: React.React
   <section className="space-y-3"><h2 className="text-sm font-semibold">{title}</h2>{children}</section>
 );
 
-/** Read-only monthly grid for one year, grouped by main account. Figures are edited one at a time via EditPnlFigure. Shared by P&L and monthly sales. */
-function AccountGrid({ year, rows, onSave }: { year: number; rows: ReportRow[]; onSave?: (main: string, sub: string, month: number, value: number) => Promise<string | null | void> }) {
+/** Monthly grid for one year, grouped by main account. Clicking any figure opens EditPnlFigure prefilled to that cell. Shared by P&L and monthly sales. */
+function AccountGrid({ gridId, year, rows, onSave }: { gridId: string; year: number; rows: ReportRow[]; onSave?: (main: string, sub: string, month: number, value: number) => Promise<string | null | void> }) {
   const groups = new Map<string, ReportRow[]>();
   for (const r of rows) groups.set(r.main, [...(groups.get(r.main) ?? []), r]);
   return (
     <div className="space-y-3">
-      {onSave ? <div className="flex justify-end"><EditPnlFigure year={year} months={MONTHS} accounts={rows} onSave={onSave} /></div> : <p className="text-xs text-muted-foreground">Calculated from the daily sales report. To correct a figure, upload the corrected days.</p>}
-      <div className="overflow-x-auto rounded-xl border bg-card">
+      {onSave ? (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="text-xs text-muted-foreground">Click any cell below to edit its figure.</span>
+          <EditPnlFigure gridId={gridId} year={year} months={MONTHS} accounts={rows} onSave={onSave} />
+        </div>
+      ) : (
+        <p className="text-xs text-muted-foreground">Calculated from the daily sales report. To correct a figure, upload the corrected days.</p>
+      )}
+      <div className="overflow-x-auto rounded-xl border bg-card shadow-sm">
         <table className="w-full text-sm">
-          <thead><tr className="border-b bg-muted/50 text-left"><th className="sticky left-0 z-10 min-w-56 bg-muted px-2 py-2">Account</th>{MONTHS.map((m) => <th key={m} className="px-1 py-2 text-right">{m}</th>)}<th className="px-2 py-2 text-right">Total</th></tr></thead>
+          <thead><tr className="border-b bg-muted/50 text-left"><th className="sticky left-0 z-10 min-w-56 bg-muted px-3 py-2 text-xs font-medium text-muted-foreground">Account</th>{MONTHS.map((m) => <th key={m} className="px-2 py-2 text-right text-xs font-medium text-muted-foreground">{m}</th>)}<th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground">Total</th></tr></thead>
           {[...groups].map(([main, groupRows]) => (
             <tbody key={main}>
-              <tr className="bg-muted/40 font-semibold"><td className="sticky left-0 bg-muted px-2 py-1.5">{main}</td>{MONTHS.map((_, i) => <td key={i} className="px-2 py-1.5 text-right tabular-nums">{fmt(sum(groupRows.map((r) => r.m[i])))}</td>)}<td className="px-2 py-1.5 text-right tabular-nums">{fmt(sum(groupRows.flatMap((r) => r.m)))}</td></tr>
+              <tr className="bg-muted/40 font-semibold"><td className="sticky left-0 bg-muted px-3 py-1.5">{main}</td>{MONTHS.map((_, i) => <td key={i} className="px-2 py-1.5 text-right tabular-nums">{fmt(sum(groupRows.map((r) => r.m[i])))}</td>)}<td className="px-3 py-1.5 text-right tabular-nums">{fmt(sum(groupRows.flatMap((r) => r.m)))}</td></tr>
               {groupRows.map((r) => (
-                <tr key={r.sub} className="border-t">
-                  <td className="sticky left-0 bg-card px-2 py-1 pl-5">{r.sub}</td>
-                  {r.m.map((v, i) => <td key={i} className={`px-2 py-1 text-right tabular-nums ${neg(v)}`}>{fmt(v)}</td>)}
-                  <td className={`px-2 py-1 text-right tabular-nums ${neg(sum(r.m))}`}>{fmt(sum(r.m))}</td>
+                <tr key={r.sub} className="border-t hover:bg-muted/30">
+                  <td className="sticky left-0 bg-card px-3 py-1 pl-5">{r.sub}</td>
+                  {r.m.map((v, i) => (
+                    <td key={i} className={`px-1.5 py-1 text-right tabular-nums ${neg(v)}`}>
+                      {onSave ? (
+                        <button
+                          type="button"
+                          data-edit-grid={gridId}
+                          data-main={r.main}
+                          data-sub={r.sub}
+                          data-month={i}
+                          title={`Click to edit ${r.sub} (${MONTHS[i]} ${year})`}
+                          className="inline-flex min-w-12 justify-end rounded-sm px-1 py-0.5 tabular-nums transition-colors hover:bg-info-soft hover:text-info-soft-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                        >
+                          {fmt(v)}
+                        </button>
+                      ) : (
+                        fmt(v)
+                      )}
+                    </td>
+                  ))}
+                  <td className={`px-3 py-1 text-right tabular-nums ${neg(sum(r.m))}`}>{fmt(sum(r.m))}</td>
                 </tr>
               ))}
             </tbody>

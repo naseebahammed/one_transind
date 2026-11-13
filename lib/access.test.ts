@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { canOpen } from "./access-levels.ts";
+import { canOpen, cleanModules, landingPage } from "./modules.ts";
 import test from "node:test";
 import { apiStatus, devLoginEnabled, hashPassword, inTenant, normalizeEmail, parseAdminEmails, passwordMatches, roleOf, userDisplayName, userInitials } from "./access.ts";
 
@@ -74,10 +74,16 @@ test("userInitials extracts up to two uppercase initials", () => {
   assert.equal(userInitials(null, "admin@transind.com"), "A");
 });
 
-test("canOpen: full opens everything, finance and operations only their own pages", () => {
-  assert.equal(canOpen("full", "hr"), true);
-  assert.equal(canOpen("finance", "finance"), true);
-  assert.equal(canOpen("finance", "hr"), false);
-  assert.equal(canOpen("operations", "logistics"), true);
-  assert.equal(canOpen("operations", "finance"), false);
+test("canOpen: null opens everything, a list opens only its own modules", () => {
+  assert.equal(canOpen(null, "hr"), true);
+  assert.equal(canOpen(["trading", "sales"], "trading"), true);
+  assert.equal(canOpen(["trading", "sales"], "finance"), false);
+  assert.equal(canOpen([], "sales"), false);
+});
+
+test("cleanModules drops unknown and repeated values; landingPage skips modules without a page of their own", () => {
+  assert.deepEqual(cleanModules(["trading", "bogus", "trading", "sales"]), ["sales", "trading"]);
+  assert.equal(landingPage(["trading", "sales"]), "/sales");
+  assert.equal(landingPage(["sectors"]), null);
+  assert.equal(landingPage(null), "/dashboard");
 });

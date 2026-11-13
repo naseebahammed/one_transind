@@ -10,7 +10,7 @@ export default function NoAccess() {
   return (
     <main style={box}>
       <h1 style={{ color: "var(--ink)", fontSize: 22, marginBottom: 8 }}>No access</h1>
-      <p style={{ marginBottom: 24 }}>Your account is not approved for One Transind. Ask an administrator to add you.</p>
+      <p style={{ marginBottom: 24 }}>Your account is not approved for this page. Ask an administrator to give you access.</p>
       <form action={async () => { "use server"; if (!(await allowPublicAction("signout"))) return; await signOut({ redirectTo: "/signin" }); }}>
         <button type="submit" style={button}>Sign out</button>
       </form>

@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Check, ChevronRight, Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import { Check, ChevronRight, Loader2, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { deleteAccount, updateAccount } from "@/app/admin/accounts/actions";
 import { AddAccountForm } from "@/components/admin/AddAccountForm";
 import { ConfirmButton } from "@/components/admin/ConfirmButton";
@@ -17,6 +17,7 @@ export function AccountsList({ rows }: { rows: Account[] }) {
   const [main, setMain] = useState("");
   const [adding, setAdding] = useState(false);
   const [editing, setEditing] = useState<number | null>(null);
+  const [savingEdit, setSavingEdit] = useState(false);
   const [editError, setEditError] = useState("");
   const [open, setOpen] = useState<Set<string>>(new Set());
   const mains = [...new Set(rows.map((a) => a.main))]; // rows arrive in sheet order
@@ -89,12 +90,26 @@ export function AccountsList({ rows }: { rows: Account[] }) {
                   editing === a.id ? (
                     <TableRow key={a.id}>
                       <TableCell colSpan={2} className="pl-11">
-                        <form action={async (f) => { const r = await updateAccount(f); setEditError(r.error ?? ""); if (!r.error) setEditing(null); }} className="flex flex-wrap items-center gap-2">
+                        <form
+                          action={async (f) => {
+                            setSavingEdit(true);
+                            try {
+                              const r = await updateAccount(f);
+                              setEditError(r.error ?? "");
+                              if (!r.error) setEditing(null);
+                            } finally {
+                              setSavingEdit(false);
+                            }
+                          }}
+                          className="flex flex-wrap items-center gap-2"
+                        >
                           <input type="hidden" name="id" value={a.id} />
-                          <Input name="main" defaultValue={a.main} required maxLength={80} aria-label="Main account" className="h-8 max-w-56" />
-                          <Input name="sub" defaultValue={a.sub} required maxLength={80} autoFocus aria-label="Sub ledger account" className="h-8 max-w-sm flex-1" />
-                          <Button type="submit" size="icon-sm" aria-label="Save"><Check /></Button>
-                          <Button type="button" size="icon-sm" variant="ghost" aria-label="Cancel" onClick={() => setEditing(null)}><X /></Button>
+                          <Input name="main" defaultValue={a.main} required maxLength={80} disabled={savingEdit} aria-label="Main account" className="h-8 max-w-56" />
+                          <Input name="sub" defaultValue={a.sub} required maxLength={80} disabled={savingEdit} autoFocus aria-label="Sub ledger account" className="h-8 max-w-sm flex-1" />
+                          <Button type="submit" size="icon-sm" disabled={savingEdit} aria-label="Save">
+                            {savingEdit ? <Loader2 className="animate-spin" /> : <Check />}
+                          </Button>
+                          <Button type="button" size="icon-sm" variant="ghost" disabled={savingEdit} aria-label="Cancel" onClick={() => setEditing(null)}><X /></Button>
                           {editError && <p role="alert" className="text-sm text-destructive">{editError}</p>}
                         </form>
                       </TableCell>

@@ -1,11 +1,11 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { BarChart3, ChevronLeft, ChevronRight } from "lucide-react";
 import { BranchesCard } from "@/components/admin/BranchesCard";
 import { CompanyDepartments } from "@/components/admin/CompanyDepartments";
 import { CompanyForm } from "@/components/admin/CompanyForm";
 import { CompanyReceivablesCard } from "@/components/admin/CompanyReceivablesCard";
-import { BranchLinks, CompanySectionNav, progress, YearLinks } from "@/components/admin/CompanySectionNav";
+import { CompanyScopeBar, CompanySectionNav, progress } from "@/components/admin/CompanySectionNav";
 import { FigureSectionView } from "@/components/admin/FigureSectionView";
 import { PnlSectionView } from "@/components/admin/PnlSectionView";
 import { ReceiptsSectionView } from "@/components/admin/ReceiptsSectionView";
@@ -15,7 +15,7 @@ import { Badge } from "@/components/admin/ui/badge";
 import { Button } from "@/components/admin/ui/button";
 import { Card } from "@/components/admin/ui/card";
 import { listBranches } from "@/lib/branches";
-import { getCompany, listCompanyIds } from "@/lib/companies";
+import { getCompany, listCompanies } from "@/lib/companies";
 import { isFigureSection, monthStatuses, profileGaps, SECTIONS, type Section } from "@/lib/company-data";
 import { listFilledMonths } from "@/lib/company-figures";
 import { parsePositiveIntId } from "@/lib/input-validation";
@@ -39,7 +39,7 @@ async function Edit({ params, searchParams }: { params: Params; searchParams: Se
   const id = parsePositiveIntId((await params).id);
   if (!id) notFound();
   const { section: rawSection, year: rawYear, branch: rawBranch, month: rawMonth } = await searchParams;
-  const [company, ids, sectors, propertyTypes, branches] = await Promise.all([getCompany(id), listCompanyIds(), listSectors(), listPropertyTypes(), listBranches(id)]);
+  const [company, ids, sectors, propertyTypes, branches] = await Promise.all([getCompany(id), listCompanies(), listSectors(), listPropertyTypes(), listBranches(id)]);
   if (!company) notFound();
   const showDaily = company.sector === SECTOR.foodBeverage && !!company.has_branches;
   const section: Section = SECTIONS.find(([k]) => k === rawSection && (k !== "daily" || showDaily))?.[0] ?? "profile";
@@ -60,32 +60,68 @@ async function Edit({ params, searchParams }: { params: Params; searchParams: Se
   const labels: Record<Section, string> = { profile: gaps ? `${gaps} blank` : "Complete", pnl: progress(pnlStatuses), budget: progress(figureStatuses.budget), people: progress(figureStatuses.people), expenses: progress(figureStatuses.expenses), daily: "" };
   const sibling = (other: number) => link(`/admin/companies/${other}`, { section, year: rawYear });
   const index = ids.findIndex((c) => c.id === id);
-  const prevId = index > 0 ? ids[index - 1].id : null;
-  const nextId = index >= 0 && index < ids.length - 1 ? ids[index + 1].id : null;
+  const prevCompany = index > 0 ? ids[index - 1] : null;
+  const nextCompany = index >= 0 && index < ids.length - 1 ? ids[index + 1] : null;
+  const sectorLabel = sectors.find(([k]) => k === company.sector)?.[1] ?? company.sector;
+
   return (
     <div className="space-y-4">
-      <Card className="flex-row flex-wrap items-center gap-x-8 gap-y-1 px-6 py-2 text-sm">
-        <span className="flex items-center gap-2 font-semibold">
-          {company.name}
-          <Badge variant={company.active ? "success" : "neutral"}>{company.active ? "Active" : "Inactive"}</Badge>
-        </span>
-        <span><span className="text-muted-foreground">Sector: </span><span className="font-medium">{sectors.find(([k]) => k === company.sector)?.[1] ?? company.sector}</span></span>
-        <span className="ml-auto flex gap-2">
-          {prevId === null ? (
-            <Button variant="outline" size="icon-sm" disabled><ChevronLeft /></Button>
-          ) : (
-            <Button asChild variant="outline" size="icon-sm"><Link href={sibling(prevId)} aria-label="Previous company"><ChevronLeft /></Link></Button>
-          )}
-          {nextId === null ? (
-            <Button variant="outline" size="icon-sm" disabled><ChevronRight /></Button>
-          ) : (
-            <Button asChild variant="outline" size="icon-sm"><Link href={sibling(nextId)} aria-label="Next company"><ChevronRight /></Link></Button>
-          )}
-        </span>
+      <Card flush>
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border-b px-5 py-3 text-sm">
+          <span className="flex items-center gap-2.5 font-semibold">
+            {company.has_logo && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={`/api/companies/${company.id}/logo`} alt="" className="size-7 rounded-md border bg-card object-contain p-0.5" />
+            )}
+            <span className="text-base">{company.name}</span>
+            <Badge variant={company.active ? "success" : "neutral"}>{company.active ? "Active" : "Inactive"}</Badge>
+          </span>
+          <span className="text-muted-foreground">
+            Sector: <span className="font-medium text-foreground">{sectorLabel}</span>
+          </span>
+          <div className="ml-auto flex items-center gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/admin/finance?company=${company.id}`}>
+                <BarChart3 className="size-3.5" />
+                Finance view
+              </Link>
+            </Button>
+            <div className="flex items-center gap-1">
+              {prevCompany === null ? (
+                <Button variant="outline" size="icon-sm" disabled aria-label="Previous company"><ChevronLeft /></Button>
+              ) : (
+                <Button asChild variant="outline" size="icon-sm">
+                  <Link href={sibling(prevCompany.id)} aria-label={`Previous company: ${prevCompany.name}`} title={`Previous: ${prevCompany.name}`}>
+                    <ChevronLeft />
+                  </Link>
+                </Button>
+              )}
+              {nextCompany === null ? (
+                <Button variant="outline" size="icon-sm" disabled aria-label="Next company"><ChevronRight /></Button>
+              ) : (
+                <Button asChild variant="outline" size="icon-sm">
+                  <Link href={sibling(nextCompany.id)} aria-label={`Next company: ${nextCompany.name}`} title={`Next: ${nextCompany.name}`}>
+                    <ChevronRight />
+                  </Link>
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+        <CompanySectionNav id={id} section={section} year={year} labels={labels} branchId={branchId} hidden={showDaily ? [] : ["daily"]} embedded />
       </Card>
-      <CompanySectionNav id={id} section={section} year={year} labels={labels} branchId={branchId} hidden={showDaily ? [] : ["daily"]} />
-      {section !== "profile" && activeBranches.length > 0 && <BranchLinks id={id} section={section} year={year} branches={activeBranches} branchId={branchId} />}
-      {section !== "profile" && <YearLinks id={id} section={section} year={year} years={yearOptions} branchId={branchId} />}
+
+      {section !== "profile" && (
+        <CompanyScopeBar
+          id={id}
+          section={section}
+          year={year}
+          years={yearOptions}
+          branches={activeBranches}
+          branchId={branchId}
+        />
+      )}
+
       {section === "pnl" && <PnlSectionView company={company} year={year} statuses={pnlStatuses} branchId={branchId} />}
       {isFigureSection(section) && <FigureSectionView company={company} section={section} year={year} statuses={figureStatuses[section]} branchId={branchId} />}
       {section === "daily" && <ReceiptsSectionView company={company} year={year} month={month} branchId={branchId} />}
