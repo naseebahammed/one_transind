@@ -67,14 +67,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <div className="admin min-h-screen">
       <SidebarProvider>
-        <Suspense fallback={<div className="print:hidden"><AdminSidebarFallback /></div>}>
+        <Suspense fallback={<div className="print:hidden"><Suspense fallback={null}><AdminSidebarFallback /></Suspense></div>}>
           <div className="print:hidden"><Sidebar /></div>
         </Suspense>
         <SidebarInset>
           <header className="sticky top-0 z-20 flex h-14 items-center gap-3 border-b bg-card/95 px-4 backdrop-blur-xs print:hidden">
             <SidebarTrigger />
             <Separator orientation="vertical" className="h-5" />
-            <Suspense fallback={<BreadcrumbsFallback />}><HeaderBreadcrumbs /></Suspense>
+            <Suspense fallback={<Suspense fallback={null}><BreadcrumbsFallback /></Suspense>}><HeaderBreadcrumbs /></Suspense>
           </header>
           <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 p-4 md:p-8">{children}</main>
         </SidebarInset>
