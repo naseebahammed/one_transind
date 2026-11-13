@@ -5,9 +5,8 @@ import { Badge } from "@/components/admin/ui/badge";
 import { Button } from "@/components/admin/ui/button";
 import { TableCell, TableRow } from "@/components/admin/ui/table";
 import type { Company } from "@/lib/companies";
-import { fmt } from "@/lib/format";
 
-export function CompanyRow({ company: c, sectorLabel, propertyTypeLabel, expenses = [] }: { company: Company; sectorLabel: string; propertyTypeLabel?: string; expenses?: (number | null)[] }) {
+export function CompanyRow({ company: c, sectorLabel, propertyTypeLabel }: { company: Company; sectorLabel: string; propertyTypeLabel?: string }) {
   const router = useRouter();
   const detailHref = `/admin/companies/${c.id}`;
   return (
@@ -37,7 +36,6 @@ export function CompanyRow({ company: c, sectorLabel, propertyTypeLabel, expense
       <TableCell><Badge variant="outline">{sectorLabel}</Badge></TableCell>
       <TableCell className="text-muted-foreground">{propertyTypeLabel ?? (c.property_type ? c.property_type[0].toUpperCase() + c.property_type.slice(1) : "—")}</TableCell>
       <TableCell><Badge variant={c.active ? "success" : "neutral"}>{c.active ? "Active" : "Inactive"}</Badge></TableCell>
-      {expenses.map((v, i) => <TableCell key={i} className="text-right tabular-nums">{v === null ? "—" : fmt(Math.abs(v), 2)}</TableCell>)}
       <TableCell className="text-right">
         <Button asChild variant="outline" size="sm" onClick={(e) => e.stopPropagation()}>
           <Link href={detailHref}>Edit</Link>

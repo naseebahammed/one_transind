@@ -16,8 +16,6 @@ export function CompaniesList({
   companies,
   sectors,
   propertyTypes,
-  years,
-  expenseTotals,
   initialQuery = "",
   initialSector = "",
   initialStatus = "all",
@@ -25,8 +23,6 @@ export function CompaniesList({
   companies: Company[];
   sectors: [string, string][];
   propertyTypes: [string, string][];
-  years: number[];
-  expenseTotals: { company_id: number; year: number; value: number }[];
   initialQuery?: string;
   initialSector?: string;
   initialStatus?: StatusFilter;
@@ -55,8 +51,6 @@ export function CompaniesList({
   });
 
   const filtered = Boolean(needle || sector || status !== "all");
-  const expensesOf = (id: number) =>
-    years.map((y) => expenseTotals.find((t) => t.company_id === id && t.year === y)?.value ?? null);
 
   const clearFilters = () => {
     setQuery("");
@@ -147,11 +141,6 @@ export function CompaniesList({
             <TableHead>Sector</TableHead>
             <TableHead>Type</TableHead>
             <TableHead>Status</TableHead>
-            {years.map((y) => (
-              <TableHead key={y} className="text-right">
-                Expenses {y} (QAR)
-              </TableHead>
-            ))}
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -162,12 +151,11 @@ export function CompaniesList({
               company={c}
               sectorLabel={sectorNames.get(c.sector) ?? c.sector}
               propertyTypeLabel={typeNames.get(c.property_type)}
-              expenses={expensesOf(c.id)}
             />
           ))}
           {!shown.length && (
             <TableRow>
-              <TableCell colSpan={5 + years.length} className="h-24 text-center text-muted-foreground">
+              <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
                 {companies.length
                   ? "No companies match the current filters."
                   : "No companies yet. Click Add company to create the first one."}
