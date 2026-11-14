@@ -50,7 +50,6 @@ async function Content({ searchParams }: { searchParams: Params }) {
 
   return (
     <>
-      <p><Link href="/hr/settlements">{translate("Settlement payments ›")}</Link></p>
       <div className="kpis">
         <Kpi label={translate("Active employees")} value={headcount ? fmt(headcount.total) : "—"} delta={headcount ? `${MONTHS[Number(headcount.month.slice(5)) - 1]} ${headcount.month.slice(0, 4)} · ${translate("department headcount files")}` : undefined} up />
         <Kpi label={`${translate("Joined")} ${year}`} value={fmt(moves.joiners.reduce((x, y) => x + y, 0))} />

@@ -80,10 +80,10 @@ async function Content({ searchParams }: { searchParams: Params }) {
           <div className="grid">
             <Panel span={12} title={translate("Occupancy and average daily rate by month")}>
               <div className="tw"><table>
-                <thead><tr><th>{translate("Month")}</th>{ys.map((y) => <th key={y} className="n" colSpan={4}>{y}</th>)}</tr>
-                  <tr><th />{ys.flatMap((y) => ["Occupancy", "ADR", "Rooms sold", "Long stay"].map((h) => <th key={y + h} className="n">{translate(h)}</th>))}</tr></thead>
+                <thead><tr><th>{translate("Month")}</th>{ys.map((y) => <th key={y} className="n" colSpan={3}>{y}</th>)}</tr>
+                  <tr><th />{ys.flatMap((y) => ["Occupancy", "ADR", "Long stay"].map((h) => <th key={y + h} className="n">{translate(h)}</th>))}</tr></thead>
                 <tbody>{MONTHS.map((m, i) => (
-                  <tr key={m}><td>{m}</td>{O.flatMap((o, j) => [<td key={`${j}o`} className="n num">{o[i].days ? `${fmt(o[i].occ * 100, 1)}%` : "-"}</td>, <td key={`${j}a`} className="n num">{o[i].days ? fmt(o[i].adr) : "-"}</td>, <td key={`${j}s`} className="n num">{o[i].days ? fmt(o[i].sold) : "-"}</td>, <td key={`${j}l`} className="n num">{o[i].days ? `${fmt(o[i].longShare * 100, 1)}%` : "-"}</td>])}</tr>
+                  <tr key={m}><td>{m}</td>{O.flatMap((o, j) => [<td key={`${j}o`} className="n num">{o[i].days ? `${fmt(o[i].occ * 100, 1)}%` : "-"}</td>, <td key={`${j}a`} className="n num">{o[i].days ? fmt(o[i].adr) : "-"}</td>, <td key={`${j}l`} className="n num">{o[i].days ? `${fmt(o[i].longShare * 100, 1)}%` : "-"}</td>])}</tr>
                 ))}</tbody>
               </table></div>
               <p className="note" style={{ marginTop: 8 }}>ADR = room revenue / rooms sold. RevPAR = room revenue / rooms available. Long stay = share of guests on long-stay rates. From Oct 2025 the report adds "other revenue" (space rental) on top of room revenue.</p>
