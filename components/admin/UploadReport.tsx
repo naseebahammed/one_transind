@@ -18,9 +18,10 @@ const TYPES = {
   tenancy: { label: "Tenancy and occupancy", accept: ".xlsx", hint: "The monthly occupancy workbook, one sheet per building (unit, tenant, contract start and end, rent). A tenant written EMPTY is a vacant unit. Each building in the file gets its whole unit list replaced." },
   masters: { label: "FMCG reference data", accept: ".xlsx", hint: "The Market Audit (salesmen, customers), Stock Report (items, brands) or Daily Sales Report (monthly targets) workbook. Existing records are updated, never removed. A month's targets replace that month." },
   balances: { label: "FMCG stock and control reports", accept: ".xlsx", hint: "The daily Stock Report (keep the date in the file name, like 08-11-2026), Variance, Consignment or Ageing workbook. Each day is kept; uploading the same day again replaces it." },
+  group_daily: { label: "Group daily sales", accept: ".xlsx", hint: "The Transind Group Daily Sales Report: the target and sales of every team and shop per day. Days in the file replace the same days; days after the last day with sales are ignored." },
   sales: { label: "Monthly sales", accept: ".xlsx,.csv", hint: "The downloaded template, as Excel or CSV, one sales figure per month. Months you fill in replace the same months on file." },
 } as const;
-const FOR_REAL_ESTATE = ["pnl", "daily", "units", "tenancy"], FOR_FOOD_BEVERAGE = ["pnl", "receipts", "cogs"], FOR_RETAIL = ["pnl", "sales", "dukan"], FOR_FMCG = ["pnl", "sales", "masters", "balances"], NO_TEMPLATE: string[] = ["tenancy", "receipts", "cogs", "dukan", "masters", "balances"], FOR_OTHERS = ["pnl", "sales"];
+const FOR_REAL_ESTATE = ["pnl", "daily", "units", "tenancy"], FOR_FOOD_BEVERAGE = ["pnl", "receipts", "cogs"], FOR_RETAIL = ["pnl", "sales", "dukan"], FOR_FMCG = ["pnl", "sales", "masters", "balances", "group_daily"], NO_TEMPLATE: string[] = ["tenancy", "receipts", "cogs", "dukan", "masters", "balances", "group_daily"], FOR_OTHERS = ["pnl", "sales"];
 
 export function UploadReport({ companyId, sector, branchId, initialType = "pnl" }: { companyId: number; sector: string; branchId?: number | null; initialType?: keyof typeof TYPES }) {
   const [s, act, pending] = useActionState<UploadState, FormData>(uploadReport, {});

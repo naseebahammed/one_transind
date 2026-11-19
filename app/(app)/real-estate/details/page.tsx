@@ -102,10 +102,11 @@ async function Content({ searchParams }: { searchParams: Params }) {
           </div>
           <div className="grid">
             <Panel span={12} title={translate("Revenue by month")}>
-              <CompareChart years={ys} series={R.map((r) => r.revenue.map((v) => v / 1e6))} sel={upto - 1} />
+              {/* No P&L revenue for a month: fall back to the daily stay report (room revenue counts only where the P&L books "Room Rent", as for Al Manzil; for 120 Al Sadd the P&L is rental income, so only other revenue); if that has no days either, no bar. */}
+              <CompareChart years={ys} series={R.map((r, j) => r.revenue.map((v, m) => { const daily = O[j][m].days ? O[j][m].other + (R.some((x) => sum(x.roomRent) !== 0) ? O[j][m].room : 0) : 0; return (v || daily) / 1e6 || null; }))} sel={upto - 1} />
             </Panel>
             {costed && <Panel span={12} title={translate("Net profit / loss by month")}>
-              <CompareChart years={ys} series={R.map((r) => r.net.map((v) => v / 1e6))} sel={upto - 1} />
+              <CompareChart years={ys} series={R.map((r) => r.net.map((v, m) => (r.revenue[m] ? v / 1e6 : null)))} sel={upto - 1} />
             </Panel>}
             <Panel span={6} title={`${translate("Revenue by source")} - ${cur}`}>
               <HBars rows={revenueLines(reports, cur, key!).map(([l, v]) => ({ l, v: v / 1e6 }))} unit=" M" />

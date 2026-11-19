@@ -4,6 +4,7 @@ import { numbering, q, q1 } from "@/lib/db";
 import type { Balances } from "@/lib/fmcg-balances";
 import type { Control } from "@/lib/fmcg-control";
 import type { Masters } from "@/lib/fmcg-masters";
+import type { GroupDailyRow } from "@/lib/group-daily-sales";
 import type { TenancyRow } from "@/lib/tenancy";
 import type { CogsRow, DailyRow, ImportIssue, ReceiptRow } from "@/lib/report-parsers";
 import { LINES, type Figure, type FigureSection } from "@/lib/company-data";
@@ -204,6 +205,16 @@ export const importControl = (u: Upload, r: Control) =>
       await c.query("INSERT INTO app.stock_expiry(as_of,report,line_no,item_code,item,size,packing,brand,category,location,cartons,outers,pieces,total_cost,expiry_date,remarks,import_id) SELECT $1::date,$2::text,a.*,$17::int FROM unnest($3::int[],$4::text[],$5::text[],$6::text[],$7::text[],$8::text[],$9::text[],$10::text[],$11::numeric[],$12::numeric[],$13::numeric[],$14::numeric[],$15::date[],$16::text[]) AS a",
         [r.expiryDate, r.expiryReport, ...pick(r.expiry, "lineNo", "itemCode", "item", "size", "packing", "brand", "category", "location", "cartons", "outers", "pieces", "totalCost", "expiryDate", "remarks"), id]);
     }
+  }, u.companyId);
+
+/** All or nothing: the days in the file are replaced as a whole (every segment), every other day stays as it is. */
+export const importGroupDaily = (u: Upload, rows: GroupDailyRow[], issues: ImportIssue[]) =>
+  numbering(async (c) => {
+    const dates = [...new Set(rows.map((r) => r.date))].sort();
+    const id = await addImport(c, u, rows.length, dates.map((d) => `${d.slice(0, 7)}-01`), { rowsRead: rows.length, controlTotal: null, issues });
+    await c.query("DELETE FROM app.group_daily_sales WHERE date = ANY($1::date[])", [dates]);
+    await c.query("INSERT INTO app.group_daily_sales(date,segment,target,sales,import_id) SELECT a,b,d,e,$5::int FROM unnest($1::date[],$2::text[],$3::numeric[],$4::numeric[]) AS t(a,b,d,e)",
+      [rows.map((r) => r.date), rows.map((r) => r.segment), rows.map((r) => r.target), rows.map((r) => r.sales), id]);
   }, u.companyId);
 
 const DAILY = ["long_guests", "long_rate", "long_total", "short_guests", "short_rate", "short_total", "rooms_occupied", "room_revenue", "other_revenue", "rooms_available"] as const;

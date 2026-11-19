@@ -8,7 +8,7 @@ import { listAccounts } from "@/lib/accounts";
 import { branchName, branchOf, listBranches } from "@/lib/branches";
 import { getCompany, listCompanies } from "@/lib/companies";
 import { parseGrid, sectionName } from "@/lib/company-data";
-import { deleteDailyYearRows, deleteFigureYear, importBalances, importCogs, importControl, importDaily, importFigures, importMasters, importReceipts, importTenancies, linesOf, recordRejected, setFigure, type Upload } from "@/lib/company-figures";
+import { deleteDailyYearRows, deleteFigureYear, importBalances, importCogs, importControl, importDaily, importFigures, importGroupDaily, importMasters, importReceipts, importTenancies, linesOf, recordRejected, setFigure, type Upload } from "@/lib/company-figures";
 import { gridFromWorkbook, MAX_UPLOAD_BYTES, readWorkbook } from "@/lib/company-template";
 import { addLog } from "@/lib/db";
 import { checkDaily, cogsForCompany, cogsFromWorkbook, dailyFromWorkbook, dukanFromWorkbook, matchAccounts, pnlFromWorkbook, receiptsFromWorkbook, unitsFromWorkbook } from "@/lib/report-parsers";
@@ -16,6 +16,7 @@ import { REPORTS_CACHE_TAG } from "@/lib/reports";
 import { SALES_CACHE_TAG } from "@/lib/sales-targets";
 import { balancesFromWorkbook } from "@/lib/fmcg-balances";
 import { controlFromWorkbook } from "@/lib/fmcg-control";
+import { groupDailyFromWorkbook } from "@/lib/group-daily-sales";
 import { mastersFromWorkbook } from "@/lib/fmcg-masters";
 import { buildingKey, tenanciesFromWorkbook } from "@/lib/tenancy";
 import { MONTHS } from "@/lib/format";
@@ -24,7 +25,7 @@ import { cogsFromYear, receiptsFromYear } from "@/lib/server-config";
 export type UploadState = { error?: string; ok?: string };
 type Company = NonNullable<Awaited<ReturnType<typeof getCompany>>>;
 
-const LABEL: Record<string, string> = { pnl: "P&L", daily: "Daily sales", units: "Unit types", sales: "Monthly sales", receipts: "Daily sales deposit", cogs: "COGS summary", dukan: "Dukan Food monthly sales", masters: "FMCG reference data", tenancy: "Tenancy and occupancy", balances: "FMCG stock and control reports" };
+const LABEL: Record<string, string> = { pnl: "P&L", daily: "Daily sales", units: "Unit types", sales: "Monthly sales", receipts: "Daily sales deposit", cogs: "COGS summary", dukan: "Dukan Food monthly sales", masters: "FMCG reference data", tenancy: "Tenancy and occupancy", balances: "FMCG stock and control reports", group_daily: "Group daily sales" };
 
 function refresh() {
   updateTag(REPORTS_CACHE_TAG);
@@ -79,6 +80,13 @@ async function loadFile(type: string, company: Company, u: Upload, formYear: num
     if (!b.rowsRead) throw new Error("No stock rows found. Upload the Stock Report workbook (TC outstanding now comes straight from the database).");
     await importBalances(u, b);
     return { rows: b.rowsRead, ok: `Loaded ${b.stock.length} stock rows for ${b.stockDate}.${b.issues.length ? ` ${b.issues.length} to check, first: ${b.issues[0].reason}` : ""}` };
+  }
+  if (type === "group_daily") {
+    const { rows, issues } = groupDailyFromWorkbook(wb, loadFromYear);
+    if (!rows.length) throw new Error(`No figures from ${loadFromYear} onward. Upload the Transind Group Daily Sales Report, with the Date heading and the segment names above it.`);
+    await importGroupDaily(u, rows, issues);
+    const days = [...new Set(rows.map((r) => r.date))].sort();
+    return { rows: rows.length, ok: `Loaded ${days.length} days, ${days[0]} to ${days.at(-1)}.${issues.length ? ` ${issues.length} to check, first: ${issues[0].sheet} row ${issues[0].row}: ${issues[0].reason}` : ""}` };
   }
   if (type === "tenancy") {
     const { sheets, issues } = tenanciesFromWorkbook(wb);

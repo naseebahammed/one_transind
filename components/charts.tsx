@@ -96,7 +96,7 @@ export function CompareChart({ years: rawYears, series: raw, sel, href }: { year
                 {(() => {
                   const cell = <rect className="chit" tabIndex={href ? -1 : 0} x={x0} y={pt} width={gw} height={ih} data-tip={tip({
                     t: mn,
-                    r: years.map((y, i) => [String(y), series[i][m] == null ? "—" : `${fmt(series[i][m]!, 2)} ${u}`, swatch(i + off)]),
+                    r: years.map((y, i) => [String(y), series[i][m] == null ? "no data yet" : `${fmt(series[i][m]!, 2)} ${u}`, swatch(i + off)]),
                     ...(years.length > 1 ? vs(series[years.length - 1][m], series[years.length - 2][m], String(years[years.length - 2])) : {}),
                   })} />;
                   return href ? <a href={href(m)} aria-label={`${mn} details`}>{cell}</a> : cell;
