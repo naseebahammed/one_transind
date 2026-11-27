@@ -1,7 +1,7 @@
 import { connection } from "next/server";
 import { normalizeEmail } from "@/lib/access";
 import { apiGuard, requireUser } from "@/lib/guard";
-import { answerFollow, followState, reportPresence, requestFollow, stopFollow } from "@/lib/following";
+import { answerFollow, followState, reportCursor, reportPresence, requestFollow, stopFollow } from "@/lib/following";
 
 const NO_STORE = { "Cache-Control": "no-store" };
 
@@ -13,12 +13,13 @@ export async function POST(req: Request) {
     const me = normalizeEmail(email);
 
     const raw = await req.text();
-    let body: { action?: unknown; person?: unknown; path?: unknown } = {};
+    let body: { action?: unknown; person?: unknown; path?: unknown; cursor?: unknown } = {};
     if (raw.length <= 2_048) {
       try { body = JSON.parse(raw); } catch { body = {}; }
     }
 
     await reportPresence(me, body.path);
+    reportCursor(me, body.cursor);
 
     let error: string | undefined;
     const person = typeof body.person === "string" && body.person.length <= 254 ? body.person : "";

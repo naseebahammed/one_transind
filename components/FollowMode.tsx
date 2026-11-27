@@ -1,9 +1,11 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { FollowState } from "@/lib/following";
 
-const POLL_MILLISECONDS = 3000;
+const SLOW_MILLISECONDS = 2000;
+// While following or being followed, check 4 times a second so the mouse pointer moves smoothly.
+const LIVE_MILLISECONDS = 250;
 const shortName = (email: string) => email.split("@")[0] || email;
 const here = () => window.location.pathname + window.location.search;
 
@@ -12,18 +14,23 @@ const ROW: React.CSSProperties = { display: "flex", flexWrap: "wrap", alignItems
 
 export function FollowMode() {
   const router = useRouter();
+  const pathname = usePathname();
+  const search = useSearchParams().toString();
   const [state, setState] = useState<FollowState | null>(null);
   const [message, setMessage] = useState("");
   const [picking, setPicking] = useState(false);
   const [choice, setChoice] = useState("");
   const busy = useRef(false);
+  const again = useRef(false);
+  const mouse = useRef<{ x: number; y: number } | null>(null);
+  const live = useRef(false);
   const applied = useRef("");
 
   const call = useCallback(async (action?: string, person?: string) => {
-    if (busy.current) return;
+    if (busy.current) { again.current = true; return; } // run once more when the current call ends, so a page change is never dropped
     busy.current = true;
     try {
-      const response = await fetch("/api/follow", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: here(), action, person }) });
+      const response = await fetch("/api/follow", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: here(), action, person, cursor: live.current ? mouse.current : undefined }) });
       if (!response.ok) return;
       const next = (await response.json()) as FollowState & { error?: string };
       if (action) setMessage(next.error ?? "");
@@ -39,21 +46,39 @@ export function FollowMode() {
       // A missed poll is fine; the next one catches up.
     } finally {
       busy.current = false;
+      if (again.current) { again.current = false; void call(); }
     }
   }, [router]);
 
   useEffect(() => {
-    const tick = () => { if (!document.hidden) void call(); };
+    let timer: ReturnType<typeof setTimeout>;
+    const tick = () => {
+      if (!document.hidden) void call();
+      timer = setTimeout(tick, live.current ? LIVE_MILLISECONDS : SLOW_MILLISECONDS);
+    };
     tick();
-    const timer = setInterval(tick, POLL_MILLISECONDS);
-    return () => clearInterval(timer);
+    const track = (event: MouseEvent) => { mouse.current = { x: event.clientX / window.innerWidth, y: event.clientY / window.innerHeight }; };
+    window.addEventListener("mousemove", track, { passive: true });
+    return () => { clearTimeout(timer); window.removeEventListener("mousemove", track); };
   }, [call]);
+
+  // Report a page change at once instead of waiting for the next poll, so followers see it sooner.
+  useEffect(() => { void call(); }, [pathname, search, call]);
 
   if (!state) return null;
   const { incoming, followers, requested, following, online } = state;
+  live.current = Boolean(following) || followers.length > 0;
+  const pointer = following && following.online ? following.cursor : null;
   const act = (action: string, person: string) => { void call(action, person); };
 
   return (
+    <>
+    {pointer && following && (
+      <div aria-hidden="true" style={{ position: "fixed", left: pointer.x * 100 + "vw", top: pointer.y * 100 + "vh", zIndex: 60, pointerEvents: "none", transition: "left 250ms linear, top 250ms linear" }}>
+        <svg width="20" height="20" viewBox="0 0 20 20" style={{ display: "block", filter: "drop-shadow(0 1px 2px rgba(0,0,0,.6))" }}><path d="M2 2 L2 16 L6 12 L9 18 L11.5 17 L8.5 11 L14 11 Z" fill="var(--accent)" stroke="#fff" strokeWidth="1.2" strokeLinejoin="round" /></svg>
+        <span style={{ position: "absolute", left: 14, top: 16, background: "var(--accent)", color: "#fff", fontSize: 11, padding: "1px 6px", borderRadius: 6, whiteSpace: "nowrap" }}>{shortName(following.leader)}</span>
+      </div>
+    )}
     <div style={BAR}>
       {incoming.map((person) => (
         <div key={person} style={ROW}>
@@ -98,5 +123,6 @@ export function FollowMode() {
         <button type="button" className="btn" onClick={() => setPicking((open) => !open)} aria-expanded={picking}>{picking ? "Close" : "Follow someone"}</button>
       )}
     </div>
+    </>
   );
 }

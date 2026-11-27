@@ -4,6 +4,23 @@ import { normalizeEmail } from "@/lib/access";
 /** A browser reports its page every 3 s; someone silent for this long counts as offline. */
 export const ONLINE_SECONDS = 15;
 
+/** Where each leader's mouse is, as fractions of their window. Kept in memory, not the database: it changes 4 times a second and is worthless after a few seconds.
+ * shortcut: lives in one Node process, so it breaks if the app runs as several processes (pm2 cluster mode); move it to the database then. */
+const cursors = ((globalThis as unknown as { _followCursors?: Map<string, { x: number; y: number; at: number }> })._followCursors ??= new Map());
+const CURSOR_FRESH_MILLISECONDS = 3000;
+
+export function reportCursor(me: string, value: unknown) {
+  const point = value as { x?: unknown; y?: unknown } | null;
+  if (!point || typeof point.x !== "number" || typeof point.y !== "number") return;
+  if (!(point.x >= 0 && point.x <= 1 && point.y >= 0 && point.y <= 1)) return;
+  cursors.set(me, { x: point.x, y: point.y, at: Date.now() });
+}
+
+function cursorOf(leader: string) {
+  const found = cursors.get(leader);
+  return found && Date.now() - found.at < CURSOR_FRESH_MILLISECONDS ? { x: found.x, y: found.y } : null;
+}
+
 export type FollowState = {
   /** People asking to follow me, waiting for my answer. */
   incoming: string[];
@@ -12,7 +29,7 @@ export type FollowState = {
   /** The person I asked to follow, still waiting for their answer. */
   requested: string | null;
   /** The person I am following and where they are now. */
-  following: { leader: string; path: string; online: boolean } | null;
+  following: { leader: string; path: string; online: boolean; cursor: { x: number; y: number } | null } | null;
   /** Other people who can be asked to be followed. */
   online: string[];
 };
@@ -39,7 +56,7 @@ export async function followState(me: string): Promise<FollowState> {
     incoming: rows.filter((r) => r.leader === me && r.status === "pending").map((r) => r.follower),
     followers: rows.filter((r) => r.leader === me && r.status === "accepted").map((r) => r.follower),
     requested: pending ? pending.leader : null,
-    following: leader && leader.path ? { leader: leader.leader, path: leader.path, online: Boolean(leader.online) } : null,
+    following: leader && leader.path ? { leader: leader.leader, path: leader.path, online: Boolean(leader.online), cursor: cursorOf(leader.leader) } : null,
     online: online.map((r) => r.email),
   };
 }

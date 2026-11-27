@@ -94,11 +94,11 @@ function apiBucketRules(bucket: ApiBucket, email: string, clientIp: string): {
     };
   }
   if (bucket === "follow") {
-    // One poll every 3 s per open tab is 20 a minute; the rest is room for a second tab and button clicks.
+    // While following or being followed a tab calls 4 times a second (240 a minute); the rest is room for a second tab and clicks.
     return {
       rateRules: [
-        { key: `user:follow:min:${email}`, maxRequests: 60, windowMilliseconds: MINUTE },
-        { key: "global:follow:min", maxRequests: 1200, windowMilliseconds: MINUTE },
+        { key: `user:follow:min:${email}`, maxRequests: 600, windowMilliseconds: MINUTE },
+        { key: "global:follow:min", maxRequests: 6000, windowMilliseconds: MINUTE },
       ],
       concurrencyRules: [
         { key: `conc:follow:user:${email}`, maxConcurrent: 3 },
@@ -227,11 +227,12 @@ export async function apiGuard(
   }
 
   const clientIp = extractClientIp(req.headers);
-  const preAuth = checkMultiRateLimit([
+  // Follow polls run several times a second per person, and without TRUST_PROXY everyone shares one IP; they are limited per user and globally below instead.
+  const preAuth = bucket === "follow" ? null : checkMultiRateLimit([
     { key: `ip:api-preauth:min:${clientIp}`, maxRequests: 180, windowMilliseconds: MINUTE },
     { key: "global:api-preauth:min", maxRequests: 600, windowMilliseconds: MINUTE },
   ]);
-  if (!preAuth.allowed) return rateLimitResponse(preAuth);
+  if (preAuth && !preAuth.allowed) return rateLimitResponse(preAuth);
 
   const { email, role } = await who();
   const status = apiStatus(email, role, need);

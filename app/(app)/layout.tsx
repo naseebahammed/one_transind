@@ -83,7 +83,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
         <main className="content">{children}</main>
         <AskAI />
-        <FollowMode />
+        <Suspense fallback={null}><FollowMode /></Suspense>
       </div>
     </div>
   );
