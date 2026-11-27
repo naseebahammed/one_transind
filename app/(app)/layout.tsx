@@ -9,6 +9,7 @@ import { listMenuSectors, listSectors } from "@/lib/sectors";
 import { SalesToolbar } from "@/components/SalesToolbar";
 import { Nav, NavShell, Title } from "@/components/Shell";
 import { AskAI } from "@/components/AskAI";
+import { FollowMode } from "@/components/FollowMode";
 
 async function Toolbar() {
   await connection();
@@ -82,6 +83,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
         <main className="content">{children}</main>
         <AskAI />
+        <FollowMode />
       </div>
     </div>
   );

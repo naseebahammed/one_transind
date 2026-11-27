@@ -20,7 +20,7 @@ if (typeof window !== "undefined") {
   throw new Error("lib/guard.ts is server-only and must never run in the browser.");
 }
 
-export type ApiBucket = "ask" | "template" | "importDownload" | "logo";
+export type ApiBucket = "ask" | "template" | "importDownload" | "logo" | "follow";
 export type ActionKind = "upload" | "mutation";
 
 export class GuardError extends Error {
@@ -91,6 +91,20 @@ function apiBucketRules(bucket: ApiBucket, email: string, clientIp: string): {
         { key: "conc:importDownload:global", maxConcurrent: 5 },
       ],
       limitMessage: "Too many file downloads. Please wait a moment and try again.",
+    };
+  }
+  if (bucket === "follow") {
+    // One poll every 3 s per open tab is 20 a minute; the rest is room for a second tab and button clicks.
+    return {
+      rateRules: [
+        { key: `user:follow:min:${email}`, maxRequests: 60, windowMilliseconds: MINUTE },
+        { key: "global:follow:min", maxRequests: 1200, windowMilliseconds: MINUTE },
+      ],
+      concurrencyRules: [
+        { key: `conc:follow:user:${email}`, maxConcurrent: 3 },
+        { key: "conc:follow:global", maxConcurrent: 40 },
+      ],
+      limitMessage: "Too many follow updates. Please wait a moment.",
     };
   }
   return {

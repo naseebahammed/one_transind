@@ -20,7 +20,7 @@ test("every API route handler except the Auth.js one calls apiGuard with a rate-
   const routes = files.filter((f) => /[\\/]api[\\/].*route\.ts$/.test(f.file) && !/[\\/]api[\\/]auth[\\/]/.test(f.file));
   assert.ok(routes.length >= 4, "found too few route handlers; the search is broken");
   const bad = routes.filter(
-    (f) => !/apiGuard\(\s*req\s*,\s*["'](?:user|admin)["']\s*,\s*["'](?:ask|template|importDownload|logo)["']/.test(f.text),
+    (f) => !/apiGuard\(\s*req\s*,\s*["'](?:user|admin)["']\s*,\s*["'](?:ask|template|importDownload|logo|follow)["']/.test(f.text),
   );
   assert.deepEqual(bad, [], `Unguarded or un-rate-limited route handlers: ${show(bad)}`);
 });
