@@ -25,7 +25,8 @@ const [{ readWorkbook, sheetsFromWorkbook }, { parseSupplierAgeing }, { saveSupp
   { parseProfitability, PROFITABILITY_LINES }, { saveProfitability }, { posGridFromFile }, { parsePosReport }, { savePosReport }, { migrate }] = await Promise.all(
   ["company-template", "supplier-ageing", "supplier-ageing-records", "brand-budget", "brand-budget-records", "profitability", "profitability-records", "pos-file", "pos-reports", "pos-reports-records", "schema"].map(lib));
 
-const client = new Client({ connectionTimeoutMillis: 20000 });
+// The same SSL rule as lib/server-config.ts: PGSSL=true turns encryption on (certificate not verified, as in the app), anything else leaves it off.
+const client = new Client({ connectionTimeoutMillis: 20000, ssl: process.env.PGSSL === "true" ? { rejectUnauthorized: false } : false });
 await client.connect();
 globalThis.__importClient = client;
 const where = (await client.query("SELECT current_database() AS db, inet_server_addr()::text AS host")).rows[0];
