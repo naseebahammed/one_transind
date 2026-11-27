@@ -1,5 +1,7 @@
+import { cacheLife, cacheTag } from "next/cache";
 import { q } from "@/lib/db";
 import { mergeEmployees, type Employee, type StaffRow } from "@/lib/employees";
+import { REPORTS_CACHE_TAG } from "@/lib/reports";
 
 /** Saves staff-list rows by employee ID. Same-stint updates preserve a leave date on file, while re-hires advance `joined` and clear stale prior-stint leave dates. */
 export async function saveEmployees(list: Employee[]) {
@@ -31,13 +33,17 @@ export async function saveEmployees(list: Employee[]) {
 }
 
 /** Everyone on file, dates as YYYY-MM-DD text. company and unit are where the person's staff-file department is linked; unlinked people sit under "Unassigned" with their original department text. */
-export const listEmployees = () =>
-  q<StaffRow>(`SELECT e.id, e.name, e.department, e.designation, e.nationality, e.joined::text AS joined, e.left_on::text AS "left",
+export async function listEmployees() {
+  "use cache";
+  cacheTag(REPORTS_CACHE_TAG);
+  cacheLife("hours");
+  return q<StaffRow>(`SELECT e.id, e.name, e.department, e.designation, e.nationality, e.joined::text AS joined, e.left_on::text AS "left",
       COALESCE(c.name, 'Unassigned') AS company, COALESCE(d.name, e.department) AS unit
     FROM app.employees e
     LEFT JOIN app.department_links l ON l.source_name = e.department
     LEFT JOIN app.company_departments d ON d.id = l.department_id
     LEFT JOIN app.companies c ON c.id = d.company_id`);
+}
 
 export const listDepartments = () =>
   q<{ id: number; companyId: number; name: string }>(
@@ -62,11 +68,11 @@ export const linkSourceName = (sourceName: string, departmentId: number | null) 
   departmentId === null
     ? q("DELETE FROM app.department_links WHERE source_name = $1", [sourceName])
     : q(
-        `INSERT INTO app.department_links(source_name, department_id)
+      `INSERT INTO app.department_links(source_name, department_id)
          SELECT $1, $2 WHERE EXISTS (SELECT 1 FROM app.company_departments WHERE id = $2)
          ON CONFLICT (source_name) DO UPDATE SET department_id = EXCLUDED.department_id`,
-        [sourceName, departmentId],
-      );
+      [sourceName, departmentId],
+    );
 
 /** Creates the department under the company from a staff-file name (or reuses one with the same name there) and links the name to it. */
 export const addStaffDepartment = (companyId: number, sourceName: string) =>

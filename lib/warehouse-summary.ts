@@ -1,6 +1,8 @@
 // Summarizes FMCG warehouse stock snapshots, near-expiry inventory, and short-delivery variances by warehouse location.
+import { cacheLife, cacheTag } from "next/cache";
 import { q, q1 } from "@/lib/db";
 import { roundMoney } from "@/lib/money";
+import { REPORTS_CACHE_TAG } from "@/lib/reports";
 
 export type FmcgWarehouseLocation = {
   location: string;
@@ -20,6 +22,9 @@ export type FmcgWarehouseSummary = {
 };
 
 export async function getWarehouseSummary(): Promise<FmcgWarehouseSummary> {
+  "use cache";
+  cacheTag(REPORTS_CACHE_TAG);
+  cacheLife("hours");
   const [stockRows, expiryRows, varianceByLoc, varianceTotals] = await Promise.all([
     q<{
       location: string;

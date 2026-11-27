@@ -1,5 +1,7 @@
 // Database readers and manual-entry writers for existing report tables and the additive 031_manual_report_data tables.
+import { cacheLife, cacheTag } from "next/cache";
 import { numbering, q } from "@/lib/db";
+import { REPORTS_CACHE_TAG } from "@/lib/reports";
 import type { GridSection } from "@/lib/company-data";
 import { linesOf } from "@/lib/company-figures";
 import { branchClash, monthlySalesClash, takingsClash } from "@/lib/figure-rules";
@@ -671,6 +673,9 @@ export type ReceivablesSnapshotRow = {
 };
 
 export async function listReceivablesSnapshots(): Promise<ReceivablesSnapshotRow[]> {
+  "use cache";
+  cacheTag(REPORTS_CACHE_TAG);
+  cacheLife("hours");
   const rows = await qSafe<Omit<ReceivablesSnapshotRow, "total">>(
     `SELECT r.id, r.company_id AS "companyId", c.name AS "companyName",
             to_char(r.as_of, 'YYYY-MM-DD') AS "asOf", r.dso_days::float8 AS "dsoDays",
@@ -730,6 +735,9 @@ export type OverdueInvoiceRow = {
 };
 
 export async function listOverdueInvoices(): Promise<OverdueInvoiceRow[]> {
+  "use cache";
+  cacheTag(REPORTS_CACHE_TAG);
+  cacheLife("hours");
   return qSafe<OverdueInvoiceRow>(
     `SELECT i.id, i.invoice_no AS "invoiceNo", i.account_name AS "accountName",
             i.company_id AS "companyId", c.name AS "companyName",
@@ -815,6 +823,9 @@ export type CustomsRow = {
 };
 
 export async function getLogisticsOverview() {
+  "use cache";
+  cacheTag(REPORTS_CACHE_TAG);
+  cacheLife("hours");
   const [kpis, fleet, shipments, warehouses, customs] = await Promise.all([
     q1Safe<LogisticsKpisRow>(
       `SELECT fleet_count AS "fleetCount", on_route_count AS "onRouteCount", outlets_reached AS "outletsReached"

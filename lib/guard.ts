@@ -14,7 +14,7 @@ import {
   type ConcurrencyRule,
   type RateLimitRule,
 } from "@/lib/rate-limit";
-import { isListedEmail, userModules } from "@/lib/users";
+import { findListedUser } from "@/lib/users";
 
 if (typeof window !== "undefined") {
   throw new Error("lib/guard.ts is server-only and must never run in the browser.");
@@ -38,8 +38,12 @@ const who = cache(async () => {
   const session = await auth();
   const email = session?.user?.email;
   const name = session?.user?.name;
-  const role = await currentRole(email, isListedEmail);
-  const modules = role === "user" && email ? await userModules(email) : null;
+  const lookup = { user: null as { modules: string[] | null } | null };
+  const role = await currentRole(email, async (whoEmail) => {
+    lookup.user = await findListedUser(whoEmail);
+    return lookup.user !== null;
+  });
+  const modules = role === "user" ? (lookup.user ? lookup.user.modules : []) : null;
   return { email, name, role, modules };
 });
 

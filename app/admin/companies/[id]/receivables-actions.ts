@@ -1,5 +1,5 @@
 "use server";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { getCompany } from "@/lib/companies";
 import { addLog } from "@/lib/db";
 import { GuardError, requireAdmin } from "@/lib/guard";
@@ -7,10 +7,12 @@ import { parsePositiveIntId } from "@/lib/input-validation";
 import { parseManualReceivablesSnapshot } from "@/lib/manual-entry-input";
 import { deleteReceivablesSnapshot, saveReceivablesSnapshot } from "@/lib/manual-report-records";
 import { SECTOR } from "@/lib/org";
+import { REPORTS_CACHE_TAG } from "@/lib/reports";
 
 export type CompanyReceivablesState = { error?: string; ok?: string };
 
 function refreshReceivablesPaths(companyId: number) {
+  updateTag(REPORTS_CACHE_TAG);
   revalidatePath(`/admin/companies/${companyId}`);
   revalidatePath("/admin/manual-entry");
   revalidatePath("/admin/data-status");

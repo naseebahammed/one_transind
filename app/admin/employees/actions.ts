@@ -1,9 +1,10 @@
 "use server";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { readWorkbook, gridFromWorkbook, MAX_UPLOAD_BYTES } from "@/lib/company-template";
 import { addLog } from "@/lib/db";
 import { addDepartment, addStaffDepartment, linkSourceName, listSourceNames, removeDepartment, renameDepartment, saveEmployees } from "@/lib/employee-records";
 import { mergeEmployees, parseEmployees, type Employee } from "@/lib/employees";
+import { REPORTS_CACHE_TAG } from "@/lib/reports";
 import { saveSettlements } from "@/lib/settlement-records";
 import { parseSettlements } from "@/lib/settlements";
 import { GuardError, requireAdmin, withUploadSlot } from "@/lib/guard";
@@ -40,6 +41,7 @@ export async function uploadEmployees(_: EmployeeUploadState, f: FormData): Prom
         }
         const n = await saveEmployees(mergeEmployees(all));
         await addLog(`Staff lists uploaded (${files.length} file${files.length > 1 ? "s" : ""})`, true, n);
+        updateTag(REPORTS_CACHE_TAG);
         revalidatePath("/hr"); revalidatePath("/admin/activity");
         return { ok: `Saved ${n} employee rows.${skipped.size ? ` Skipped: ${[...skipped].join("; ")}.` : ""}` };
       } catch (e) {
@@ -54,7 +56,7 @@ export async function uploadEmployees(_: EmployeeUploadState, f: FormData): Prom
   }
 }
 
-const refresh = () => { revalidatePath("/admin/employees"); revalidatePath("/hr"); revalidatePath("/admin/companies/[id]", "page"); };
+const refresh = () => { updateTag(REPORTS_CACHE_TAG); revalidatePath("/admin/employees"); revalidatePath("/hr"); revalidatePath("/admin/companies/[id]", "page"); };
 
 export async function createDepartment(f: FormData) {
   await requireAdmin("mutation");

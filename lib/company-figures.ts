@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
+import { cacheLife, cacheTag } from "next/cache";
 import type { PoolClient } from "pg";
 import { numbering, q, q1 } from "@/lib/db";
+import { REPORTS_CACHE_TAG } from "@/lib/reports";
 import type { Balances } from "@/lib/fmcg-balances";
 import type { Control } from "@/lib/fmcg-control";
 import type { Masters } from "@/lib/fmcg-masters";
@@ -102,6 +104,9 @@ export type CogsPeriodRow = CogsMonth & { companyId: number; year: number; month
 
 /** Cost of goods per company, month and branch across multiple companies and periods in one query. */
 export async function listCogsPeriods(companyIds: number[], periods: { year: number; month: number }[]): Promise<CogsPeriodRow[]> {
+  "use cache";
+  cacheTag(REPORTS_CACHE_TAG);
+  cacheLife("hours");
   if (!companyIds.length || !periods.length) return [];
   const dates = [...new Set(periods.map((p) => period(p.year, p.month)))];
   return q<CogsPeriodRow>(
@@ -270,14 +275,17 @@ export const getImportFile = (id: number) =>
   q1<{ file: Buffer | null; file_name: string }>("SELECT f.file, i.file_name FROM app.imports i LEFT JOIN app.import_files f ON f.sha256=i.sha256 WHERE i.id=$1", [id]);
 
 /** Latest month with takings for any branch of the given companies, as { year, month 0-11 }; null when nothing is uploaded. */
-export const latestReceiptMonthForCompanies = async (companyIds: number[]) => {
+export async function latestReceiptMonthForCompanies(companyIds: number[]) {
+  "use cache";
+  cacheTag(REPORTS_CACHE_TAG);
+  cacheLife("hours");
   if (!companyIds.length) return null;
   const row = await q1<{ year: number; month: number }>(
     `SELECT EXTRACT(year FROM max(date))::int AS year, EXTRACT(month FROM max(date))::int - 1 AS month FROM app.daily_receipts WHERE company_id = ANY($1::int[])`,
     [companyIds],
   );
   return row && row.year != null ? row : null;
-};
+}
 
 /** One branch's takings for one month (month 0-11), a row per day and channel. */
 export const listReceipts = (branchId: number, year: number, month: number) =>
@@ -285,6 +293,9 @@ export const listReceipts = (branchId: number, year: number, month: number) =>
 
 /** Takings of a set of branches across multiple { year, month 0-11 } periods in one query, keyed by `${branchId}|${year}-${month}`. */
 export async function listBranchesReceiptsPeriods(branchIds: number[], periods: { year: number; month: number }[]) {
+  "use cache";
+  cacheTag(REPORTS_CACHE_TAG);
+  cacheLife("hours");
   const out = new Map<string, ReceiptRow[]>();
   if (!branchIds.length || !periods.length) return out;
   const dates = [...new Set(periods.map((p) => period(p.year, p.month)))];

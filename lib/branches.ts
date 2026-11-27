@@ -1,13 +1,21 @@
+import { cacheLife, cacheTag } from "next/cache";
 import { q, q1 } from "@/lib/db";
 import { parsePositiveIntId } from "@/lib/input-validation";
+import { REPORTS_CACHE_TAG } from "@/lib/reports";
 
 export type Branch = { id: number; name: string; active: number; aliases?: string[] };
 
 export const listBranches = (companyId: number) =>
   q<Branch>("SELECT id, name, active, aliases FROM app.branches WHERE company_id=$1 ORDER BY lower(name)", [companyId]);
 
-export const listBranchesForCompanies = (companyIds: number[]) =>
-  companyIds.length ? q<Branch & { company_id: number }>("SELECT id, company_id, name, active, aliases FROM app.branches WHERE company_id = ANY($1::int[]) ORDER BY lower(name)", [companyIds]) : Promise.resolve([]);
+export async function listBranchesForCompanies(companyIds: number[]) {
+  "use cache";
+  cacheTag(REPORTS_CACHE_TAG);
+  cacheLife("hours");
+  return companyIds.length
+    ? q<Branch & { company_id: number }>("SELECT id, company_id, name, active, aliases FROM app.branches WHERE company_id = ANY($1::int[]) ORDER BY lower(name)", [companyIds])
+    : [];
+}
 
 /** Branch id from a form or URL: null = the whole company, undefined = not a branch of this company (refuse the request). */
 export async function branchOf(companyId: number, raw: unknown) {

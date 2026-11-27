@@ -25,16 +25,18 @@ export default function Page({ searchParams }: { searchParams: Params }) {
 async function Content({ searchParams }: { searchParams: Params }) {
   await connection();
   await requireUser("hr");
-  const translate = translator(await getLanguage());
-  const { h } = await searchParams;
-  const p = parsePath(h);
-  const o = await getOverview();
-  const team = await getSalesmen(o.month);
-  const year = new Date().getFullYear();
-  const [staff, registry] = await Promise.all([
+  const overview = getOverview();
+  const [language, { h }, o, team, staff, registry] = await Promise.all([
+    getLanguage(),
+    searchParams,
+    overview,
+    overview.then((ov) => getSalesmen(ov.month)),
     listEmployees(),
     listCompanies(),
   ]);
+  const translate = translator(language);
+  const p = parsePath(h);
+  const year = new Date().getFullYear();
   const headcount = latestHeadcount();
   const moves = monthlyMovements(staff, year), byCompany = departmentMovements(staff.map((e) => ({ ...e, department: e.company })), year);
   // Directory counts come from the department headcount files; the people list under a department is whoever on the staff lists carries that department name.

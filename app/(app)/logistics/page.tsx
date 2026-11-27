@@ -6,6 +6,7 @@ import { fmt, MONTHS, money, pct } from "@/lib/format";
 import { translator } from "@/lib/i18n";
 import { getLanguage } from "@/lib/language";
 import { getLogisticsOverview } from "@/lib/manual-report-records";
+import { getPendingDelivery } from "@/lib/pending-delivery";
 import { getWarehouseSummary } from "@/lib/warehouse-summary";
 import { Kpi, Panel } from "@/components/ui";
 import { PageSkeleton } from "@/components/PageSkeleton";
@@ -19,13 +20,16 @@ export default function Page() {
 async function Content() {
   await connection();
   await requireUser("logistics");
-  const translate = translator(await getLanguage());
-  const [o, logistics, warehouseSummary] = await Promise.all([
-    getOverview(),
+  const overview = getOverview();
+  const [language, o, d, logistics, warehouseSummary, pending] = await Promise.all([
+    getLanguage(),
+    overview,
+    overview.then((ov) => getRoutes(ov.month)),
     getLogisticsOverview(),
     getWarehouseSummary(),
+    getPendingDelivery().catch(() => null), // the ERP view only exists on the live server
   ]);
-  const d = await getRoutes(o.month);
+  const translate = translator(language);
   const label = `${MONTHS[o.month]} ${d.year}`;
   const { kpis, fleet, shipments, warehouses, customs } = logistics;
   const fleetVal = kpis?.fleetCount ?? (fleet.length ? fleet.length : null);
@@ -53,6 +57,7 @@ async function Content() {
           />
         )}
         {d.activeDrivers > 0 && <Kpi label={translate("Active drivers")} value={fmt(d.activeDrivers)} delta={`${translate("ERP sales")} · ${label}`} />}
+        {pending && pending.invoices > 0 && <Kpi label={translate("Pending delivery")} value={money(pending.value)} delta={`${fmt(pending.invoices)} ${translate("invoices")} · ${translate("oldest")} ${fmt(pending.oldestDays)} ${translate("days")}`} />}
         {hasFmcgStock && <Kpi label={translate("Short deliveries")} value={fmt(warehouseSummary.shortDeliveryOrders)} delta={translate("Orders · last 30 days")} />}
       </div>
       <div className="grid">
@@ -77,6 +82,14 @@ async function Content() {
             </tbody>
           </table></div>
         </Panel>}
+        {pending && pending.invoices > 0 && [[translate("Pending delivery by salesman"), translate("Salesman"), pending.bySalesman], [translate("Pending delivery by driver"), translate("Driver"), pending.byDriver]].map(([title, head, rows]) => (
+          <Panel key={String(title)} span={6} title={title as string} src={translate("ERP · invoices not yet converted to a delivery order")}>
+            <div className="tw compact"><table>
+              <thead><tr><th>{head as string}</th><th className="n">{translate("Invoices")}</th><th className="n">{translate("Oldest (days)")}</th><th className="n">{translate("Value (QAR)")}</th></tr></thead>
+              <tbody>{(rows as typeof pending.bySalesman).map((r) => <tr key={r.name}><td>{r.name}</td><td className="n num">{fmt(r.invoices)}</td><td className="n num">{fmt(r.oldestDays)}</td><td className="n num">{money(r.value)}</td></tr>)}</tbody>
+            </table></div>
+          </Panel>
+        ))}
         {(hasFmcgStock || warehouses.length > 0) && <Panel
           span={12}
           title={translate("Warehouses")}

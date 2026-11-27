@@ -9,9 +9,15 @@ const EMAIL_RE = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/;
 
 export const listUsers = () => q<AppUser>("SELECT email, created::text AS created, modules FROM app.users ORDER BY email");
 
+/** Single-query lookup of a listed user's access: null when not on app.users, otherwise their modules (null = all). */
+export async function findListedUser(email: string): Promise<{ modules: string[] | null } | null> {
+  const row = await q1<{ modules: string[] | null }>("SELECT modules FROM app.users WHERE email = $1", [normalizeEmail(email)]);
+  return row ?? null;
+}
+
 /** A listed user's modules (null = all). A person with no row gets none, never everything. */
 export async function userModules(email: string): Promise<string[] | null> {
-  const row = await q1<{ modules: string[] | null }>("SELECT modules FROM app.users WHERE email = $1", [normalizeEmail(email)]);
+  const row = await findListedUser(email);
   return row ? row.modules : [];
 }
 

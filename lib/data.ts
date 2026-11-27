@@ -10,6 +10,19 @@ import { salesTable } from "@/lib/server-config";
 // Plus the departments typed in by hand in data/manual-sales.json (the ERP does not carry them).
 const departments = () => departmentsWithManual();
 const salesSource = () => `${salesWithManual(salesTable())} s`;
+
+async function hasSalesDaily(): Promise<boolean> {
+  "use cache";
+  cacheLife("hours");
+  const { rows: [row] } = await pg.query<{ reg: string | null }>(`SELECT to_regclass('app.sales_daily')::text AS reg`);
+  return Boolean(row?.reg);
+}
+
+/** Compact daily rollup for summary queries (date, department, doc_type, net amount/cost); falls back to salesTable() if app.sales_daily is not present. */
+async function summarySalesSource(): Promise<string> {
+  const base = salesTable() === "app.sales_clean" && (await hasSalesDaily()) ? "app.sales_daily" : salesTable();
+  return `${salesWithManual(base)} s`;
+}
 const clampMonth = (month: number) => (Number.isInteger(month) && month >= 0 && month <= 11 ? month : 0);
 const TOP_ITEMS = 25;
 const TOP_CUSTOMERS = 60;
@@ -42,7 +55,7 @@ type Cust = { id: string; name: string; category: string; group: string; months:
 async function getHistory(): Promise<Hist[]> {
   "use cache";
   cacheLife("hours");
-  const table = salesSource();
+  const table = await summarySalesSource();
   const { rows } = await pg.query<Hist>(
     `SELECT EXTRACT(year FROM "DOC_DATE")::int AS year, EXTRACT(month FROM "DOC_DATE")::int AS month,
             SUM("NET_AMOUNT")::float8 AS value, SUM("NET_COST")::float8 AS cost,
@@ -55,16 +68,17 @@ async function getHistory(): Promise<Hist[]> {
 export async function getOverview() {
   "use cache";
   cacheLife("hours");
-  const table = salesSource();
-  const { year, month, day, before } = await getPeriod(salesTable());
-  const { rows } = await pg.query<Hist>(
-    `SELECT EXTRACT(year FROM "DOC_DATE")::int AS year, EXTRACT(month FROM "DOC_DATE")::int AS month,
-            SUM("NET_AMOUNT")::float8 AS value, SUM("NET_COST")::float8 AS cost,
-            COALESCE(SUM("NET_AMOUNT") FILTER (WHERE "DOC_TYPE" = 'CR'), 0)::float8 AS "creditNotes"
-     FROM ${table} WHERE ${inYtd('"DOC_DATE"', "$1", "$2")} GROUP BY 1,2 ORDER BY 1,2`, [year, month + 1]);
+  const [table, { year, month, day, before }] = await Promise.all([summarySalesSource(), getPeriod(salesTable())]);
+  const [{ rows }, { rows: [prev] }] = await Promise.all([
+    pg.query<Hist>(
+      `SELECT EXTRACT(year FROM "DOC_DATE")::int AS year, EXTRACT(month FROM "DOC_DATE")::int AS month,
+              SUM("NET_AMOUNT")::float8 AS value, SUM("NET_COST")::float8 AS cost,
+              COALESCE(SUM("NET_AMOUNT") FILTER (WHERE "DOC_TYPE" = 'CR'), 0)::float8 AS "creditNotes"
+       FROM ${table} WHERE ${inYtd('"DOC_DATE"', "$1", "$2")} GROUP BY 1,2 ORDER BY 1,2`, [year, month + 1]),
+    pg.query<{ v: number | null }>(
+      `SELECT SUM("NET_AMOUNT")::float8 AS v FROM ${table} WHERE ${inMonth('"DOC_DATE"', "$1", day)}`, [`${before}-01`]),
+  ]);
   const months = Array.from({ length: month + 1 }, (_, i) => rows.find((h) => h.month === i + 1) ?? { year: year, month: i + 1, value: 0, cost: 0, creditNotes: 0 });
-  const { rows: [prev] } = await pg.query<{ v: number | null }>(
-    `SELECT SUM("NET_AMOUNT")::float8 AS v FROM ${table} WHERE ${inMonth('"DOC_DATE"', "$1", day)}`, [`${before}-01`]);
   return { year, month, day, months, beforeToDate: prev?.v ?? 0 };
 }
 
@@ -304,7 +318,7 @@ export async function getMonthly(depts: string[] = []) {
   cacheLife("hours");
   const safeDepts = depts.map((d) => cleanText(d, 40));
   if (!safeDepts.length) return (await getHistory()).map(({ year, month, value }) => ({ year, month, value }));
-  const table = salesSource();
+  const table = await summarySalesSource();
   const { rows } = await pg.query<{ year: number; month: number; value: number }>(
     `SELECT EXTRACT(year FROM "DOC_DATE")::int AS year, EXTRACT(month FROM "DOC_DATE")::int AS month, SUM("NET_AMOUNT")::float8 AS value
      FROM ${table} WHERE COALESCE("DEPT_CODE",'-') = ANY($1) GROUP BY 1,2 ORDER BY 1,2`, [safeDepts]);
@@ -315,8 +329,7 @@ export async function getMonthly(depts: string[] = []) {
 export async function getSectors() {
   "use cache";
   cacheLife("hours");
-  const table = salesSource();
-  const { year, month, day } = await getPeriod(salesTable());
+  const [table, { year, month, day }] = await Promise.all([summarySalesSource(), getPeriod(salesTable())]);
   const thisYear = `s."DOC_DATE" >= make_date(($1)::int,1,1)`;
   const { rows } = await pg.query<{ key: string; label: string; value: number; cost: number; lastYear: number }>(
     `SELECT COALESCE(s."DEPT_CODE",'-') AS key, MAX(COALESCE(d.department_name, s."DEPT_CODE", '-')) AS label,
@@ -360,10 +373,10 @@ export async function getSalesmen(month: number) {
 export async function getSalesReturns(month: MonthPick, depts: string[] = [], pickYear?: number) {
   "use cache";
   cacheLife("hours");
-  const table = salesSource();
   const { start: safeMonth, months } = pickSpan(month);
   const safeDepts = depts.map((d) => cleanText(d, 40));
-  const period = await getPeriod(salesTable()), year = pickYear ?? period.year, days = spanDays(period, month, year);
+  const [table, period] = await Promise.all([summarySalesSource(), getPeriod(salesTable())]);
+  const year = pickYear ?? period.year, days = spanDays(period, month, year);
   const params: (string | string[])[] = [ymOf(year, safeMonth)];
   let deptWhere = "";
   if (safeDepts.length) {

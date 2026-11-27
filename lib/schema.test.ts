@@ -173,7 +173,7 @@ test("migrate applies 031_manual_report_data additively for all manual report ta
   const recordStep = executed.find((step) => step.sql.startsWith("INSERT INTO app.schema_migrations"));
   assert.ok(recordStep, "expected 031_manual_report_data to be recorded");
   assert.deepEqual(recordStep.params, ["031_manual_report_data"]);
-  assert.equal(LATEST_MIGRATION_ID, "038_group_daily_sales");
+  assert.equal(LATEST_MIGRATION_ID, "040_sales_daily");
 
   const sql = executed[executed.indexOf(recordStep) - 1].sql;
   assert.doesNotMatch(sql, /\b(DROP\s|DELETE\s+FROM|TRUNCATE\s|UPDATE\s|ALTER\s)\b/i);
@@ -184,4 +184,61 @@ test("migrate applies 031_manual_report_data additively for all manual report ta
   ]) {
     assert.match(sql, new RegExp(`CREATE TABLE IF NOT EXISTS app\\.${table}\\b`));
   }
+});
+
+test("migrate applies 039_sales_clean_halve_old_copies: only the sales_clean view is rebuilt, older lines keep half of their copies, 2026 onward is untouched", async () => {
+  const executed: { sql: string; params?: unknown[] }[] = [];
+  const applied = new Set([
+    "001_baseline", "002_standard_data", "003_drop_report_files", "005_company_expenses", "006_company_branches", "007_company_has_branches", "008_daily_receipts", "009_drop_deals",
+    "010_drop_invoices", "011_enterprise_foundation", "012_rejected_rows_loaded", "013_restaurant_cogs", "014_drop_ownership_pct", "015_fmcg_masters", "016_data_standardization", "017_fmcg_sales_views",
+    "018_fmcg_balances", "019_fmcg_control", "020_app_optimizations", "021_app_users", "022_erp_outstanding", "023_sales_clean", "024_employees", "025_company_departments",
+    "026_performance_indexes", "027_drop_balance_sheet", "028_financial_and_date_integrity", "029_sales_department_targets", "030_sales_clean_line_key", "031_manual_report_data", "032_tenancy",
+    "033_sales_clean_all_lines", "035_settlements", "036_user_access", "037_user_modules", "038_group_daily_sales",
+  ]);
+  await migrate({
+    query: async (sql, params) => {
+      executed.push({ sql, params });
+      if (sql.startsWith("SELECT id FROM app.schema_migrations")) return { rows: [...applied].map((id) => ({ id })) };
+      return { rows: [] };
+    },
+  });
+  const recordStep = executed.find((step) => step.sql.startsWith("INSERT INTO app.schema_migrations"));
+  assert.ok(recordStep, "expected 039 to be recorded");
+  assert.deepEqual(recordStep.params, ["039_sales_clean_halve_old_copies"]);
+  const sql = executed[executed.indexOf(recordStep) - 1].sql;
+  assert.equal((sql.match(/^DO 'BEGIN IF to_regclass\(''public\.invs_fdd_fnb_sales_do_t''\) IS NOT NULL THEN EXECUTE ''/gm) ?? []).length, 10); // two drops, the view, five indexes, the monthly view and its index
+  assert.doesNotMatch(sql, /DELETE|TRUNCATE|UPDATE|ALTER|DROP TABLE|CASCADE|INSERT/i);
+  assert.match(sql, /copy_no <= \(copy_count \+ 1\) \/ 2/); // half of each group, rounded up, so a line that is there once stays
+  assert.match(sql, /"DOC_DATE" < DATE ''''2026-01-01''''/);
+  assert.match(sql, /"DOC_DATE" IS NULL OR "DOC_DATE" >= DATE ''''2026-01-01''''/); // a line with no date is kept, as before
+  assert.match(sql, /"NET_AMOUNT_WOT" AS "NET_AMOUNT", "NET_COST_WOT" AS "NET_COST"/);
+  for (const index of ["doc_date", "dept_date", "date_cust", "cust_no", "item_code"]) assert.match(sql, new RegExp(`CREATE INDEX sales_clean_${index} ON app\.sales_clean`));
+});
+
+test("migrate applies 040_sales_daily additively: creates app.sales_daily rollup and indexes guarded by app.sales_clean", async () => {
+  const executed: { sql: string; params?: unknown[] }[] = [];
+  const applied = new Set([
+    "001_baseline", "002_standard_data", "003_drop_report_files", "005_company_expenses", "006_company_branches", "007_company_has_branches", "008_daily_receipts", "009_drop_deals",
+    "010_drop_invoices", "011_enterprise_foundation", "012_rejected_rows_loaded", "013_restaurant_cogs", "014_drop_ownership_pct", "015_fmcg_masters", "016_data_standardization", "017_fmcg_sales_views",
+    "018_fmcg_balances", "019_fmcg_control", "020_app_optimizations", "021_app_users", "022_erp_outstanding", "023_sales_clean", "024_employees", "025_company_departments",
+    "026_performance_indexes", "027_drop_balance_sheet", "028_financial_and_date_integrity", "029_sales_department_targets", "030_sales_clean_line_key", "031_manual_report_data", "032_tenancy",
+    "033_sales_clean_all_lines", "035_settlements", "036_user_access", "037_user_modules", "038_group_daily_sales", "039_sales_clean_halve_old_copies",
+  ]);
+  await migrate({
+    query: async (sql, params) => {
+      executed.push({ sql, params });
+      if (sql.startsWith("SELECT id FROM app.schema_migrations")) return { rows: [...applied].map((id) => ({ id })) };
+      return { rows: [] };
+    },
+  });
+  const recordStep = executed.find((step) => step.sql.startsWith("INSERT INTO app.schema_migrations"));
+  assert.ok(recordStep, "expected 040 to be recorded");
+  assert.deepEqual(recordStep.params, ["040_sales_daily"]);
+  const sql = executed[executed.indexOf(recordStep) - 1].sql;
+  assert.equal((sql.match(/^DO 'BEGIN IF to_regclass\(''app\.sales_clean''\) IS NOT NULL THEN EXECUTE ''/gm) ?? []).length, 3);
+  assert.doesNotMatch(sql, /\b(DROP|DELETE|TRUNCATE|UPDATE|ALTER)\b/i);
+  assert.match(sql, /CREATE MATERIALIZED VIEW IF NOT EXISTS app\.sales_daily AS/);
+  assert.match(sql, /GROUP BY "DOC_DATE", "DEPT_CODE", "DOC_TYPE"/);
+  assert.match(sql, /CREATE INDEX IF NOT EXISTS sales_daily_doc_date ON app\.sales_daily\("DOC_DATE"\)/);
+  assert.match(sql, /CREATE INDEX IF NOT EXISTS sales_daily_dept_date ON app\.sales_daily\("DEPT_CODE", "DOC_DATE"\)/);
 });

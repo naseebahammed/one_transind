@@ -9,6 +9,7 @@ import {
   mergeSalesSectorIndicators,
 } from "@/lib/sales-indicators";
 import { getSalesSectors } from "@/lib/sales-sectors";
+import { getReturns } from "@/lib/returns";
 import { getManagerTracking, getSalesmanTracking, type ManagerTrackingRow } from "@/lib/manager-tracking";
 import { computeTargetAttainment, listSalesSectorIndicators, resolveSectorIndicators } from "@/lib/sales-targets";
 import { fmt, MONTHS, money, pct, sum } from "@/lib/format";
@@ -178,6 +179,24 @@ async function SalesmanTargetsPanel({
       </table></div>
       <p className="note" style={{ marginTop: 8 }}>QAR. Same basis as the manager table above. Sales with no target set sit under their supervisor with no percentages; sales with no supervisor are under Unassigned.</p>
     </Panel>
+  );
+}
+
+async function ReturnsPanel({ periodIso, monthLabel, language }: { periodIso: string; monthLabel: string; language: Language }) {
+  const returns = await getReturns(periodIso).catch(() => null); // the ERP copy only exists on the live server
+  if (!returns || returns.returns <= 0) return null;
+  const translate = translator(language);
+  return (
+    <>
+      {[[translate("Sales returns by supervisor"), translate("Supervisor"), returns.bySupervisor], [translate("Sales returns by brand"), translate("Brand"), returns.byBrand]].map(([title, head, rows]) => (
+        <Panel key={String(title)} span={6} title={`${title} · ${monthLabel}`} src={`${translate("Total returns")} ${fmt(returns.returns)} · ${translate("of sales")} ${fmt(returns.sales)}`}>
+          <div className="tw compact"><table>
+            <thead><tr><th>{head as string}</th><th className="n">{translate("Returns")}</th><th className="n">{translate("Sales")}</th><th className="n">{translate("Return %")}</th></tr></thead>
+            <tbody>{(rows as typeof returns.bySupervisor).map((r) => <tr key={r.name}><td>{r.name}</td><td className="n num">{fmt(r.returns)}</td><td className="n num">{fmt(r.sales)}</td><td className="n num">{r.ratePct === null ? "—" : `${fmt(r.ratePct, 1)}%`}</td></tr>)}</tbody>
+          </table></div>
+        </Panel>
+      ))}
+    </>
   );
 }
 
@@ -409,6 +428,11 @@ async function Content({ searchParams }: { searchParams: Params }) {
         {showTracking && (
           <Suspense fallback={null}>
             <SalesmanTargetsPanel periodIso={periodIso} monthLabel={currentMonthLabel} language={language} />
+          </Suspense>
+        )}
+        {showTracking && (
+          <Suspense fallback={null}>
+            <ReturnsPanel periodIso={periodIso} monthLabel={currentMonthLabel} language={language} />
           </Suspense>
         )}
         {erpDrillPromise ? (

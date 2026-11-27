@@ -39,12 +39,27 @@ export default function Page({ searchParams }: { searchParams: Params }) {
 async function Content({ searchParams }: { searchParams: Params }) {
   await connection();
   await requireUser("dashboard");
-  const translate = translator(await getLanguage());
   const overview = getOverview();
   const erpDrill = Promise.all([searchParams, overview]).then(([{ p }, o]) =>
     parsePath(p)[0] === SECTOR.trading ? getDrill(o.month, "p", []) : Promise.resolve([] as DrillRow[]),
   );
-  const [reports, { p, all }, o, adminSectors, allCompanies, erpRows, staff, logistics, warehouseSummary] = await Promise.all([
+  const [
+    language,
+    reports,
+    { p, all },
+    o,
+    adminSectors,
+    allCompanies,
+    erpRows,
+    staff,
+    logistics,
+    warehouseSummary,
+    ar,
+    subsidiaryRows,
+    subsidiaryBudgetMonths,
+    erpTargets,
+  ] = await Promise.all([
+    getLanguage(),
     loadReports(),
     searchParams,
     overview,
@@ -54,20 +69,20 @@ async function Content({ searchParams }: { searchParams: Params }) {
     listEmployees(),
     getLogisticsOverview(),
     getWarehouseSummary(),
+    overview.then((ov) =>
+      getCombinedReceivables({
+        ytdErpSales: sum(ov.months.map((m) => m.value)),
+        year: ov.year,
+        month: ov.month,
+        day: ov.day,
+      }),
+    ),
+    overview.then((ov) => listSubsidiaryMonthlyRevenue([ov.year - 2, ov.year - 1, ov.year])),
+    overview.then((ov) => listSubsidiaryMonthlyBudgetRevenue(ov.year)),
+    overview.then((ov) => listEffectiveDepartmentTargets(ov.year)),
   ]);
-
+  const translate = translator(language);
   const erpYtd = sum(o.months.map((m) => m.value));
-  const [ar, subsidiaryRows, subsidiaryBudgetMonths, erpTargets] = await Promise.all([
-    getCombinedReceivables({
-      ytdErpSales: erpYtd,
-      year: o.year,
-      month: o.month,
-      day: o.day,
-    }),
-    listSubsidiaryMonthlyRevenue([o.year - 2, o.year - 1, o.year]),
-    listSubsidiaryMonthlyBudgetRevenue(o.year),
-    listEffectiveDepartmentTargets(o.year),
-  ]);
 
   const fileSectorCompanies = FILE_SECTORS.map(([k]) => allCompanies.filter((c) => c.sector === k));
   const path = parsePath(p);

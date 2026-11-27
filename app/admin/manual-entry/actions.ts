@@ -125,6 +125,9 @@ function refreshRoutes(...paths: string[]) {
   if (paths.some((p) => p === "/sales" || p === "/finance" || p === "/logistics" || p === "/products")) {
     updateTag(SALES_CACHE_TAG);
   }
+  if (paths.some((p) => p === "/dashboard" || p === "/finance" || p === "/logistics" || p === "/hr")) {
+    updateTag(REPORTS_CACHE_TAG);
+  }
   for (const p of ["/admin/manual-entry", "/admin/activity", ...paths]) revalidatePath(p);
 }
 

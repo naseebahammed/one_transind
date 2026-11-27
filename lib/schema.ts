@@ -693,6 +693,32 @@ const SALES_CLEAN_ALL_LINES = [
   `CREATE INDEX sales_monthly_month_idx ON app.sales_monthly (month)`,
 ].map((sql) => ifTable("public.invs_fdd_fnb_sales_do_t", sql)).join("\n");
 
+// The ERP sales table holds every line of 2024 and 2025 exactly twice (checked month by month against the ERP's own invs_daily_sales_v: 2.00 times in every month, 1.00 from January 2026), which doubled all older sales figures.
+// Dated before 2026, each group of identical lines keeps half of its copies (rounded up, so a line that is there once stays); a real repeated line on one invoice is two pairs, so it keeps two. From 2026 every line counts, as in 033.
+// shortcut: the cut-off date is fixed, change it here if the ERP load starts doubling 2026 lines too. The "identical" columns are the key of 030, not the whole row.
+const SALES_CLEAN_COLUMNS = ["DOC_DATE", "DOC_TYPE", "DOC_NO", "CUST_NO", "CUST_NAME", "CUST_CATEGORY", "GROUP_NAME", "BRAND", "ITEM_CODE", "ITEM_NAME", "SUPPLIER_NAME", "SMAN_NAME", "DEPT_CODE", "ROUTE_DESC", "DRIVER_NAME", "QTY_PCS"].map((c) => `"${c}"`).join(", ") + `, "NET_AMOUNT_WOT" AS "NET_AMOUNT", "NET_COST_WOT" AS "NET_COST"`;
+const SALES_CLEAN_COPY_KEY = ["DOC_TYPE", "DOC_NO", "PROV_NO", "ITEM_CODE", "CUST_NO", "DOC_DATE", "QTY_PCS", "NET_AMOUNT_WOT", "NET_COST_WOT", "LOC_CODE", "SALES_RET_REASON_CODE", "PRICE_ID"].map((c) => `"${c}"`).join(", ");
+const SALES_CLEAN_HALVE_OLD_COPIES = [
+  `DROP MATERIALIZED VIEW IF EXISTS app.sales_monthly`,
+  `DROP MATERIALIZED VIEW IF EXISTS app.sales_clean`,
+  `CREATE MATERIALIZED VIEW app.sales_clean AS
+     SELECT "DOC_DATE", "DOC_TYPE", "DOC_NO", "CUST_NO", "CUST_NAME", "CUST_CATEGORY", "GROUP_NAME", "BRAND", "ITEM_CODE", "ITEM_NAME", "SUPPLIER_NAME", "SMAN_NAME", "DEPT_CODE", "ROUTE_DESC", "DRIVER_NAME", "QTY_PCS", "NET_AMOUNT", "NET_COST"
+     FROM (SELECT ${SALES_CLEAN_COLUMNS}, row_number() OVER copies AS copy_no, count(*) OVER copies AS copy_count
+           FROM public.invs_fdd_fnb_sales_do_t WHERE "DOC_TYPE" IN ('IN-DTS','IN-OT','CR') AND "DOC_DATE" < DATE '2026-01-01'
+           WINDOW copies AS (PARTITION BY ${SALES_CLEAN_COPY_KEY})) old
+     WHERE copy_no <= (copy_count + 1) / 2
+     UNION ALL
+     SELECT ${SALES_CLEAN_COLUMNS} FROM public.invs_fdd_fnb_sales_do_t WHERE "DOC_TYPE" IN ('IN-DTS','IN-OT','CR') AND ("DOC_DATE" IS NULL OR "DOC_DATE" >= DATE '2026-01-01')`,
+  `CREATE INDEX sales_clean_doc_date ON app.sales_clean("DOC_DATE")`,
+  `CREATE INDEX sales_clean_dept_date ON app.sales_clean("DEPT_CODE", "DOC_DATE") INCLUDE ("NET_AMOUNT", "NET_COST")`,
+  `CREATE INDEX sales_clean_date_cust ON app.sales_clean("DOC_DATE", "CUST_NO") INCLUDE ("BRAND", "NET_AMOUNT")`,
+  `CREATE INDEX sales_clean_cust_no ON app.sales_clean("CUST_NO")`,
+  `CREATE INDEX sales_clean_item_code ON app.sales_clean("ITEM_CODE")`,
+  `CREATE MATERIALIZED VIEW app.sales_monthly AS SELECT date_trunc('month', "DOC_DATE")::date AS month, "DEPT_CODE", "GROUP_NAME", "BRAND", sum("NET_AMOUNT") AS net_amount, sum("NET_COST") AS net_cost, count(*) AS lines
+     FROM app.sales_clean GROUP BY 1, "DEPT_CODE", "GROUP_NAME", "BRAND"`,
+  `CREATE INDEX sales_monthly_month_idx ON app.sales_monthly (month)`,
+].map((sql) => ifTable("public.invs_fdd_fnb_sales_do_t", sql)).join("\n");
+
 // HR settlements ledger: one row per payment to an employee. A re-upload replaces the upload dates the file contains.
 const SETTLEMENTS = `
 CREATE TABLE app.settlements(id BIGSERIAL PRIMARY KEY, upload_date DATE NOT NULL, employee_id TEXT NOT NULL, employee_name TEXT NOT NULL, division TEXT NOT NULL, settlement_type TEXT NOT NULL, account TEXT, amount NUMERIC(18,2) NOT NULL, scheduled_date DATE, payment_method TEXT);
@@ -722,7 +748,20 @@ CREATE TABLE app.group_daily_sales(date DATE NOT NULL, segment TEXT NOT NULL, ta
 CREATE VIEW rpt.group_daily_sales AS SELECT date, segment, target AS target_qar, sales AS sales_qar FROM app.group_daily_sales;
 `;
 
-const MIGRATIONS: readonly (readonly [string, string])[] = [["001_baseline", BASELINE], ["002_standard_data", STANDARD_DATA], ["003_drop_report_files", DROP_REPORT_FILES], ["005_company_expenses", COMPANY_EXPENSES], ["006_company_branches", COMPANY_BRANCHES], ["007_company_has_branches", COMPANY_HAS_BRANCHES], ["008_daily_receipts", DAILY_RECEIPTS], ["009_drop_deals", DROP_DEALS], ["010_drop_invoices", DROP_INVOICES], ["011_enterprise_foundation", ENTERPRISE_FOUNDATION], ["012_rejected_rows_loaded", REJECTED_ROWS_LOADED], ["013_restaurant_cogs", RESTAURANT_COGS], ["014_drop_ownership_pct", DROP_OWNERSHIP_PCT], ["015_fmcg_masters", FMCG_MASTERS], ["016_data_standardization", DATA_STANDARDIZATION], ["017_fmcg_sales_views", FMCG_SALES_VIEWS], ["018_fmcg_balances", FMCG_BALANCES], ["019_fmcg_control", FMCG_CONTROL], ["020_app_optimizations", APP_OPTIMIZATIONS], ["021_app_users", APP_USERS], ["022_erp_outstanding", ERP_OUTSTANDING], ["023_sales_clean", SALES_CLEAN], ["024_employees", EMPLOYEES], ["025_company_departments", COMPANY_DEPARTMENTS], ["026_performance_indexes", PERFORMANCE_INDEXES], ["027_drop_balance_sheet", DROP_BALANCE_SHEET], ["028_financial_and_date_integrity", FINANCIAL_AND_DATE_INTEGRITY], ["029_sales_department_targets", SALES_DEPARTMENT_TARGETS], ["030_sales_clean_line_key", SALES_CLEAN_LINE_KEY], ["031_manual_report_data", MANUAL_REPORT_DATA], ["032_tenancy", TENANCY], ["033_sales_clean_all_lines", SALES_CLEAN_ALL_LINES], ["035_settlements", SETTLEMENTS], ["036_user_access", USER_ACCESS], ["037_user_modules", USER_MODULES], ["038_group_daily_sales", GROUP_DAILY_SALES]];
+// Daily sales rollup by date, department and document type so overview, monthly history, sector totals and returns read ~20k rows instead of scanning ~8M lines in app.sales_clean.
+// Additive only; refreshed right after app.sales_clean by scripts/refresh-sales.mjs.
+const SALES_DAILY = [
+  `CREATE MATERIALIZED VIEW IF NOT EXISTS app.sales_daily AS
+     SELECT "DOC_DATE", "DEPT_CODE", "DOC_TYPE",
+            SUM("NET_AMOUNT") AS "NET_AMOUNT",
+            SUM("NET_COST") AS "NET_COST"
+     FROM app.sales_clean
+     GROUP BY "DOC_DATE", "DEPT_CODE", "DOC_TYPE"`,
+  `CREATE INDEX IF NOT EXISTS sales_daily_doc_date ON app.sales_daily("DOC_DATE")`,
+  `CREATE INDEX IF NOT EXISTS sales_daily_dept_date ON app.sales_daily("DEPT_CODE", "DOC_DATE")`,
+].map((sql) => ifTable("app.sales_clean", sql)).join("\n");
+
+const MIGRATIONS: readonly (readonly [string, string])[] = [["001_baseline", BASELINE], ["002_standard_data", STANDARD_DATA], ["003_drop_report_files", DROP_REPORT_FILES], ["005_company_expenses", COMPANY_EXPENSES], ["006_company_branches", COMPANY_BRANCHES], ["007_company_has_branches", COMPANY_HAS_BRANCHES], ["008_daily_receipts", DAILY_RECEIPTS], ["009_drop_deals", DROP_DEALS], ["010_drop_invoices", DROP_INVOICES], ["011_enterprise_foundation", ENTERPRISE_FOUNDATION], ["012_rejected_rows_loaded", REJECTED_ROWS_LOADED], ["013_restaurant_cogs", RESTAURANT_COGS], ["014_drop_ownership_pct", DROP_OWNERSHIP_PCT], ["015_fmcg_masters", FMCG_MASTERS], ["016_data_standardization", DATA_STANDARDIZATION], ["017_fmcg_sales_views", FMCG_SALES_VIEWS], ["018_fmcg_balances", FMCG_BALANCES], ["019_fmcg_control", FMCG_CONTROL], ["020_app_optimizations", APP_OPTIMIZATIONS], ["021_app_users", APP_USERS], ["022_erp_outstanding", ERP_OUTSTANDING], ["023_sales_clean", SALES_CLEAN], ["024_employees", EMPLOYEES], ["025_company_departments", COMPANY_DEPARTMENTS], ["026_performance_indexes", PERFORMANCE_INDEXES], ["027_drop_balance_sheet", DROP_BALANCE_SHEET], ["028_financial_and_date_integrity", FINANCIAL_AND_DATE_INTEGRITY], ["029_sales_department_targets", SALES_DEPARTMENT_TARGETS], ["030_sales_clean_line_key", SALES_CLEAN_LINE_KEY], ["031_manual_report_data", MANUAL_REPORT_DATA], ["032_tenancy", TENANCY], ["033_sales_clean_all_lines", SALES_CLEAN_ALL_LINES], ["035_settlements", SETTLEMENTS], ["036_user_access", USER_ACCESS], ["037_user_modules", USER_MODULES], ["038_group_daily_sales", GROUP_DAILY_SALES], ["039_sales_clean_halve_old_copies", SALES_CLEAN_HALVE_OLD_COPIES], ["040_sales_daily", SALES_DAILY]];
 
 export const LATEST_MIGRATION_ID = MIGRATIONS[MIGRATIONS.length - 1][0];
 

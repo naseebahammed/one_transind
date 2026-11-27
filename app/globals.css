@@ -7,9 +7,9 @@
   --series:#5b7cff; --series-2:#6a76a0; --grad:linear-gradient(90deg,#4a63ff,#3ad6ff);
   --good:#3ee08f; --good-bg:rgba(62,224,143,.12); --warn:#ffbe55; --warn-bg:rgba(255,190,85,.13); --bad:#ff6b7a; --bad-bg:rgba(255,107,122,.13);
   --chart-1:var(--brand); --chart-2:var(--good); --chart-3:var(--warn); --chart-4:#c084fc;
-  --f-head:"Almarai","IBM Plex Sans Arabic",Tahoma,sans-serif;
-  --f-body:"IBM Plex Sans Arabic","Almarai",Tahoma,"Segoe UI",sans-serif;
-  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --f-head:var(--font-almarai),"Almarai",var(--font-ibm-plex-arabic),"IBM Plex Sans Arabic",Tahoma,sans-serif;
+  --f-body:var(--font-ibm-plex-arabic),"IBM Plex Sans Arabic",var(--font-almarai),"Almarai",Tahoma,"Segoe UI",sans-serif;
+  --f-mono:var(--font-ibm-plex-mono),"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
   --r:14px; --rail:236px; color-scheme:dark;
 }
 *{box-sizing:border-box}
