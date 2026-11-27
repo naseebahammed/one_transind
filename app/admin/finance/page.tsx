@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/admin/ui/
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/admin/ui/table";
 import { HBars } from "@/components/admin/FinanceCharts";
 import { UploadReport } from "@/components/admin/UploadReport";
+import { UploadSupplierAgeing } from "@/components/admin/UploadSupplierAgeing";
 import { EditPnlFigure } from "@/components/admin/EditPnlFigure";
 import { ConfirmButton } from "@/components/admin/ConfirmButton";
 import { Trash2 } from "lucide-react";
@@ -71,6 +72,10 @@ async function Summary({ searchParams }: { searchParams: Search }) {
   const qar = (v: number | null) => (v === null ? "—" : fmt(Math.abs(v), 2, 0));
   return (
     <>
+      <Card className="gap-2 px-6 py-3 text-sm">
+        <span className="font-semibold">Supplier ageing (payables)</span>
+        <UploadSupplierAgeing />
+      </Card>
       {one && (
         <Card className="gap-3 px-6 py-3 text-sm">
           <div className="flex flex-wrap items-center gap-x-8 gap-y-1">

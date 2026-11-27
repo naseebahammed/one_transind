@@ -76,7 +76,8 @@ async function Content({ searchParams }: { searchParams: Params }) {
         <CompanySelect companies={companies} value={selected?.id ?? "all"} base={link("/finance", { year, m })} allLabel={translate("All companies")} />
         <YearSelect years={[...new Set([...allYears, new Date().getFullYear()])].sort()}value={pickedYear ?? "all"} base={link("/finance", { company, m })} allLabel={translate("All years")} />
         <MonthSelect value={pickedMonth ?? "all"} max={11} names={MONTHS} year={pickedYear} base={link("/finance", { company, year })} allLabel={translate("All months")} />
-        <Link href="/finance/pnl" className="btn primary" style={{ marginLeft: "auto", textDecoration: "none" }}>{translate("Monthly P&L by company →")}</Link>
+        <Link href="/finance/payables" className="btn" style={{ marginLeft: "auto", textDecoration: "none" }}>{translate("Payables →")}</Link>
+        <Link href="/finance/pnl" className="btn primary" style={{ textDecoration: "none" }}>{translate("Monthly P&L by company →")}</Link>
       </div>
       <div className="kpis">
         <Kpi label={translate("Revenue year to date")} value={`${fmt(rev / 1e6)} M`} up />
