@@ -173,7 +173,7 @@ test("migrate applies 031_manual_report_data additively for all manual report ta
   const recordStep = executed.find((step) => step.sql.startsWith("INSERT INTO app.schema_migrations"));
   assert.ok(recordStep, "expected 031_manual_report_data to be recorded");
   assert.deepEqual(recordStep.params, ["031_manual_report_data"]);
-  assert.equal(LATEST_MIGRATION_ID, "042_follow_mode");
+  assert.equal(LATEST_MIGRATION_ID, "043_logistics_profitability");
 
   const sql = executed[executed.indexOf(recordStep) - 1].sql;
   assert.doesNotMatch(sql, /\b(DROP\s|DELETE\s+FROM|TRUNCATE\s|UPDATE\s|ALTER\s)\b/i);
@@ -273,5 +273,16 @@ test("migrate applies 042_follow_mode additively: two new tables, nothing droppe
   const sql = executed[executed.indexOf(record) - 1].sql;
   assert.match(sql, /CREATE TABLE app\.user_presence/);
   assert.match(sql, /CREATE TABLE app\.follow_requests/);
+  assert.doesNotMatch(sql, /(DROP|DELETE|TRUNCATE|UPDATE|ALTER)/i);
+});
+
+test("migrate applies 043_logistics_profitability additively: one new table, nothing dropped or altered", async () => {
+  const executed: { sql: string; params?: unknown[] }[] = [];
+  await migrate({ query: async (sql, params) => { executed.push({ sql, params }); return { rows: [] }; } }, "043_logistics_profitability");
+  const record = executed.find((step) => step.params?.[0] === "043_logistics_profitability");
+  assert.ok(record, "expected 043 to be recorded");
+  const sql = executed[executed.indexOf(record) - 1].sql;
+  assert.match(sql, /CREATE TABLE app\.logistics_profitability/);
+  assert.match(sql, /PRIMARY KEY\(year, month, line\)/);
   assert.doesNotMatch(sql, /(DROP|DELETE|TRUNCATE|UPDATE|ALTER)/i);
 });

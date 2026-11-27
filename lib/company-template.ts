@@ -96,7 +96,13 @@ function readCell(v: ExcelJS.CellValue): Cell {
 /** The first visible sheet as rows of cells, 0-indexed. */
 export function gridFromWorkbook(wb: ExcelJS.Workbook): Cell[][] {
   const ws = wb.worksheets.find((w) => w.state === "visible");
-  if (!ws) return [];
+  return ws ? gridFromSheet(ws) : [];
+}
+
+/** Every visible sheet with its name, for workbooks that hold one sheet per month. */
+export const sheetsFromWorkbook = (wb: ExcelJS.Workbook) => wb.worksheets.filter((w) => w.state === "visible").map((ws) => ({ name: ws.name, grid: gridFromSheet(ws) }));
+
+function gridFromSheet(ws: ExcelJS.Worksheet): Cell[][] {
   if (ws.rowCount > MAX_WORKBOOK_ROWS || ws.columnCount > MAX_WORKBOOK_COLS) {
     throw new Error("Spreadsheet dimensions exceed the maximum allowed rows or columns.");
   }

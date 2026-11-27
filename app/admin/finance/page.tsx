@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { HBars } from "@/components/admin/FinanceCharts";
 import { UploadReport } from "@/components/admin/UploadReport";
 import { UploadSupplierAgeing } from "@/components/admin/UploadSupplierAgeing";
+import { UploadProfitability } from "@/components/admin/UploadProfitability";
 import { EditPnlFigure } from "@/components/admin/EditPnlFigure";
 import { ConfirmButton } from "@/components/admin/ConfirmButton";
 import { Trash2 } from "lucide-react";
@@ -75,6 +76,8 @@ async function Summary({ searchParams }: { searchParams: Search }) {
       <Card className="gap-2 px-6 py-3 text-sm">
         <span className="font-semibold">Supplier ageing (payables)</span>
         <UploadSupplierAgeing />
+        <span className="font-semibold">Logistics profitability</span>
+        <UploadProfitability />
       </Card>
       {one && (
         <Card className="gap-3 px-6 py-3 text-sm">

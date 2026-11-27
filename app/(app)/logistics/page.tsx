@@ -1,5 +1,6 @@
 import { requireUser } from "@/lib/guard";
 import { Suspense } from "react";
+import Link from "next/link";
 import { connection } from "next/server";
 import { getOverview, getRoutes } from "@/lib/data";
 import { fmt, MONTHS, money, pct } from "@/lib/format";
@@ -46,6 +47,7 @@ async function Content() {
 
   return (
     <>
+      <p><Link href="/logistics/profitability">{translate("Profitability →")}</Link></p>
       <div className="kpis">
         {fleetVal !== null && <Kpi label={translate("Fleet")} value={fmt(fleetVal)} />}
         {onRouteVal !== null && <Kpi label={translate("On route")} value={fmt(onRouteVal)} />}

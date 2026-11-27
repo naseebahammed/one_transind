@@ -6,6 +6,8 @@ import type { FollowState } from "@/lib/following";
 const SLOW_MILLISECONDS = 2000;
 // While following or being followed, check 4 times a second so the mouse pointer moves smoothly.
 const LIVE_MILLISECONDS = 250;
+// While live, every 4th check (1 s) is a full one; the others only move the pointer.
+const FULL_EVERY = 4;
 const shortName = (email: string) => email.split("@")[0] || email;
 const here = () => window.location.pathname + window.location.search;
 
@@ -24,21 +26,29 @@ export function FollowMode() {
   const again = useRef(false);
   const mouse = useRef<{ x: number; y: number } | null>(null);
   const live = useRef(false);
+  const followingRef = useRef<FollowState["following"]>(null);
+  const moved = useRef(false);
+  const ticks = useRef(0);
   const applied = useRef("");
 
-  const call = useCallback(async (action?: string, person?: string) => {
+  const call = useCallback(async (action?: string, person?: string, light = false) => {
     if (busy.current) { again.current = true; return; } // run once more when the current call ends, so a page change is never dropped
     busy.current = true;
     try {
-      const response = await fetch("/api/follow", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: here(), action, person, cursor: live.current ? mouse.current : undefined }) });
+      const response = await fetch("/api/follow", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: here(), action, person, light, cursor: live.current ? mouse.current : undefined }) });
       if (!response.ok) return;
+      if (light) {
+        const answer = (await response.json()) as { cursor: { x: number; y: number } | null };
+        setState((now) => (now && now.following ? { ...now, following: { ...now.following, cursor: answer.cursor } } : now));
+        return;
+      }
       const next = (await response.json()) as FollowState & { error?: string };
       if (action) setMessage(next.error ?? "");
       setState(next);
       const target = next.following;
       if (!target) { applied.current = ""; return; }
       // Move only when the person being followed moves, so a page that redirects the follower away does not loop.
-      if (target.online && target.path !== applied.current) {
+      if (target.online && !target.blocked && target.path !== applied.current) {
         applied.current = target.path;
         if (target.path !== here()) router.push(target.path);
       }
@@ -53,11 +63,17 @@ export function FollowMode() {
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
     const tick = () => {
-      if (!document.hidden) void call();
+      ticks.current += 1;
+      const full = !live.current || ticks.current % FULL_EVERY === 0;
+      if (!document.hidden) {
+        if (full) { moved.current = false; void call(); }
+        // Between full checks: a leader only sends when the mouse moved, a follower only asks when someone is being followed.
+        else if (followingRef.current || moved.current) { moved.current = false; void call(undefined, undefined, true); }
+      }
       timer = setTimeout(tick, live.current ? LIVE_MILLISECONDS : SLOW_MILLISECONDS);
     };
     tick();
-    const track = (event: MouseEvent) => { mouse.current = { x: event.clientX / window.innerWidth, y: event.clientY / window.innerHeight }; };
+    const track = (event: MouseEvent) => { mouse.current = { x: event.clientX / window.innerWidth, y: event.clientY / window.innerHeight }; moved.current = true; };
     window.addEventListener("mousemove", track, { passive: true });
     return () => { clearTimeout(timer); window.removeEventListener("mousemove", track); };
   }, [call]);
@@ -68,6 +84,7 @@ export function FollowMode() {
   if (!state) return null;
   const { incoming, followers, requested, following, online } = state;
   live.current = Boolean(following) || followers.length > 0;
+  followingRef.current = following;
   const pointer = following && following.online ? following.cursor : null;
   const act = (action: string, person: string) => { void call(action, person); };
 
@@ -95,7 +112,7 @@ export function FollowMode() {
       ))}
       {following && (
         <div style={{ ...ROW, borderColor: "var(--brand)" }}>
-          <span>Following <b>{shortName(following.leader)}</b>{following.online ? "" : " (offline, waiting)"}</span>
+          <span>Following <b>{shortName(following.leader)}</b>{!following.online ? " (offline, waiting)" : following.blocked ? " (on a page you cannot open)" : ""}</span>
           <button type="button" className="btn" onClick={() => act("stop", following.leader)}>Stop</button>
         </div>
       )}

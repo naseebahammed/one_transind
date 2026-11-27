@@ -1,7 +1,8 @@
 import { connection } from "next/server";
 import { normalizeEmail } from "@/lib/access";
 import { apiGuard, requireUser } from "@/lib/guard";
-import { answerFollow, followState, reportCursor, reportPresence, requestFollow, stopFollow } from "@/lib/following";
+import { reportCursor, watchedCursor } from "@/lib/follow-rules";
+import { answerFollow, followState, reportPresence, requestFollow, stopFollow } from "@/lib/following";
 
 const NO_STORE = { "Cache-Control": "no-store" };
 
@@ -9,17 +10,19 @@ const NO_STORE = { "Cache-Control": "no-store" };
 export async function POST(req: Request) {
   return apiGuard(req, "user", "follow", async () => {
     await connection();
-    const { email } = await requireUser();
+    const { email, modules } = await requireUser();
     const me = normalizeEmail(email);
 
     const raw = await req.text();
-    let body: { action?: unknown; person?: unknown; path?: unknown; cursor?: unknown } = {};
+    let body: { action?: unknown; person?: unknown; path?: unknown; cursor?: unknown; light?: unknown } = {};
     if (raw.length <= 2_048) {
       try { body = JSON.parse(raw); } catch { body = {}; }
     }
 
-    await reportPresence(me, body.path);
     reportCursor(me, body.cursor);
+    // A "light" call only moves mouse pointers, so beyond the sign-in check it never touches the database.
+    if (body.light === true) return Response.json({ cursor: watchedCursor(me) }, { headers: NO_STORE });
+    await reportPresence(me, body.path);
 
     let error: string | undefined;
     const person = typeof body.person === "string" && body.person.length <= 254 ? body.person : "";
@@ -30,6 +33,6 @@ export async function POST(req: Request) {
       else if (body.action === "stop") await stopFollow(me, person);
     }
 
-    return Response.json({ ...(await followState(me)), error }, { headers: NO_STORE });
+    return Response.json({ ...(await followState(me, modules)), error }, { headers: NO_STORE });
   });
 }
