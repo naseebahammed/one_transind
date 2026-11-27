@@ -1,8 +1,8 @@
-// Loads the files from the OneDrive export folder into the database: supplier ageing, brand budgets (2027 yearly plan, 2026 monthly plan),
+// Loads the files from the OneDrive export folder into the database: supplier ageing, bank position, brand budgets (2027 yearly plan, 2026 monthly plan),
 // logistics profitability (3 files) and the Dukan / Top Perfumes POS reports. It uses the app's own readers and save functions, so the result is exactly what the admin uploads would give.
 // Default is a DRY RUN: everything runs inside one transaction that is ROLLED BACK at the end, so nothing is kept. Add --write to commit.
-//   node --env-file=.env.local scripts/import-all-data.mjs [--write] [--migrate] [--ageing-date YYYY-MM-DD] [--only supplier,budget,profit,pos] [--root <folder>]
-// --migrate      applies every pending migration up to 045 first (any pending migration of another developer included). Without it the script stops if the new tables are missing.
+//   node --env-file=.env.local scripts/import-all-data.mjs [--write] [--migrate] [--ageing-date YYYY-MM-DD] [--only supplier,bank,budget,profit,pos] [--root <folder>]
+// --migrate      applies every pending migration up to 046 first (any pending migration of another developer included). Without it the script stops if the new tables are missing.
 // --ageing-date  the supplier ageing report's date. It is not guessed: without it the supplier ageing is skipped.
 // Connection settings (PGHOST, PGDATABASE, ...) come from the environment, so .env.local decides which database this touches. The host and database are printed first.
 import { readFileSync, readdirSync, statSync } from "node:fs";
@@ -17,13 +17,13 @@ const XLSX = require("xlsx");
 const arg = (name) => { const i = process.argv.indexOf(`--${name}`); return i < 0 ? null : process.argv[i + 1] ?? true; };
 const write = process.argv.includes("--write"), migrateFirst = process.argv.includes("--migrate");
 const root = arg("root") || "D:/Projects/Sheikh/OneDrive_2026-11-27", ageingDate = arg("ageing-date");
-const only = new Set(String(arg("only") || "supplier,budget,profit,pos").split(","));
+const only = new Set(String(arg("only") || "supplier,bank,budget,profit,pos").split(","));
 if (ageingDate && !/^\d{4}-\d{2}-\d{2}$/.test(ageingDate)) { console.error("--ageing-date must look like 2026-11-26"); process.exit(1); }
 
 const lib = (name) => import(`../lib/${name}.ts`);
-const [{ readWorkbook, sheetsFromWorkbook }, { parseSupplierAgeing }, { saveSupplierAgeing }, { parseBrandYearPlan, parseBrandMonthPlan }, { saveBrandYearPlan, saveBrandMonthPlan },
+const [{ readWorkbook, sheetsFromWorkbook }, { parseSupplierAgeing }, { saveSupplierAgeing }, { parseBankPosition, pickBankPositionSheet }, { saveBankPosition }, { parseBrandYearPlan, parseBrandMonthPlan }, { saveBrandYearPlan, saveBrandMonthPlan },
   { parseProfitability, PROFITABILITY_LINES }, { saveProfitability }, { posGridFromFile }, { parsePosReport }, { savePosReport }, { migrate }] = await Promise.all(
-  ["company-template", "supplier-ageing", "supplier-ageing-records", "brand-budget", "brand-budget-records", "profitability", "profitability-records", "pos-file", "pos-reports", "pos-reports-records", "schema"].map(lib));
+  ["company-template", "supplier-ageing", "supplier-ageing-records", "bank-position", "bank-position-records", "brand-budget", "brand-budget-records", "profitability", "profitability-records", "pos-file", "pos-reports", "pos-reports-records", "schema"].map(lib));
 
 // The same SSL rule as lib/server-config.ts: PGSSL=true turns encryption on (certificate not verified, as in the app), anything else leaves it off.
 const client = new Client({ connectionTimeoutMillis: 20000, ssl: process.env.PGSSL === "true" ? { rejectUnauthorized: false } : false });
@@ -42,10 +42,10 @@ try {
   await client.query("SELECT pg_advisory_xact_lock(7451)"); // the same lock the app uses for migrations
   if (migrateFirst) {
     const applied = [];
-    await migrate({ query: async (text, params) => { const r = await client.query(text, params); if (/^INSERT INTO app\.schema_migrations/.test(text)) applied.push(params[0]); return r; } }, "045_pos_reports");
-    console.log(applied.length ? `migrations applied: ${applied.join(", ")}` : "migrations: nothing pending up to 045");
+    await migrate({ query: async (text, params) => { const r = await client.query(text, params); if (/^INSERT INTO app\.schema_migrations/.test(text)) applied.push(params[0]); return r; } }, "046_bank_position");
+    console.log(applied.length ? `migrations applied: ${applied.join(", ")}` : "migrations: nothing pending up to 046");
   }
-  const need = ["supplier_ageing", "logistics_profitability", "brand_plan_years", "brand_plan_months", "pos_daily_sales", "pos_item_sales", "pos_purchases", "pos_stock"];
+  const need = ["supplier_ageing", "bank_position", "logistics_profitability", "brand_plan_years", "brand_plan_months", "pos_daily_sales", "pos_item_sales", "pos_purchases", "pos_stock"];
   const have = (await client.query("SELECT table_name FROM information_schema.tables WHERE table_schema = 'app' AND table_name = ANY($1)", [need])).rows.map((r) => r.table_name);
   const missing = need.filter((t) => !have.includes(t));
   if (missing.length) throw new Error(`These tables do not exist yet: ${missing.join(", ")}. Run again with --migrate.`);
@@ -59,6 +59,16 @@ try {
       if (errors.length) fail("supplier ageing", errors);
       console.log(`supplier ageing: ${await saveSupplierAgeing(ageingDate, rows)} accounts as of ${ageingDate}`);
     }
+  }
+
+  if (only.has("bank")) {
+    // The workbook has 99 sheets, over the app's upload safety limit, so it is read with SheetJS here. The sheet and its date are found from its heading.
+    const wb = XLSX.read(read("Bank Position as of 25-11-20.xlsx"), { type: "buffer", dense: true });
+    const picked = pickBankPositionSheet(wb.SheetNames.map((name) => ({ name, grid: XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, raw: true, defval: null }) })));
+    if (!picked) throw new Error("No dated BANK POSITION sheet found.");
+    const { asOf, rows, errors } = parseBankPosition(picked.sheet.grid);
+    if (errors.length) fail("bank position", errors);
+    console.log(`bank position: ${await saveBankPosition(asOf, rows)} facility rows as of ${asOf} (sheet "${picked.sheet.name}")`);
   }
 
   if (only.has("budget")) {

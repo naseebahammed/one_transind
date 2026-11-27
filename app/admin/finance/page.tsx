@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { HBars } from "@/components/admin/FinanceCharts";
 import { UploadReport } from "@/components/admin/UploadReport";
 import { UploadSupplierAgeing } from "@/components/admin/UploadSupplierAgeing";
+import { UploadBankPosition } from "@/components/admin/UploadBankPosition";
 import { UploadProfitability } from "@/components/admin/UploadProfitability";
 import { UploadBrandBudget } from "@/components/admin/UploadBrandBudget";
 import { UploadPosReports } from "@/components/admin/UploadPosReports";
@@ -78,6 +79,8 @@ async function Summary({ searchParams }: { searchParams: Search }) {
       <Card className="gap-2 px-6 py-3 text-sm">
         <span className="font-semibold">Supplier ageing (payables)</span>
         <UploadSupplierAgeing />
+        <span className="font-semibold">Bank position (the sheet with the current date; upload a copy holding only that sheet)</span>
+        <UploadBankPosition />
         <span className="font-semibold">Logistics profitability</span>
         <UploadProfitability />
         <span className="font-semibold">Brand budget (Trading & Distribution)</span>
