@@ -354,6 +354,7 @@ async function Content({ searchParams }: { searchParams: Params }) {
   return (
     <>
       <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+        <Link href="/sales/budget" className="btn" style={{ textDecoration: "none" }}>{translate("Brand budget →")}</Link>
         <YearSelect years={yearList} value={year} base={link("/sales", { m: mParam, p: urlPath.join("|"), s: sector })} />
         <MonthSelect value={allMonths ? "all" : month} allLabel="All months" max={maxMonth} names={MONTHS} base={link("/sales", { year: view.year, p: urlPath.join("|"), s: sector })} />
         <div className="tabs">
