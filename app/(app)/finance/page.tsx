@@ -76,14 +76,14 @@ async function Content({ searchParams }: { searchParams: Params }) {
         <CompanySelect companies={companies} value={selected?.id ?? "all"} base={link("/finance", { year, m })} allLabel={translate("All companies")} />
         <YearSelect years={[...new Set([...allYears, new Date().getFullYear()])].sort()}value={pickedYear ?? "all"} base={link("/finance", { company, m })} allLabel={translate("All years")} />
         <MonthSelect value={pickedMonth ?? "all"} max={11} names={MONTHS} year={pickedYear} base={link("/finance", { company, year })} allLabel={translate("All months")} />
-        <Link href="/finance/payables" className="btn" style={{ marginLeft: "auto", textDecoration: "none" }}>{translate("Payables →")}</Link>
+        <Link href="/finance/payables" className="btn" style={{ marginInlineStart: "auto", textDecoration: "none" }}>{translate("Payables →")}</Link>
         <Link href="/finance/pnl" className="btn primary" style={{ textDecoration: "none" }}>{translate("Monthly P&L by company →")}</Link>
       </div>
       <div className="kpis">
-        <Kpi label={translate("Revenue year to date")} value={`${fmt(rev / 1e6)} M`} up />
+        <Kpi label={translate("Revenue year to date")} value={`${fmt(rev / 1e6)} M`} unit="QAR" up />
         <Kpi label={translate("Gross margin")} value={`${fmt(rev ? (1 - cost / rev) * 100 : 0, 1)}%`} />
-        <Kpi label={translate("Net profit / loss")} value={`${fmt(netProfit / 1e6, 2)} M`} delta={name} up={netProfit >= 0} />
-        <Kpi label={translate("Receivables outstanding")} value={ar ? money(ar.total) : <NotConnected />} up />
+        <Kpi label={translate("Net profit / loss")} value={`${fmt(netProfit / 1e6, 2)} M`} unit="QAR" delta={name} up={netProfit >= 0} />
+        <Kpi label={translate("Receivables outstanding")} value={ar ? money(ar.total) : <NotConnected label={translate("Not connected")} />} unit={ar ? "QAR" : undefined} up />
       </div>
       <div className="grid">
         <Panel span={6} title={`${name} - ${translate("revenue by year")}`}>

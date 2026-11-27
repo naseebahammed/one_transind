@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import type { DrillRow } from "@/lib/data";
 import { fmt } from "@/lib/format";
+import { translator, type Language } from "@/lib/i18n";
 import { Delta, MarginChip } from "@/components/ui";
 
 type Props = {
@@ -20,10 +21,12 @@ type Props = {
   momLabel?: string;
   span?: number;
   limit?: number;          // rows shown before the "Show all" button
+  language?: Language;
 };
 
 /** Click-through drill panel: rows link to the next level, breadcrumbs link back. State lives in the URL. */
-export function Drill({ title, src, mode, rows, labels, path, levels, rootLabel, href, all, q, yoyLabels, momLabel, span = 12, limit = 25 }: Props) {
+export function Drill({ title, src, mode, rows, labels, path, levels, rootLabel, href, all, q, yoyLabels, momLabel, span = 12, limit = 25, language = "en" }: Props) {
+  const translate = translator(language);
   const shown = q ? rows.filter((r) => (r.label + " " + r.sub).toLowerCase().includes(q.toLowerCase())) : rows;
   const leaf = path.length >= levels.length - 1;
   const tot = shown.reduce((a, r) => a + r.value, 0), cost = shown.reduce((a, r) => a + r.cost, 0);
@@ -36,14 +39,14 @@ export function Drill({ title, src, mode, rows, labels, path, levels, rootLabel,
       <header><h2>{title}</h2>{src != null && <span className="src">{src}</span>}</header>
       <div className="mtd">
         <span className="big">{fmt(tot)}</span>
-        {mode === "mom" && <span className={`d ${tot >= lm ? "up" : "down"}`} style={{ fontSize: 12.5 }}><Delta a={tot} b={lm} /> {momLabel ?? "vs last month"}</span>}
+        {mode === "mom" && <span className={`d ${tot >= lm ? "up" : "down"}`} style={{ fontSize: 12.5 }}><Delta a={tot} b={lm} /> {momLabel ?? translate("vs last month")}</span>}
         {mode === "yoy" && yoyLabels && <>
-          <span><Delta a={tot} b={ly} /> <span className="src">vs {yoyLabels[0]}</span></span>
-          <span><Delta a={tot} b={ly2} /> <span className="src">vs {yoyLabels[1]}</span></span>
+          <span><Delta a={tot} b={ly} /> <span className="src">{translate("vs")} {yoyLabels[0]}</span></span>
+          <span><Delta a={tot} b={ly2} /> <span className="src">{translate("vs")} {yoyLabels[1]}</span></span>
         </>}
         {mode === "margin" && <>
-          <span className="src">Cost: <span className="num">{fmt(cost)}</span></span>
-          <span><MarginChip s={tot} c={cost} /> <span className="src">Gross margin</span></span>
+          <span className="src">{translate("Cost")}: <span className="num">{fmt(cost)}</span></span>
+          <span><MarginChip s={tot} c={cost} /> <span className="src">{translate("Gross margin")}</span></span>
         </>}
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
@@ -53,15 +56,15 @@ export function Drill({ title, src, mode, rows, labels, path, levels, rootLabel,
             <span key={i} style={{ display: "contents" }}><i>›</i>{i < path.length - 1 ? <Link href={href(path.slice(0, i + 1))}>{labels[i]}</Link> : <span className="cur">{labels[i]}</span>}</span>
           ))}
         </nav>
-        <span className="src">{levels[Math.min(path.length, levels.length - 1)]} · {fmt(shown.length)}{leaf ? "" : " · click any row to drill down"}</span>
+        <span className="src">{levels[Math.min(path.length, levels.length - 1)]} · {fmt(shown.length)}{leaf ? "" : ` · ${translate("click any row to drill down")}`}</span>
       </div>
       {mode === "margin" && (
-        <div className="src" style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 8 }} aria-label="Gross margin colour legend">
-          <span>Gross margin:</span>
-          <span><span className="chip good" style={{ fontSize: 10.5 }}>30%+</span> good</span>
-          <span><span className="chip plain" style={{ fontSize: 10.5 }}>15–30%</span> fair</span>
-          <span><span className="chip warn" style={{ fontSize: 10.5 }}>5–15%</span> low</span>
-          <span><span className="chip bad" style={{ fontSize: 10.5 }}>&lt;5%</span> very low or loss</span>
+        <div className="src" style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 8 }} aria-label={translate("Gross margin")}>
+          <span>{translate("Gross margin")}:</span>
+          <span><span className="chip good" style={{ fontSize: 11 }}>30%+</span> {translate("good")}</span>
+          <span><span className="chip plain" style={{ fontSize: 11 }}>15–30%</span> {translate("fair")}</span>
+          <span><span className="chip warn" style={{ fontSize: 11 }}>5–15%</span> {translate("low")}</span>
+          <span><span className="chip bad" style={{ fontSize: 11 }}>&lt;5%</span> {translate("very low or loss")}</span>
         </div>
       )}
       <div className="drill">
@@ -76,14 +79,14 @@ export function Drill({ title, src, mode, rows, labels, path, levels, rootLabel,
               <span className="chev" aria-hidden="true">{leaf ? "" : "›"}</span>
             </>
           );
-          const tip = `${r.label}: ${fmt(r.value)} · share ${fmt(tot ? r.value / tot * 100 : 0, 1)}%`;
+          const tip = `${r.label}: ${fmt(r.value)} · ${translate("share")} ${fmt(tot ? r.value / tot * 100 : 0, 1)}%`;
           return leaf
             ? <div className="dr" key={r.key} title={tip} aria-disabled="true">{inner}</div>
             : <Link className="dr" key={r.key} title={tip} href={href([...path, r.key])}>{inner}</Link>;
         })}
         {!list.length && <p className="empty">—</p>}
       </div>
-      {shown.length > list.length && <Link className="btn sm" href={href(path, true)} style={{ marginTop: 10, display: "inline-block" }}>Show all ({fmt(shown.length)})</Link>}
+      {shown.length > list.length && <Link className="btn sm" href={href(path, true)} style={{ marginTop: 10, display: "inline-block" }}>{translate("Show all")} ({fmt(shown.length)})</Link>}
     </section>
   );
 }

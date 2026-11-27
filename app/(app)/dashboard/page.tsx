@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { requireUser } from "@/lib/guard";
+import { canOpen } from "@/lib/modules";
 import { SECTOR, SECTORS } from "@/lib/org";
 import { listSectors } from "@/lib/sectors";
 import { keyFor, plRows, report, years, loadReports } from "@/lib/reports";
@@ -38,7 +40,7 @@ export default function Page({ searchParams }: { searchParams: Params }) {
 
 async function Content({ searchParams }: { searchParams: Params }) {
   await connection();
-  await requireUser("dashboard");
+  const { modules } = await requireUser("dashboard");
   const overview = getOverview();
   const erpDrill = Promise.all([searchParams, overview]).then(([{ p }, o]) =>
     parsePath(p)[0] === SECTOR.trading ? getDrill(o.month, "p", []) : Promise.resolve([] as DrillRow[]),
@@ -150,18 +152,52 @@ async function Content({ searchParams }: { searchParams: Params }) {
   const hasShipmentFeed = logistics.shipments.length > 0;
   const hasVarianceFeed = warehouseSummary.shortDeliveryOrders > 0;
 
+  const canSales = canOpen(modules, "sales");
+  const canFinance = canOpen(modules, "finance");
+  const canHr = canOpen(modules, "hr");
+  const canLogistics = canOpen(modules, "logistics");
+  const notConnectedLabel = translate("Not connected");
+
   return (
     <>
       <div className="kpis">
-        <Kpi label={translate("Sales this month")} value={money(curGroupQar)} delta={label} spark={monthly} />
-        <Kpi label={translate("Revenue year to date")} value={`${fmt(ytdGroupQar / 1e6)} M`} spark={monthly} up />
-        <Kpi label={translate("Receivables outstanding")} value={ar ? money(ar.total) : <NotConnected />} delta={ar ? ar.sourceLabel : undefined} up />
-        <Kpi label={translate("Employees")} value={staff.length ? fmt(activeStaff) : <NotConnected />} delta={staff.length ? `${fmt(staff.length)} ${translate("total on file")}` : undefined} up />
+        <Kpi
+          label={translate("Sales this month")}
+          value={money(curGroupQar)}
+          unit="QAR"
+          delta={label}
+          spark={monthly}
+          href={canSales ? "/sales" : undefined}
+        />
+        <Kpi
+          label={translate("Revenue year to date")}
+          value={`${fmt(ytdGroupQar / 1e6)} M`}
+          unit="QAR"
+          spark={monthly}
+          up
+          href={canSales ? "/sales" : undefined}
+        />
+        <Kpi
+          label={translate("Receivables outstanding")}
+          value={ar ? money(ar.total) : <NotConnected label={notConnectedLabel} />}
+          unit={ar ? "QAR" : undefined}
+          delta={ar ? ar.sourceLabel : undefined}
+          up
+          href={canFinance ? "/finance" : undefined}
+        />
+        <Kpi
+          label={translate("Employees")}
+          value={staff.length ? fmt(activeStaff) : <NotConnected label={notConnectedLabel} />}
+          delta={staff.length ? `${fmt(staff.length)} ${translate("total on file")}` : undefined}
+          up
+          href={canHr ? "/hr" : undefined}
+        />
       </div>
       <div className="grid">
         <Drill
           title={translate("Sales this month")} src={label} mode="mom" rows={rows} labels={labels} path={path}
           levels={["Sectors", "Companies"].map((level) => translate(level))} rootLabel={translate("All sectors")} all={all === "1"}
+          language={language}
           href={(pp, a) => link("/dashboard", { p: pp.join("|"), all: a ? "1" : undefined })}
         />
         <Panel span={7} title={translate("Group monthly revenue")}>
@@ -180,13 +216,29 @@ async function Content({ searchParams }: { searchParams: Params }) {
             <tr>
               <td><span className="chip bad">{translate("Over 90 days")}</span></td>
               <td>{translate("Receivables")}{ar ? ` · ${ar.sourceLabel}` : ""}</td>
-              <td className={`n${ar ? " num" : ""}`}>{ar ? `${money(ar.over90)} QAR` : <NotConnected />}</td>
+              <td className={`n${ar ? " num" : ""}`}>{ar ? `${money(ar.over90)} QAR` : <NotConnected label={notConnectedLabel} />}</td>
+              <td className="n">
+                {canFinance && (
+                  <Link href="/finance" className="followup-link">
+                    <span>{translate("View")}</span>
+                    <span className="chev" aria-hidden="true">›</span>
+                  </Link>
+                )}
+              </td>
             </tr>
             <tr>
               <td><span className="chip warn">{translate("Late")}</span></td>
               <td>{translate("Shipment tracking")}{!hasShipmentFeed && hasVarianceFeed ? ` · ${translate("Short-delivered orders (30d)")}` : ""}</td>
               <td className={`n${hasShipmentFeed || hasVarianceFeed ? " num" : ""}`}>
-                {hasShipmentFeed ? fmt(lateShipments) : hasVarianceFeed ? fmt(warehouseSummary.shortDeliveryOrders) : <NotConnected />}
+                {hasShipmentFeed ? fmt(lateShipments) : hasVarianceFeed ? fmt(warehouseSummary.shortDeliveryOrders) : <NotConnected label={notConnectedLabel} />}
+              </td>
+              <td className="n">
+                {canLogistics && (
+                  <Link href="/logistics" className="followup-link">
+                    <span>{translate("View")}</span>
+                    <span className="chev" aria-hidden="true">›</span>
+                  </Link>
+                )}
               </td>
             </tr>
           </tbody></table></div>

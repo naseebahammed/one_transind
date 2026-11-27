@@ -114,8 +114,10 @@ async function Content({ searchParams }: { searchParams: Params }) {
   // Day-by-day total of the shown branches; null when no branch has a figure that day. Same-month-last-year may be a day shorter (leap year), so missing days read as null.
   const dailyTotals = (branchesToAdd: typeof current) => (withSales[0]?.table.days ?? []).map((_, i) => { const dayValues = branchesToAdd.map((b) => b.table.days[i]?.gross ?? null); return dayValues.some((v) => v !== null) ? sum(dayValues.map((v) => v ?? 0)) : null; });
   const shownGross = monthlyOnly ? sum(cogsRows.map((r) => r.grossSales ?? 0)) : gross;
-  // The same month last year may have only the COGS workbook figure (no daily deposit book), so use it when the daily total is empty.
-  const lastMonthGross = (!monthlyOnly && sum(before.map((b) => b.summary.gross))) || sum(cogsBefore.map((r) => r.grossSales ?? 0));
+  // Last year's daily deposit books cover only a few branches (Nov 2025: Musherib alone), while the monthly COGS workbook covers them all, so take the larger of the two.
+  const lastMonthGross = Math.max(sum(before.map((b) => b.summary.gross)), sum(cogsBefore.map((r) => r.grossSales ?? 0)));
+  // Shaded last-year bars only make sense when last year's daily books cover at least as many branches as this year's.
+  const showLastYearBars = !allMonths && hasData && before.filter((b) => b.summary.days > 0).length >= withSales.length;
   // In the current month, hide days after today to avoid a long empty list.
   const lastDay = year === thisYear && month === now.getMonth() ? now.getDate() : 31;
 
@@ -134,9 +136,9 @@ async function Content({ searchParams }: { searchParams: Params }) {
         <Kpi label={translate("Card share")} value={hasData ? share(card, gross) : "-"} />
       </div>
       <div className="grid">
-        <Panel span={7} title={`${translate("Daily gross sales")} · ${mn}`} src={allMonths || !hasData ? undefined : `${translate("Shaded")}: ${MONTHS[month]} ${previous.year}`}>
+        <Panel span={7} title={`${translate("Daily gross sales")} · ${mn}`} src={!showLastYearBars ? undefined : `${translate("Shaded")}: ${MONTHS[month]} ${previous.year}`}>
           {allMonths ? <p className="empty">{translate("Pick a single month to see daily sales.")}</p> : !hasData ? <p className="empty">{translate("No daily sales uploaded for")} {mn}.</p> : (
-            <DayBars days={withSales[0].table.days.map((d) => `${String(d.day).padStart(2, "0")} ${MONTHS[month]}`)} values={dailyTotals(current)} compare={dailyTotals(before)} compareLabel={`${MONTHS[month]} ${previous.year}`} />
+            <DayBars days={withSales[0].table.days.map((d) => `${String(d.day).padStart(2, "0")} ${MONTHS[month]}`)} values={dailyTotals(current)} compare={showLastYearBars ? dailyTotals(before) : undefined} compareLabel={`${MONTHS[month]} ${previous.year}`} />
           )}
         </Panel>
         <Panel span={5} title={`${translate("Sales by company & channel")} · ${mn}`}>

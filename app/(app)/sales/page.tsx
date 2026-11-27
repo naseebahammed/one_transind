@@ -88,6 +88,7 @@ async function ErpDrillPanel({
   yoyLabels,
   view,
   sector,
+  language,
 }: {
   drillPromise: Promise<[DrillRow[], string[]]>;
   groupSectorLabel?: string;
@@ -99,6 +100,7 @@ async function ErpDrillPanel({
   yoyLabels: [string, string];
   view: { year: string; m: string };
   sector: string;
+  language: Language;
 }) {
   const [rows, labels] = await drillPromise;
   const drillLabels = groupSectorLabel ? [groupSectorLabel, ...labels] : labels;
@@ -113,6 +115,7 @@ async function ErpDrillPanel({
       rootLabel={rootLabel}
       all={showAll}
       yoyLabels={yoyLabels}
+      language={language}
       href={(pp, a) => link("/sales", { ...view, p: pp.join("|"), s: sector, all: a ? "1" : undefined })}
     />
   );
@@ -370,7 +373,7 @@ async function Content({ searchParams }: { searchParams: Params }) {
         <Kpi label={translate("Year to date")} value={`${fmt(ytd, 1)} M`} delta={<><Delta a={ytd} b={ytdL} /> {translate("vs same period last year")}</>} spark={g26.slice(0, month + 1)} />
         <Kpi
           label={translate("Target attainment")}
-          value={attainment !== null ? `${fmt(attainment, 1)}%` : <NotConnected />}
+          value={attainment !== null ? `${fmt(attainment, 1)}%` : <NotConnected label={translate("Not connected")} />}
           delta={targetMonthQar !== null ? `${translate("Target")} ${fmt(M(targetMonthQar), 2)} M` : undefined}
           up={attainment !== null ? attainment >= 100 : undefined}
         />
@@ -405,6 +408,7 @@ async function Content({ searchParams }: { searchParams: Params }) {
               yoyLabels={[`${mn} ${years[1]}`, `${mn} ${years[0]}`]}
               view={view}
               sector={sector}
+              language={language}
             />
           </Suspense>
         ) : (
@@ -418,6 +422,7 @@ async function Content({ searchParams }: { searchParams: Params }) {
             rootLabel={translate("All")}
             all={all === "1"}
             yoyLabels={[`${mn} ${years[1]}`, `${mn} ${years[0]}`]}
+            language={language}
             href={(pp, a) => link("/sales", { ...view, p: pp.join("|"), s: sector, all: a ? "1" : undefined })}
           />
         )}

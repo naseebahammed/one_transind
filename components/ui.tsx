@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { fmt, MONTHS, pct } from "@/lib/format";
 import { Spark } from "@/components/charts";
@@ -11,14 +12,39 @@ export const Panel = ({ title, src, span, children }: { title: ReactNode; src?: 
   </section>
 );
 
-export const Kpi = ({ label, value, delta, up, spark }: { label: ReactNode; value: ReactNode; delta?: ReactNode; up?: boolean; spark?: number[] }) => (
-  <div className="kpi">
-    <span className="l">{label}</span>
-    <span className="v">{value}</span>
-    {delta && <span className={`d ${up ? "up" : "down"}`}>{delta}</span>}
-    {spark && <Spark id={`sg-${String(label).replace(/\W/g, "")}`} data={spark} />}
-  </div>
-);
+export const Kpi = ({
+  label,
+  value,
+  unit,
+  delta,
+  up,
+  spark,
+  href,
+}: {
+  label: ReactNode;
+  value: ReactNode;
+  unit?: string;
+  delta?: ReactNode;
+  up?: boolean;
+  spark?: number[];
+  href?: string;
+}) => {
+  const body = (
+    <>
+      <span className="kpi-head">
+        <span className="l">{label}</span>
+        {href && <span className="kpi-arrow" aria-hidden="true">›</span>}
+      </span>
+      <span className="v">
+        {value}
+        {unit && <span className="kpi-unit">{unit}</span>}
+      </span>
+      {delta && <span className={`d ${up ? "up" : "down"}`}>{delta}</span>}
+      {spark && <Spark id={`sg-${String(label).replace(/\W/g, "")}`} data={spark} />}
+    </>
+  );
+  return href ? <Link href={href} className="kpi kpi-link">{body}</Link> : <div className="kpi">{body}</div>;
+};
 
 /** Year-over-year or month-over-month delta as in the legacy app. */
 export const Delta = ({ a, b, small }: { a: number; b: number; small?: boolean }) => {
@@ -44,7 +70,9 @@ export const Insights = ({ title, src, items }: { title: string; src?: string; i
 );
 
 /** Stands in for a figure with no data source, so it never reads as a real 0. */
-export const NotConnected = () => <span style={{ fontSize: 15, color: "var(--muted)" }}>Not connected</span>;
+export const NotConnected = ({ label = "Not connected" }: { label?: string }) => (
+  <span style={{ fontSize: 15, color: "var(--muted)" }}>{label}</span>
+);
 
 export const Empty = ({ cols, text = "—" }: { cols: number; text?: string }) => <tr><td colSpan={cols} className="empty">{text}</td></tr>;
 

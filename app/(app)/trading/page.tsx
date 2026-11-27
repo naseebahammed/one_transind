@@ -74,8 +74,8 @@ async function Content({ searchParams }: { searchParams: Params }) {
         <Kpi label={translate("Avg per customer")} value={fmt(active ? tot / active : 0)} up />
       </div>
       <div className="grid">
-        <Drill span={6} title={translate("Products drill-down")} mode="margin" rows={prow} labels={plab} path={pp} levels={["Departments", "Brands", "Products"].map((level) => translate(level))} rootLabel={translate("All")} q={q} all={all === "p"} href={href("p")} />
-        <Drill span={6} title={translate("Customers drill-down")} limit={10} mode="margin" rows={crow} labels={clab} path={cp} levels={["Groups", "Branches / customers", "Brands", "Products"].map((level) => translate(level))} rootLabel={translate("All")} q={q} all={all === "c"} href={href("c")} />
+        <Drill span={6} title={translate("Products drill-down")} mode="margin" rows={prow} labels={plab} path={pp} levels={["Departments", "Brands", "Products"].map((level) => translate(level))} rootLabel={translate("All")} q={q} all={all === "p"} language={language} href={href("p")} />
+        <Drill span={6} title={translate("Customers drill-down")} limit={10} mode="margin" rows={crow} labels={clab} path={cp} levels={["Groups", "Branches / customers", "Brands", "Products"].map((level) => translate(level))} rootLabel={translate("All")} q={q} all={all === "c"} language={language} href={href("c")} />
         <Insights title={translate("Analysis")} items={insights} />
         <Panel span={6} title={translate("Top customer groups")}>
           <div className="tw"><table>
