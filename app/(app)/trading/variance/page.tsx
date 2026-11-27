@@ -7,6 +7,7 @@ import { PageSkeleton } from "@/components/PageSkeleton";
 import report from "@/data/variance-report.json";
 
 export const metadata = { title: "Invoice vs delivery variance · One Transind" };
+export const instant = false; // lets the build treat this signed-in page as blocking; same setting as app/page.tsx
 
 type Group = { name: string; invoiced: number; delivered: number; variance: number; lines: number };
 
