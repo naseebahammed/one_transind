@@ -9,6 +9,7 @@ import { HBars } from "@/components/admin/FinanceCharts";
 import { UploadReport } from "@/components/admin/UploadReport";
 import { UploadSupplierAgeing } from "@/components/admin/UploadSupplierAgeing";
 import { UploadProfitability } from "@/components/admin/UploadProfitability";
+import { UploadBrandBudget } from "@/components/admin/UploadBrandBudget";
 import { EditPnlFigure } from "@/components/admin/EditPnlFigure";
 import { ConfirmButton } from "@/components/admin/ConfirmButton";
 import { Trash2 } from "lucide-react";
@@ -78,6 +79,8 @@ async function Summary({ searchParams }: { searchParams: Search }) {
         <UploadSupplierAgeing />
         <span className="font-semibold">Logistics profitability</span>
         <UploadProfitability />
+        <span className="font-semibold">Brand budget (Trading & Distribution)</span>
+        <UploadBrandBudget />
       </Card>
       {one && (
         <Card className="gap-3 px-6 py-3 text-sm">

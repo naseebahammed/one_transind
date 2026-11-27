@@ -79,11 +79,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="main">
         <div className="top">
           <Suspense fallback={<Suspense fallback={<h1>One Transind</h1>}><Title /></Suspense>}><MenuTitle /></Suspense>
+          <Suspense fallback={null}><FollowMode /></Suspense>
           <Suspense fallback={null}><Toolbar /></Suspense>
         </div>
         <main className="content">{children}</main>
         <AskAI />
-        <Suspense fallback={null}><FollowMode /></Suspense>
       </div>
     </div>
   );
