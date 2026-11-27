@@ -7,11 +7,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/admin/ui/
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/admin/ui/table";
 import { HBars } from "@/components/admin/FinanceCharts";
 import { UploadReport } from "@/components/admin/UploadReport";
-import { UploadSupplierAgeing } from "@/components/admin/UploadSupplierAgeing";
-import { UploadBankPosition } from "@/components/admin/UploadBankPosition";
-import { UploadProfitability } from "@/components/admin/UploadProfitability";
-import { UploadBrandBudget } from "@/components/admin/UploadBrandBudget";
-import { UploadPosReports } from "@/components/admin/UploadPosReports";
+
+
+
+
+
 import { EditPnlFigure } from "@/components/admin/EditPnlFigure";
 import { ConfirmButton } from "@/components/admin/ConfirmButton";
 import { Trash2 } from "lucide-react";
@@ -42,7 +42,15 @@ const HideToggle = ({ c }: { c: Company }) => (
 );
 
 export default function Finance({ searchParams }: { searchParams: Search }) {
-  return <Page title="Company finance" description="Profit & loss summary for each company with a finance report."><Summary searchParams={searchParams} /></Page>;
+  return (
+    <Page
+      title="Company finance"
+      description="Profit & loss summary for each company with a finance report."
+      action={<Button asChild variant="outline" size="sm"><Link href="/admin/imports">Import center</Link></Button>}
+    >
+      <Summary searchParams={searchParams} />
+    </Page>
+  );
 }
 
 async function Summary({ searchParams }: { searchParams: Search }) {
@@ -76,18 +84,7 @@ async function Summary({ searchParams }: { searchParams: Search }) {
   const qar = (v: number | null) => (v === null ? "—" : fmt(Math.abs(v), 2, 0));
   return (
     <>
-      <Card className="gap-2 px-6 py-3 text-sm">
-        <span className="font-semibold">Supplier ageing (payables)</span>
-        <UploadSupplierAgeing />
-        <span className="font-semibold">Bank position (the sheet with the current date; upload a copy holding only that sheet)</span>
-        <UploadBankPosition />
-        <span className="font-semibold">Logistics profitability</span>
-        <UploadProfitability />
-        <span className="font-semibold">Brand budget (Trading & Distribution)</span>
-        <UploadBrandBudget />
-        <span className="font-semibold">Retail POS reports (Dukan, Top Perfumes: .xls monthly)</span>
-        <UploadPosReports />
-      </Card>
+
       {one && (
         <Card className="gap-3 px-6 py-3 text-sm">
           <div className="flex flex-wrap items-center gap-x-8 gap-y-1">

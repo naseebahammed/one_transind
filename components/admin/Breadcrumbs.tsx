@@ -8,6 +8,7 @@ const NAMES: Record<string, string> = {
   companies: "Companies",
   accounts: "Chart of accounts",
   "data-status": "Data status",
+  imports: "Import center",
   "manual-entry": "Manual data entry",
   sectors: "Sectors",
   "company-types": "Company types",

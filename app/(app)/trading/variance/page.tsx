@@ -1,6 +1,9 @@
+import { Suspense } from "react";
+import { connection } from "next/server";
 import { requireUser } from "@/lib/guard";
 import { fmt, sum } from "@/lib/format";
 import { Kpi, Panel } from "@/components/ui";
+import { PageSkeleton } from "@/components/PageSkeleton";
 import report from "@/data/variance-report.json";
 
 export const metadata = { title: "Invoice vs delivery variance · One Transind" };
@@ -19,7 +22,13 @@ function Table({ title, rows }: { title: string; rows: Group[] }) {
   );
 }
 
-export default async function Page() {
+// The sign-in check reads request headers, so it must sit inside Suspense or the production build fails.
+export default function Page() {
+  return <Suspense fallback={<PageSkeleton kpis={3} panels={3} />}><Content /></Suspense>;
+}
+
+async function Content() {
+  await connection();
   await requireUser("trading");
   const invoiced = sum(report.bySupervisor.map((r) => r.invoiced)), delivered = sum(report.bySupervisor.map((r) => r.delivered));
   return (

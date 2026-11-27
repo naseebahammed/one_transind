@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Activity, BarChart3, BookOpen, Building2, ChevronRight, ClipboardCheck, ExternalLink, Home, Layers, PenLine, Search, Users, X, type LucideIcon } from "lucide-react";
+import { Activity, BarChart3, BookOpen, Building2, ChevronRight, ClipboardCheck, ExternalLink, Home, Layers, PenLine, Search, Upload, Users, X, type LucideIcon } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupLabel, SidebarHeader, SidebarMenu,
   SidebarMenuButton, SidebarMenuItem, SidebarMenuSub, SidebarMenuSubButton, SidebarMenuSubItem, SidebarRail, useSidebar,
@@ -29,6 +29,7 @@ const GROUPS: { label: string; items: NavItem[] }[] = [
     label: "Business",
     items: [
       { href: "/admin/companies", title: "Companies", icon: Building2 },
+      { href: "/admin/imports", title: "Import center", icon: Upload },
       { href: "/admin/data-status", title: "Data status", icon: ClipboardCheck },
       { href: "/admin/manual-entry", title: "Manual data entry", icon: PenLine },
       { href: "/admin/sectors", title: "Sectors", icon: Layers },
