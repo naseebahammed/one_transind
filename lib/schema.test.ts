@@ -173,7 +173,7 @@ test("migrate applies 031_manual_report_data additively for all manual report ta
   const recordStep = executed.find((step) => step.sql.startsWith("INSERT INTO app.schema_migrations"));
   assert.ok(recordStep, "expected 031_manual_report_data to be recorded");
   assert.deepEqual(recordStep.params, ["031_manual_report_data"]);
-  assert.equal(LATEST_MIGRATION_ID, "040_sales_daily");
+  assert.equal(LATEST_MIGRATION_ID, "041_supplier_ageing");
 
   const sql = executed[executed.indexOf(recordStep) - 1].sql;
   assert.doesNotMatch(sql, /\b(DROP\s|DELETE\s+FROM|TRUNCATE\s|UPDATE\s|ALTER\s)\b/i);
@@ -241,4 +241,21 @@ test("migrate applies 040_sales_daily additively: creates app.sales_daily rollup
   assert.match(sql, /GROUP BY "DOC_DATE", "DEPT_CODE", "DOC_TYPE"/);
   assert.match(sql, /CREATE INDEX IF NOT EXISTS sales_daily_doc_date ON app\.sales_daily\("DOC_DATE"\)/);
   assert.match(sql, /CREATE INDEX IF NOT EXISTS sales_daily_dept_date ON app\.sales_daily\("DEPT_CODE", "DOC_DATE"\)/);
+});
+
+test("migrate applies 041_supplier_ageing additively: one new table, nothing dropped or altered", async () => {
+  const executed: { sql: string; params?: unknown[] }[] = [];
+  await migrate({
+    query: async (sql, params) => {
+      executed.push({ sql, params });
+      if (sql.startsWith("SELECT id FROM app.schema_migrations")) return { rows: [] };
+      return { rows: [] };
+    },
+  }, "041_supplier_ageing");
+  const record = executed.find((step) => step.params?.[0] === "041_supplier_ageing");
+  assert.ok(record, "expected 041 to be recorded");
+  const sql = executed[executed.indexOf(record) - 1].sql;
+  assert.match(sql, /CREATE TABLE app\.supplier_ageing/);
+  assert.match(sql, /PRIMARY KEY\(as_of, account_no\)/);
+  assert.doesNotMatch(sql, /\b(DROP|DELETE|TRUNCATE|UPDATE|ALTER)\b/i);
 });
