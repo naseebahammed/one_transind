@@ -101,7 +101,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <Suspense fallback={null}><Toolbar /></Suspense>
         </div>
         <main id="main-content" className="content">{children}</main>
-        <AskAI />
+        <Suspense fallback={null}><AskAI /></Suspense>
       </div>
     </div>
   );
