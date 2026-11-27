@@ -19,7 +19,7 @@ const honeypotStyle = {
 const css = `
 .si { min-height: 100vh; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); background: var(--bg); }
 .si-brand { display: flex; flex-direction: column; justify-content: space-between; padding: 48px 56px;
-  background: linear-gradient(160deg, #101a44 0%, #0a1130 60%, #060a18 100%); border-right: 1px solid var(--line); }
+  background: linear-gradient(160deg, #101a44 0%, #0a1130 60%, #060a18 100%); border-inline-end: 1px solid var(--line); }
 .si-logo { width: 60%; max-width: 320px; max-height: 160px; margin: 0 auto; object-fit: contain; }
 .si-foot { font-size: 12px; color: var(--muted); }
 .si-main { display: grid; place-items: center; padding: 32px 24px; }
@@ -32,6 +32,12 @@ const css = `
   transition: background .15s, border-color .15s; }
 .si-btn:hover { background: var(--panel-2); border-color: var(--brand); }
 .si-btn:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+.si-alt { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--line); position: relative; }
+.si-input { width: 100%; display: block; padding: 10px 12px; margin-bottom: 10px; background: var(--panel-2); color: var(--ink);
+  border: 1px solid var(--line-strong); border-radius: 8px; font-size: 14px; line-height: 1.4; text-align: start; transition: border-color .15s, box-shadow .15s; }
+.si-input::placeholder { color: var(--muted); }
+.si-input:hover { border-color: rgba(140, 160, 255, .42); }
+.si-input:focus-visible { outline: none; border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
 .si-note { margin-top: 24px; font-size: 12px; line-height: 1.5; color: var(--muted); }
 .si-mobile-logo { display: none; }
 @media (max-width: 860px) {
@@ -90,21 +96,21 @@ async function OptionalSignInForms() {
   return (
     <>
       {showAdminPassword && (
-        <form action={async (f: FormData) => { "use server"; if (!(await allowPublicAction("signin"))) return; if (!hasAdminPasswordLogin()) return; await signIn("admin-password", { email: String(f.get("email") ?? ""), password: String(f.get("password") ?? ""), formToken: String(f.get("formToken") ?? ""), website: String(f.get("website") ?? ""), redirectTo: "/" }); }} style={{ marginTop: 24, position: "relative" }}>
-          <p className="si-note" style={{ marginTop: 0, marginBottom: 8 }}>Temporary administrator sign-in.</p>
+        <form action={async (f: FormData) => { "use server"; if (!(await allowPublicAction("signin"))) return; if (!hasAdminPasswordLogin()) return; await signIn("admin-password", { email: String(f.get("email") ?? ""), password: String(f.get("password") ?? ""), formToken: String(f.get("formToken") ?? ""), website: String(f.get("website") ?? ""), redirectTo: "/" }); }} className="si-alt">
+          <p className="si-note" style={{ marginTop: 0, marginBottom: 10 }}>Temporary administrator sign-in.</p>
           <input type="hidden" name="formToken" value={adminChallenge} />
           <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" style={honeypotStyle} />
-          <input name="email" type="email" required placeholder="admin email" aria-label="Admin email" className="si-btn" style={{ marginBottom: 8, fontWeight: 400 }} />
-          <input name="password" type="password" required placeholder="password" aria-label="Admin password" className="si-btn" style={{ marginBottom: 8, fontWeight: 400 }} />
+          <input name="email" type="email" required autoComplete="email" placeholder="Admin email" aria-label="Admin email" className="si-input" />
+          <input name="password" type="password" required autoComplete="current-password" placeholder="Password" aria-label="Admin password" className="si-input" />
           <button type="submit" className="si-btn">Admin sign in</button>
         </form>
       )}
       {showDevLogin && (
-        <form action={async (f: FormData) => { "use server"; if (!(await allowPublicAction("signin"))) return; if (!isDevLoginEnabled()) return; await signIn("credentials", { email: String(f.get("email") ?? ""), formToken: String(f.get("formToken") ?? ""), website: String(f.get("website") ?? ""), redirectTo: "/" }); }} style={{ marginTop: 24, position: "relative" }}>
-          <p className="si-note" style={{ marginTop: 0, marginBottom: 8 }}>Development only: test login (never shown in production).</p>
+        <form action={async (f: FormData) => { "use server"; if (!(await allowPublicAction("signin"))) return; if (!isDevLoginEnabled()) return; await signIn("credentials", { email: String(f.get("email") ?? ""), formToken: String(f.get("formToken") ?? ""), website: String(f.get("website") ?? ""), redirectTo: "/" }); }} className="si-alt">
+          <p className="si-note" style={{ marginTop: 0, marginBottom: 10 }}>Development only: test login (never shown in production).</p>
           <input type="hidden" name="formToken" value={devChallenge} />
           <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" style={honeypotStyle} />
-          <input name="email" type="email" required placeholder="email on the approved list" aria-label="Test login email" className="si-btn" style={{ marginBottom: 8, fontWeight: 400 }} />
+          <input name="email" type="email" required autoComplete="email" placeholder="Email on the approved list" aria-label="Test login email" className="si-input" />
           <button type="submit" className="si-btn">Test sign in</button>
         </form>
       )}

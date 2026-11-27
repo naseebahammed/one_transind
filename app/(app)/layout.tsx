@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
+import { Almarai, IBM_Plex_Mono, IBM_Plex_Sans_Arabic } from "next/font/google";
 import { connection } from "next/server";
 import { signOut } from "@/auth";
 import { userDisplayName, userInitials } from "@/lib/access";
@@ -11,6 +12,10 @@ import { SalesToolbar } from "@/components/SalesToolbar";
 import { Nav, NavShell, Title } from "@/components/Shell";
 import { AskAI } from "@/components/AskAI";
 import { FollowMode } from "@/components/FollowMode";
+
+const almarai = Almarai({ subsets: ["arabic"], weight: ["700", "800"], variable: "--font-almarai", display: "swap" });
+const ibmPlexArabic = IBM_Plex_Sans_Arabic({ subsets: ["arabic", "latin"], weight: ["400", "500", "600", "700"], variable: "--font-ibm-plex-arabic", display: "swap" });
+const ibmPlexMono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-ibm-plex-mono", display: "swap" });
 
 async function Toolbar() {
   await connection();
@@ -78,7 +83,7 @@ async function SidebarUser() {
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="app">
+    <div className={`app ${almarai.variable} ${ibmPlexArabic.variable} ${ibmPlexMono.variable}`}>
       <a href="#main-content" className="skip-link">Skip to main content</a>
       <aside className="rail">
         <Link href="/dashboard" className="mark" aria-label="One Transind">
