@@ -2,9 +2,15 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   CURSOR_FRESH_MILLISECONDS,
+  INVITE_EXPIRE_MILLISECONDS,
   PRESENCE_REFRESH_MILLISECONDS,
   cleanPath,
+  clearInvite,
+  createInvite,
   cursorOf,
+  hasInvite,
+  invitesFor,
+  invitesFrom,
   pageArea,
   pageBlocked,
   presenceNeedsWrite,
@@ -56,4 +62,21 @@ test("presence is written on a page change, or once the refresh time has passed"
   assert.equal(presenceNeedsWrite("p@x.com", "/sales", PRESENCE_REFRESH_MILLISECONDS - 1), false);
   assert.equal(presenceNeedsWrite("p@x.com", "/finance", 100), true);
   assert.equal(presenceNeedsWrite("p@x.com", "/finance", 100 + PRESENCE_REFRESH_MILLISECONDS), true);
+});
+
+test("leaders can invite multiple followers, cancel invites, and invites expire automatically", () => {
+  createInvite("host@x.com", "alice@x.com", 1000);
+  createInvite("host@x.com", "bob@x.com", 1000);
+  createInvite("host@x.com", "host@x.com", 1000); // self-invite is ignored
+
+  assert.deepEqual(invitesFrom("host@x.com", 1000), ["alice@x.com", "bob@x.com"]);
+  assert.deepEqual(invitesFor("alice@x.com", 1000), ["host@x.com"]);
+  assert.equal(hasInvite("host@x.com", "bob@x.com", 1000), true);
+
+  clearInvite("host@x.com", "alice@x.com");
+  assert.deepEqual(invitesFrom("host@x.com", 1000), ["bob@x.com"]);
+  assert.equal(hasInvite("host@x.com", "alice@x.com", 1000), false);
+
+  assert.equal(hasInvite("host@x.com", "bob@x.com", 1000 + INVITE_EXPIRE_MILLISECONDS), false);
+  assert.deepEqual(invitesFrom("host@x.com", 1000 + INVITE_EXPIRE_MILLISECONDS), []);
 });

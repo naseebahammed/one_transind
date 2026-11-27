@@ -1,6 +1,17 @@
 import { q, q1 } from "@/lib/db";
 import { normalizeEmail } from "@/lib/access";
-import { cleanPath, cursorOf, pageBlocked, presenceNeedsWrite, setWatching } from "@/lib/follow-rules";
+import {
+  cleanPath,
+  clearInvite,
+  createInvite,
+  cursorOf,
+  hasInvite,
+  invitesFor,
+  invitesFrom,
+  pageBlocked,
+  presenceNeedsWrite,
+  setWatching,
+} from "@/lib/follow-rules";
 import type { UserModules } from "@/lib/modules";
 
 /** A browser reports its page every 2 s; someone silent for this long counts as offline. */
@@ -13,9 +24,13 @@ export type FollowState = {
   followers: string[];
   /** The person I asked to follow, still waiting for their answer. */
   requested: string | null;
+  /** Leaders who invited me to follow them, waiting for my answer. */
+  invitedBy: string[];
+  /** People I invited to follow me, waiting for their answer. */
+  invited: string[];
   /** The person I am following and where they are now. `blocked` = they are on a page this person may not open. */
   following: { leader: string; path: string; online: boolean; blocked: boolean; cursor: { x: number; y: number } | null } | null;
-  /** Other people who can be asked to be followed. */
+  /** Other people who can be asked to be followed or invited. */
   online: string[];
 };
 
@@ -31,12 +46,23 @@ export async function followState(me: string, modules: UserModules): Promise<Fol
   const leader = row?.leader ?? null;
   setWatching(me, leader ? leader.leader : null);
   const pending = relations.find((r) => r.follower === me && r.status === "pending");
+  const followers = relations.filter((r) => r.leader === me && r.status === "accepted").map((r) => r.follower);
+  const followerSet = new Set(followers);
+  const blocked = leader && leader.path ? pageBlocked(leader.path, modules) : false;
   return {
     incoming: relations.filter((r) => r.leader === me && r.status === "pending").map((r) => r.follower),
-    followers: relations.filter((r) => r.leader === me && r.status === "accepted").map((r) => r.follower),
+    followers,
     requested: pending ? pending.leader : null,
+    invitedBy: invitesFor(me).filter((from) => !leader || leader.leader !== from),
+    invited: invitesFrom(me).filter((to) => !followerSet.has(to)),
     following: leader && leader.path
-      ? { leader: leader.leader, path: leader.path, online: Boolean(leader.online), blocked: pageBlocked(leader.path, modules), cursor: cursorOf(leader.leader) }
+      ? {
+          leader: leader.leader,
+          path: blocked ? "" : leader.path,
+          online: Boolean(leader.online),
+          blocked,
+          cursor: blocked ? null : cursorOf(leader.leader),
+        }
       : null,
     online: row?.online ?? [],
   };
@@ -79,5 +105,49 @@ export async function answerFollow(me: string, from: string, accept: boolean): P
 /** Ends a follow from either side: the follower stops following, or the leader removes a follower. */
 export async function stopFollow(me: string, other: string) {
   const person = normalizeEmail(other);
+  clearInvite(me, person);
+  clearInvite(person, me);
   await q("DELETE FROM app.follow_requests WHERE (follower = $1 AND leader = $2) OR (follower = $2 AND leader = $1)", [me, person]);
+}
+
+/** Invites one or more online people to follow `me`. */
+export async function inviteFollowers(me: string, people: string[]): Promise<{ error?: string }> {
+  const targets = [...new Set(people.map(normalizeEmail).filter((p) => p && p !== me))];
+  if (targets.length === 0) return { error: "Choose at least one person to invite." };
+  const [onlineRows, loopRow] = await Promise.all([
+    q<{ email: string }>(`SELECT email FROM app.user_presence WHERE email = ANY($1::text[]) AND seen > now() - interval '${ONLINE_SECONDS} seconds'`, [targets]),
+    q1<{ leader: string }>("SELECT leader FROM app.follow_requests WHERE follower = $1 AND status = 'accepted'", [me]),
+  ]);
+  const onlineSet = new Set(onlineRows.map((r) => r.email));
+  const myLeader = loopRow?.leader ?? null;
+  let sent = 0;
+  for (const target of targets) {
+    if (!onlineSet.has(target)) continue;
+    if (myLeader === target) continue;
+    createInvite(me, target);
+    sent += 1;
+  }
+  if (sent === 0) return { error: myLeader && targets.includes(myLeader) ? "You are already following that person. Stop that first." : "None of the selected people are online." };
+  return {};
+}
+
+/** Accepts an invitation from `from` so `me` starts following them. */
+export async function acceptInvite(me: string, from: string): Promise<{ error?: string }> {
+  const leader = normalizeEmail(from);
+  if (!hasInvite(leader, me)) return { error: "That invitation is no longer active." };
+  const here = await q1(`SELECT 1 AS ok FROM app.user_presence WHERE email = $1 AND seen > now() - interval '${ONLINE_SECONDS} seconds'`, [leader]);
+  if (!here) { clearInvite(leader, me); return { error: "That person is not online." }; }
+  const loop = await q1("SELECT 1 AS ok FROM app.follow_requests WHERE follower = $1 AND leader = $2 AND status = 'accepted'", [leader, me]);
+  if (loop) { clearInvite(leader, me); return { error: "That person is already following you. Stop that first." }; }
+  await q("INSERT INTO app.follow_requests(follower, leader, status) VALUES($1, $2, 'accepted') ON CONFLICT (follower) DO UPDATE SET leader = $2, status = 'accepted', created = now()", [me, leader]);
+  clearInvite(leader, me);
+  return {};
+}
+
+export function declineInvite(me: string, from: string) {
+  clearInvite(normalizeEmail(from), me);
+}
+
+export function cancelInvite(me: string, to: string) {
+  clearInvite(me, normalizeEmail(to));
 }

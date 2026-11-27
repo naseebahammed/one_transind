@@ -19,18 +19,64 @@ export const pageBlocked = (path: string, modules: UserModules) => {
   return area !== "" && !canOpen(modules, area);
 };
 
-// shortcut: the next three live in one Node process, so they break if the app runs as several processes (pm2 cluster mode); move them to the database then.
+// shortcut: the next four live in one Node process, so they break if the app runs as several processes (pm2 cluster mode); move them to the database then.
 const store = globalThis as unknown as {
   _followCursors?: Map<string, { x: number; y: number; at: number }>;
   _followWatching?: Map<string, string | null>;
   _followWrites?: Map<string, { path: string; at: number }>;
+  _followInvites?: Map<string, { leader: string; follower: string; at: number }>;
 };
 const cursors = (store._followCursors ??= new Map());
 const watching = (store._followWatching ??= new Map());
 const writes = (store._followWrites ??= new Map());
+const invites = (store._followInvites ??= new Map());
 
 export const CURSOR_FRESH_MILLISECONDS = 3000;
 export const PRESENCE_REFRESH_MILLISECONDS = 5000;
+export const INVITE_EXPIRE_MILLISECONDS = 5 * 60 * 1000;
+
+const inviteKey = (leader: string, follower: string) => `${leader}\0${follower}`;
+
+/** Records an invitation from `leader` asking `follower` to follow them. */
+export function createInvite(leader: string, follower: string, now = Date.now()) {
+  if (!leader || !follower || leader === follower) return;
+  invites.set(inviteKey(leader, follower), { leader, follower, at: now });
+}
+
+export function clearInvite(leader: string, follower: string) {
+  invites.delete(inviteKey(leader, follower));
+}
+
+export function hasInvite(leader: string, follower: string, now = Date.now()) {
+  const key = inviteKey(leader, follower);
+  const found = invites.get(key);
+  if (!found) return false;
+  if (now - found.at >= INVITE_EXPIRE_MILLISECONDS) {
+    invites.delete(key);
+    return false;
+  }
+  return true;
+}
+
+/** Followers that `leader` has invited and who have not answered yet. */
+export function invitesFrom(leader: string, now = Date.now()): string[] {
+  const list: string[] = [];
+  for (const [key, entry] of invites) {
+    if (now - entry.at >= INVITE_EXPIRE_MILLISECONDS) { invites.delete(key); continue; }
+    if (entry.leader === leader) list.push(entry.follower);
+  }
+  return list.sort();
+}
+
+/** Leaders who invited `follower` to follow them. */
+export function invitesFor(follower: string, now = Date.now()): string[] {
+  const list: string[] = [];
+  for (const [key, entry] of invites) {
+    if (now - entry.at >= INVITE_EXPIRE_MILLISECONDS) { invites.delete(key); continue; }
+    if (entry.follower === follower) list.push(entry.leader);
+  }
+  return list.sort();
+}
 
 /** Where each leader's mouse is, as fractions of their window. Kept in memory: it changes 4 times a second and is worthless after a few seconds. */
 export function reportCursor(me: string, value: unknown, now = Date.now()) {
