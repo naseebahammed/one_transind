@@ -24,7 +24,8 @@ const mPct = (s: number, c: number) => (s ? (s - c) / s * 100 : 0);
 async function Content({ searchParams }: { searchParams: Params }) {
   await connection();
   await requireUser("trading");
-  const translate = translator(await getLanguage());
+  const language = await getLanguage();
+  const translate = translator(language);
   const [{ m, year: rawYear, p, c, q, all }, o, monthly] = await Promise.all([searchParams, getOverview(), getMonthly()]);
   const rawM = Number(m);
   const allMonths = m === "all";

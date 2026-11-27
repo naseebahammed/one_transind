@@ -16,7 +16,7 @@ function Card({
     <div
       data-slot="card"
       className={cn(
-        "flex flex-col gap-6 rounded-xl border bg-card py-6 text-card-foreground shadow-sm",
+        "flex flex-col gap-6 rounded-lg border bg-card py-6 text-card-foreground shadow-sm",
         compact && "gap-3 py-4 [&_[data-slot=card-content]]:px-4 [&_[data-slot=card-header]]:px-4",
         flush && "gap-0 overflow-hidden py-0",
         tone === "danger" && "border-destructive/40 [&_[data-slot=card-title]]:text-destructive",

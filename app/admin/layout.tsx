@@ -66,6 +66,12 @@ async function HeaderBreadcrumbs() {
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="admin min-h-screen">
+      <a
+        href="#admin-main"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-md focus:bg-primary focus:px-3 focus:py-2 focus:text-sm focus:font-medium focus:text-primary-foreground focus:shadow-md focus:outline-none"
+      >
+        Skip to main content
+      </a>
       <SidebarProvider>
         <Suspense fallback={<div className="print:hidden"><Suspense fallback={null}><AdminSidebarFallback /></Suspense></div>}>
           <div className="print:hidden"><Sidebar /></div>
@@ -76,7 +82,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <Separator orientation="vertical" className="h-5" />
             <Suspense fallback={<Suspense fallback={null}><BreadcrumbsFallback /></Suspense>}><HeaderBreadcrumbs /></Suspense>
           </header>
-          <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 p-4 md:p-8">{children}</main>
+          <main id="admin-main" className="mx-auto w-full max-w-7xl flex-1 space-y-6 p-4 md:p-8">{children}</main>
         </SidebarInset>
       </SidebarProvider>
     </div>
