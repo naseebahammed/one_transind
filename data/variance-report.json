@@ -1,0 +1,408 @@
+{
+  "month": "November 2026",
+  "byBrand": [
+    {
+      "name": "KDD",
+      "invoiced": 97043.93,
+      "delivered": 21187.11,
+      "variance": 75856.82,
+      "lines": 539
+    },
+    {
+      "name": "LAYS USA",
+      "invoiced": 41252.56,
+      "delivered": 2673.46,
+      "variance": 38579.1,
+      "lines": 220
+    },
+    {
+      "name": "SMARTHEART",
+      "invoiced": 22993,
+      "delivered": 302.4,
+      "variance": 22690.6,
+      "lines": 350
+    },
+    {
+      "name": "SINGLE ORIGIN",
+      "invoiced": 21818.7,
+      "delivered": 173.25,
+      "variance": 21645.45,
+      "lines": 36
+    },
+    {
+      "name": "ALBADIA FOOD",
+      "invoiced": 16278.89,
+      "delivered": 2607.76,
+      "variance": 13671.13,
+      "lines": 118
+    },
+    {
+      "name": "BASKIN ROBBINS",
+      "invoiced": 12904.58,
+      "delivered": 1139.5,
+      "variance": 11765.08,
+      "lines": 94
+    },
+    {
+      "name": "ALBADIA CHIPS",
+      "invoiced": 8211.08,
+      "delivered": 406.4,
+      "variance": 7804.68,
+      "lines": 118
+    },
+    {
+      "name": "AL BATAL",
+      "invoiced": 11922.01,
+      "delivered": 4264.77,
+      "variance": 7657.24,
+      "lines": 125
+    },
+    {
+      "name": "ME-O",
+      "invoiced": 9049.16,
+      "delivered": 2056.04,
+      "variance": 6993.12,
+      "lines": 77
+    },
+    {
+      "name": "LUNA",
+      "invoiced": 6615.32,
+      "delivered": 57.45,
+      "variance": 6557.87,
+      "lines": 52
+    },
+    {
+      "name": "MEPTICO",
+      "invoiced": 6648.87,
+      "delivered": 95.64,
+      "variance": 6553.23,
+      "lines": 75
+    },
+    {
+      "name": "AFEEF",
+      "invoiced": 5828.76,
+      "delivered": 378,
+      "variance": 5450.76,
+      "lines": 17
+    },
+    {
+      "name": "OMAN CHIPS",
+      "invoiced": 11325,
+      "delivered": 6384.66,
+      "variance": 4940.34,
+      "lines": 25
+    },
+    {
+      "name": "BARAKAT",
+      "invoiced": 3737,
+      "delivered": 63.46,
+      "variance": 3673.54,
+      "lines": 30
+    },
+    {
+      "name": "AL YAQEEN",
+      "invoiced": 4411.3,
+      "delivered": 1085,
+      "variance": 3326.3,
+      "lines": 17
+    },
+    {
+      "name": "LORX",
+      "invoiced": 3270,
+      "delivered": 54,
+      "variance": 3216,
+      "lines": 26
+    },
+    {
+      "name": "ULKER",
+      "invoiced": 2604.6,
+      "delivered": 0,
+      "variance": 2604.6,
+      "lines": 43
+    },
+    {
+      "name": "NABATI",
+      "invoiced": 4338.46,
+      "delivered": 1914.08,
+      "variance": 2424.38,
+      "lines": 37
+    },
+    {
+      "name": "KDD ICE CREAM",
+      "invoiced": 2845.26,
+      "delivered": 704.6,
+      "variance": 2140.66,
+      "lines": 51
+    },
+    {
+      "name": "FLAMGO",
+      "invoiced": 2388.24,
+      "delivered": 796.08,
+      "variance": 1592.16,
+      "lines": 2
+    },
+    {
+      "name": "SMARTHEART GOLD",
+      "invoiced": 1548.5,
+      "delivered": 0,
+      "variance": 1548.5,
+      "lines": 5
+    },
+    {
+      "name": "LACNOR",
+      "invoiced": 2088.05,
+      "delivered": 705.88,
+      "variance": 1382.17,
+      "lines": 22
+    },
+    {
+      "name": "ORIGINAL",
+      "invoiced": 763.36,
+      "delivered": 65.61,
+      "variance": 697.75,
+      "lines": 13
+    },
+    {
+      "name": "KELLOGG'S",
+      "invoiced": 491.55,
+      "delivered": 0,
+      "variance": 491.55,
+      "lines": 13
+    },
+    {
+      "name": "KIF AL MOSAFER",
+      "invoiced": 1273.95,
+      "delivered": 828,
+      "variance": 445.95,
+      "lines": 10
+    },
+    {
+      "name": "SHOKUBUTSU",
+      "invoiced": 459,
+      "delivered": 255,
+      "variance": 204,
+      "lines": 3
+    },
+    {
+      "name": "NABIL",
+      "invoiced": 529.42,
+      "delivered": 405.2,
+      "variance": 124.22,
+      "lines": 26
+    },
+    {
+      "name": "TOP",
+      "invoiced": 96,
+      "delivered": 0,
+      "variance": 96,
+      "lines": 2
+    },
+    {
+      "name": "ARTEMIOS",
+      "invoiced": 69.5,
+      "delivered": 0,
+      "variance": 69.5,
+      "lines": 1
+    },
+    {
+      "name": "RELISH",
+      "invoiced": 76.58,
+      "delivered": 13.8,
+      "variance": 62.78,
+      "lines": 6
+    },
+    {
+      "name": "KRACKLITE",
+      "invoiced": 6.84,
+      "delivered": 0,
+      "variance": 6.84,
+      "lines": 1
+    },
+    {
+      "name": "QARMOOSH",
+      "invoiced": 64.8,
+      "delivered": 58.32,
+      "variance": 6.48,
+      "lines": 1
+    }
+  ],
+  "bySupervisor": [
+    {
+      "name": "IQBAL & SHEREEF & ABOOBACKER",
+      "invoiced": 215071.87,
+      "delivered": 33678.87,
+      "variance": 181393,
+      "lines": 1282
+    },
+    {
+      "name": "FAROOK",
+      "invoiced": 39873.4,
+      "delivered": 3463.52,
+      "variance": 36409.88,
+      "lines": 466
+    },
+    {
+      "name": "SANEESH & NABEEL",
+      "invoiced": 47562.34,
+      "delivered": 11533.08,
+      "variance": 36029.26,
+      "lines": 403
+    },
+    {
+      "name": "HASHEM-HRC",
+      "invoiced": 224.06,
+      "delivered": 0,
+      "variance": 224.06,
+      "lines": 2
+    },
+    {
+      "name": "HASHEM-WS",
+      "invoiced": 222.6,
+      "delivered": 0,
+      "variance": 222.6,
+      "lines": 2
+    }
+  ],
+  "byCustomer": [
+    {
+      "name": "TALABAT SERVICE COMPANY WLL",
+      "invoiced": 42287.85,
+      "delivered": 18437.3,
+      "variance": 23850.55,
+      "lines": 162
+    },
+    {
+      "name": "SNOONU TRADING & SERVICES",
+      "invoiced": 18635.2,
+      "delivered": 455.83,
+      "variance": 18179.37,
+      "lines": 123
+    },
+    {
+      "name": "MONOPRIX - THE MARKET HALL (FESTIVAL CITY)",
+      "invoiced": 10984.55,
+      "delivered": 534.26,
+      "variance": 10450.29,
+      "lines": 67
+    },
+    {
+      "name": "Al MEERA CONSUMER GOODS CO.(AIN KHALID A065)",
+      "invoiced": 9850.96,
+      "delivered": 450,
+      "variance": 9400.96,
+      "lines": 16
+    },
+    {
+      "name": "MAJID AL FUTTAIM HYPERMARKETS WLL - LANDMARK",
+      "invoiced": 9347.87,
+      "delivered": 461.92,
+      "variance": 8885.95,
+      "lines": 89
+    },
+    {
+      "name": "AL MEERA QATAR MARKET COMPANY (HAYATH PLAZA)",
+      "invoiced": 8848.87,
+      "delivered": 1069.89,
+      "variance": 7778.98,
+      "lines": 45
+    },
+    {
+      "name": "MAJID AL FUTTAIM HYPERMARKETS WLL - VILLAGIO",
+      "invoiced": 9203.75,
+      "delivered": 1476,
+      "variance": 7727.75,
+      "lines": 71
+    },
+    {
+      "name": "MONOPRIX - THE MARKET HALL (ICONIC 2022)",
+      "invoiced": 7983.91,
+      "delivered": 476.8,
+      "variance": 7507.11,
+      "lines": 40
+    },
+    {
+      "name": "MAJID AL FUTTAIM HYPERMARKETS WLL - CITY CENTER",
+      "invoiced": 6516.82,
+      "delivered": 167.4,
+      "variance": 6349.42,
+      "lines": 63
+    },
+    {
+      "name": "SAFARI HYPERMARKET",
+      "invoiced": 5290.86,
+      "delivered": 267.21,
+      "variance": 5023.65,
+      "lines": 25
+    },
+    {
+      "name": "NINJA GATE TRADING",
+      "invoiced": 6413.03,
+      "delivered": 2243.12,
+      "variance": 4169.91,
+      "lines": 73
+    },
+    {
+      "name": "AL MEERA - LEABAIB 1",
+      "invoiced": 4520.2,
+      "delivered": 526.4,
+      "variance": 3993.8,
+      "lines": 20
+    },
+    {
+      "name": "AL MEERA CON GDS CO.HIZAM ALMARKHIYA-MAIN",
+      "invoiced": 4745.3,
+      "delivered": 797.4,
+      "variance": 3947.9,
+      "lines": 28
+    },
+    {
+      "name": "SPAR RETAIL W.L.L",
+      "invoiced": 3966.42,
+      "delivered": 245.5,
+      "variance": 3720.92,
+      "lines": 25
+    },
+    {
+      "name": "MONOPRIX - THE MARKET HALL (MSHEIREB GALLERIA HALL)",
+      "invoiced": 3790.76,
+      "delivered": 189.12,
+      "variance": 3601.64,
+      "lines": 17
+    },
+    {
+      "name": "MAJID AL FUTTAIM HYPERMARKETS WLL - LAGOONA",
+      "invoiced": 4865.06,
+      "delivered": 1344.2,
+      "variance": 3520.86,
+      "lines": 26
+    },
+    {
+      "name": "MAJID AL FUTTAIM HYPERMARKETS WLL - WAKRA",
+      "invoiced": 3586.79,
+      "delivered": 97.2,
+      "variance": 3489.59,
+      "lines": 37
+    },
+    {
+      "name": "MONOPRIX - THE MARKET HALL (MEDINA CENTRALE)",
+      "invoiced": 3441.54,
+      "delivered": 0,
+      "variance": 3441.54,
+      "lines": 30
+    },
+    {
+      "name": "MAJID AL FUTTAIM HYPERMARKETS WLL - MALL OF QATAR",
+      "invoiced": 3823.54,
+      "delivered": 445.74,
+      "variance": 3377.8,
+      "lines": 34
+    },
+    {
+      "name": "MONOPRIX - THE MARKET HALL (THE PLACE VENDOME LUSAIL)",
+      "invoiced": 2880.9,
+      "delivered": 0,
+      "variance": 2880.9,
+      "lines": 16
+    }
+  ]
+}
