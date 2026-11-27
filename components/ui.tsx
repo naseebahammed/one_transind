@@ -133,7 +133,7 @@ export function MonthBars({ series, labels, colors = ["var(--series)"] }: { seri
 
 /** One bar per day. `values[i]` is the day's sales (null = no figure). `compare` is the same days a year earlier, drawn as a wider faded bar behind. */
 export function DayBars({ days, values, compare, compareLabel = "Last year" }: { days: string[]; values: (number | null)[]; compare?: (number | null)[]; compareLabel?: string }) {
-  const W = 640, H = 380, pl = 48, pb = 24, pt = 10, iw = W - pl - 10, ih = H - pt - pb, bw = iw / days.length;
+  const W = 640, H = 220, pl = 48, pb = 24, pt = 10, iw = W - pl - 10, ih = H - pt - pb, bw = iw / days.length;
   const mx = Math.max(1, ...values.map((v) => v ?? 0), ...(compare ?? []).map((v) => v ?? 0));
   const step = Math.pow(10, Math.floor(Math.log10(mx))), top = Math.ceil(mx / step) * step;
   const y = (v: number) => pt + ih - Math.max(0, v) / top * ih;

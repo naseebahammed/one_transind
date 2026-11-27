@@ -31,7 +31,7 @@ const scale = (a: (number | null)[], f: number) => a.map((v) => (v == null ? nul
 export function LineChart({ actual: rawA, target: rawT }: { actual: number[]; target: number[] }) {
   if (!rawA.length) return <p className="empty">—</p>;
   const { f, u: unit } = autoUnit([...rawA, ...rawT]), actual = scale(rawA, f) as number[], target = scale(rawT, f) as number[];
-  const W = 640, H = 230, pl = 36, pr = 12, pt = 12, pb = 26, iw = W - pl - pr, ih = H - pt - pb;
+  const W = 640, H = 195, pl = 36, pr = 12, pt = 12, pb = 26, iw = W - pl - pr, ih = H - pt - pb;
   const mx = Math.max(...actual, ...target, 1), step = Math.pow(10, Math.floor(Math.log10(mx))), top = Math.ceil(mx / step) * step;
   const x = (i: number) => pl + i * (iw / 11), y = (v: number) => pt + ih - (v / top) * ih;
   const path = (a: number[]) => a.map((v, i) => `${i ? "L" : "M"}${x(i)},${y(v)}`).join("");
@@ -73,7 +73,7 @@ const swatch = (i: number) => (i === 2 ? "linear-gradient(var(--cyan),var(--bran
 export function CompareChart({ years: rawYears, series: raw, sel, href }: { years: number[]; series: (number | null)[][]; sel: number; href?: (m: number) => string }) {
   const years = rawYears.slice(-3), trimmed = raw.slice(-3);
   const { f, u } = autoUnit(trimmed.flat()), series = trimmed.map((a) => scale(a, f));
-  const W = 720, H = 250, pl = 38, pr = 10, pt = 14, pb = 28, iw = W - pl - pr, ih = H - pt - pb, gw = iw / 12, bw = gw / 4.2;
+  const W = 720, H = 205, pl = 38, pr = 10, pt = 14, pb = 28, iw = W - pl - pr, ih = H - pt - pb, gw = iw / 12, bw = gw / 4.2;
   const vals = series.flat().map((v) => v ?? 0);
   const lo = Math.min(0, ...vals) * 1.12, hi = Math.max(lo ? 0 : 1, ...vals) * 1.12 || 1, span = hi - lo || 1;
   const yy = (v: number) => pt + ih - ((v - lo) / span) * ih, y0 = yy(0);

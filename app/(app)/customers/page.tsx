@@ -46,53 +46,53 @@ async function Content({ searchParams }: { searchParams: Promise<{ c?: string; a
 
   return (
     <div style={{ display: "grid", gap: 16 }}>
-    <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-      <MonthSelect value={d.month} max={d.year === d.latest.year ? d.latest.month : 11} names={MONTHS} year={d.year} base={link("/customers", { year: String(d.year), c: id, all, g: group })} />
-      <YearSelect years={years} value={d.year} base={link("/customers", { m: String(d.month + 1), c: id, all, g: group })} />
-      <CompanySelect label={translate("Customer group")} param="g" companies={groups.map((x) => ({ id: x, name: x }))} value={group ?? "all"} allLabel={translate("All groups")} base={link("/customers", { m: String(d.month + 1), year: String(d.year) })} />
-    </div>
-    <div className="split" style={{ alignItems: "start" }}>
-      <div style={{ display: "grid", gap: 16, alignContent: "start", minWidth: 0 }}>
-      <Panel title={translate("Customers")} src={`${translate("Top")} ${list.length} / ${fmt(d.customerCount)} ${translate("by YTD sales")}`}>
-        <div className="list">
-          {(all ? list : list.slice(0, 10)).map((x) => (
-            <Link key={x.id} className="row" href={href({ c: x.id, all })} aria-current={x.id === c.id}>
-              <span><b style={{ color: "var(--ink)" }}>{x.name}</b><br /><span className="mono" style={{ fontSize: 11.5, color: "var(--muted)" }}>{x.id} · {x.category}</span></span>
-              <span className="num">{fmt(x.mtd)}</span>
-            </Link>
-          ))}
+      <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+        <MonthSelect value={d.month} max={d.year === d.latest.year ? d.latest.month : 11} names={MONTHS} year={d.year} base={link("/customers", { year: String(d.year), c: id, all, g: group })} />
+        <YearSelect years={years} value={d.year} base={link("/customers", { m: String(d.month + 1), c: id, all, g: group })} />
+        <CompanySelect label={translate("Customer group")} param="g" companies={groups.map((x) => ({ id: x, name: x }))} value={group ?? "all"} allLabel={translate("All groups")} base={link("/customers", { m: String(d.month + 1), year: String(d.year) })} />
+      </div>
+      <div className="split" style={{ alignItems: "start" }}>
+        <div style={{ display: "grid", gap: 16, alignContent: "start", minWidth: 0 }}>
+          <Panel title={translate("Customers")} src={`${translate("Top")} ${list.length} / ${fmt(d.customerCount)} ${translate("by YTD sales")}`}>
+            <div className="list">
+              {(all ? list : list.slice(0, 10)).map((x) => (
+                <Link key={x.id} className="row" href={href({ c: x.id, all })} aria-current={x.id === c.id}>
+                  <span><b style={{ color: "var(--ink)" }}>{x.name}</b><br /><span className="mono" style={{ fontSize: 11.5, color: "var(--muted)" }}>{x.id} · {x.category}</span></span>
+                  <span className="num">{fmt(x.mtd)}</span>
+                </Link>
+              ))}
+            </div>
+            {!all && list.length > 10 && <Link className="btn sm" href={href({ c: c.id, all: "1" })} style={{ marginTop: 10, display: "inline-block" }}>{translate("Show all")} ({fmt(list.length)})</Link>}
+          </Panel>
+          <Panel title={translate("Outstanding by customer")} src={`${translate("QAR, top 50 by overdue amount")}${group ? ` · ${group}` : ""}`}>
+            <OutstandingTable rows={owing} />
+          </Panel>
+          <Panel title={translate("Ordered, not yet delivered")} src={`${c.name} · ${translate("QAR, reservations without a delivery order")}`}>
+            {ar.pending.length ? <div className="tw"><table>
+              <thead><tr><th>{translate("Invoice")}</th><th>{translate("Date")}</th><th>{translate("Salesman")}</th><th className="n">{translate("Amount")}</th></tr></thead>
+              <tbody>{(pending ? ar.pending : ar.pending.slice(0, 10)).map((p) => <tr key={p.invoice}><td className="mono">{p.invoice}</td><td>{p.date}</td><td>{p.salesman ?? "—"}</td><td className="n num">{fmt(p.amount)}</td></tr>)}</tbody>
+            </table></div> : <p className="empty">{translate("None pending")}.</p>}
+            {!pending && ar.pending.length > 10 && <Link className="btn sm" href={href({ c: c.id, all, pending: "1" })} style={{ marginTop: 10, display: "inline-block" }}>{translate("Show all")} ({fmt(ar.pending.length)})</Link>}
+          </Panel>
         </div>
-        {!all && list.length > 10 && <Link className="btn sm" href={href({ c: c.id, all: "1" })} style={{ marginTop: 10, display: "inline-block" }}>{translate("Show all")} ({fmt(list.length)})</Link>}
-      </Panel>
-      <Panel title={translate("Outstanding by customer")} src={`${translate("QAR, top 50 by overdue amount")}${group ? ` · ${group}` : ""}`}>
-        <OutstandingTable rows={owing} />
-      </Panel>
+        <div style={{ display: "grid", gap: 16, alignContent: "start", minWidth: 0 }}>
+          <Panel title={c.name} src={<span className="chip plain"><span className="mono">{c.id}</span></span>}>
+            <div className="kpis">
+              <Kpi label={`${translate("Sales")} ${label}`} value={fmt(c.mtd)} delta={`${ch >= 0 ? "▲" : "▼"} ${fmt(Math.abs(ch), 1)}% ${translate("vs previous month")}`} up={ch >= 0} />
+              <Kpi label={translate("Year to date")} value={fmt(c.ytd)} />
+              <Kpi label={translate("Channel")} value={c.category || "—"} delta={c.group || undefined} up />
+            </div>
+          </Panel>
+          <Panel title={`${translate("Brand sales")} · ${label}`}><BrandList brands={c.brands} /></Panel>
+          <Panel title={`${translate("Monthly sales")} ${d.year}`} src="QAR"><MonthBars series={series} /></Panel>
+          <Panel title={translate("AR aging")} src={translate("QAR, days past due date")}>
+            <div className="tw"><table>
+              <thead><tr>{ar.aging.map((a) => <th key={a.bucket} className="n">{a.bucket}</th>)}<th className="n">{translate("Total")}</th></tr></thead>
+              <tbody><tr>{ar.aging.map((a) => <td key={a.bucket} className="n num">{fmt(a.value)}</td>)}<td className="n num"><b>{fmt(ar.aging.reduce((t, a) => t + a.value, 0))}</b></td></tr></tbody>
+            </table></div>
+          </Panel>
+        </div>
       </div>
-      <div style={{ display: "grid", gap: 16, alignContent: "start", minWidth: 0 }}>
-        <Panel title={c.name} src={<span className="chip plain"><span className="mono">{c.id}</span></span>}>
-          <div className="kpis">
-            <Kpi label={`${translate("Sales")} ${label}`} value={fmt(c.mtd)} delta={`${ch >= 0 ? "▲" : "▼"} ${fmt(Math.abs(ch), 1)}% ${translate("vs previous month")}`} up={ch >= 0} />
-            <Kpi label={translate("Year to date")} value={fmt(c.ytd)} />
-            <Kpi label={translate("Channel")} value={c.category || "—"} delta={c.group || undefined} up />
-          </div>
-        </Panel>
-        <Panel title={`${translate("Brand sales")} · ${label}`}><BrandList brands={c.brands} /></Panel>
-        <Panel title={`${translate("Monthly sales")} ${d.year}`} src="QAR"><MonthBars series={series} /></Panel>
-        <Panel title={translate("AR aging")} src={translate("QAR, days past due date")}>
-          <div className="tw"><table>
-            <thead><tr>{ar.aging.map((a) => <th key={a.bucket} className="n">{a.bucket}</th>)}<th className="n">{translate("Total")}</th></tr></thead>
-            <tbody><tr>{ar.aging.map((a) => <td key={a.bucket} className="n num">{fmt(a.value)}</td>)}<td className="n num"><b>{fmt(ar.aging.reduce((t, a) => t + a.value, 0))}</b></td></tr></tbody>
-          </table></div>
-        </Panel>
-        <Panel title={translate("Ordered, not yet delivered")} src={translate("QAR, reservations without a delivery order")}>
-          {ar.pending.length ? <div className="tw"><table>
-            <thead><tr><th>{translate("Invoice")}</th><th>{translate("Date")}</th><th>{translate("Salesman")}</th><th className="n">{translate("Amount")}</th></tr></thead>
-            <tbody>{(pending ? ar.pending : ar.pending.slice(0, 10)).map((p) => <tr key={p.invoice}><td className="mono">{p.invoice}</td><td>{p.date}</td><td>{p.salesman ?? "—"}</td><td className="n num">{fmt(p.amount)}</td></tr>)}</tbody>
-          </table></div> : <p className="empty">{translate("None pending")}.</p>}
-          {!pending && ar.pending.length > 10 && <Link className="btn sm" href={href({ c: c.id, all, pending: "1" })} style={{ marginTop: 10, display: "inline-block" }}>{translate("Show all")} ({fmt(ar.pending.length)})</Link>}
-        </Panel>
-      </div>
-    </div>
     </div>
   );
 }

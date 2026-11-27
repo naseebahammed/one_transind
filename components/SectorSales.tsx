@@ -80,8 +80,8 @@ async function Content({ searchParams, sector, path, title, kind = "sales" }: Pr
         <Panel span={12} title={translate(`${noun} by month`)}>
           <CompareChart years={shown} series={shown.map((y) => sales(reports, y, keys).map((v) => v / 1e6 || null))} sel={upto - 1} />
         </Panel>
-        <Panel span={12} title={`${translate("Monthly figures")} ${cur} ${translate("vs")} ${cur - 1}`}>
-          <div className="tw"><table>
+        <Panel span={6} title={`${translate("Monthly figures")} ${cur} ${translate("vs")} ${cur - 1}`}>
+          <div className="tw compact"><table>
             <thead><tr><th>{translate("Month")}</th><th className="n">{cur}</th><th className="n">{cur - 1}</th><th className="n">{translate("Difference")}</th><th className="n">{translate("Change")}</th></tr></thead>
             <tbody>{MONTHS.map((m, i) => {
               const a = total[i], b = prev?.[i] ?? 0;
@@ -97,8 +97,8 @@ async function Content({ searchParams, sector, path, title, kind = "sales" }: Pr
             })}</tbody>
           </table></div>
         </Panel>
-        <Panel span={12} title={`${translate("Companies")} (${period} ${cur})`}>
-          <div className="tw"><table>
+        <Panel span={6} title={`${translate("Companies")} (${period} ${cur})`}>
+          <div className="tw compact"><table>
             <thead><tr><th>{translate("Company")}</th><th className="n">{cur}</th><th className="n">{cur - 1} {translate("same period")}</th><th className="n">{translate("Change")}</th><th style={{ width: "30%" }}>{translate("Share of sales")}</th></tr></thead>
             <tbody>{per.map((x) => {
               const share = grandYtd ? (x.s / grandYtd) * 100 : 0;

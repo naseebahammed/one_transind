@@ -93,8 +93,8 @@ async function Content({ searchParams }: { searchParams: Params }) {
         <Panel span={6} title={`${name} - ${translate("net profit / loss by year")}`}>
           <MonthBars label={`${name} net profit or loss`} months={monthNames} series={am.map(([y, r], i) => ({ name: String(y), color: COLORS[i % 4], data: pick(r.net) }))} />
         </Panel>
-        <Panel span={12} title={`${name} - ${translate("P&L")}`} src={`QAR · ${monthNames[0]}${monthNames.length > 1 ? ` to ${monthNames.at(-1)}` : ""}`}>
-          <div className="tw"><table>
+        <Panel span={6} title={`${name} - ${translate("P&L")}`} src={`QAR · ${monthNames[0]}${monthNames.length > 1 ? ` to ${monthNames.at(-1)}` : ""}`}>
+          <div className="tw compact"><table>
             <thead><tr><th>{translate("Year")}</th><th className="n">{translate("Revenue")}</th><th className="n">{translate("Total cost")}</th><th className="n">{translate("Net profit / loss")}</th></tr></thead>
             <tbody>{am.map(([y, r]) => {
               const net = sum(pick(r.net));
@@ -110,7 +110,7 @@ async function Content({ searchParams }: { searchParams: Params }) {
           </table></div>
           <p className="note" style={{ marginTop: 8 }}><Link href="/finance/pnl">{translate("Monthly P&L by company →")}</Link></p>
         </Panel>
-        <Panel span={5} title={translate("Receivables aging")} src={ar ? `${ar.sourceLabel} · ${translate("As of")} ${ar.latestAsOf}` : undefined}>
+        <Panel span={6} title={translate("Receivables aging")} src={ar ? `${ar.sourceLabel} · ${translate("As of")} ${ar.latestAsOf}` : undefined}>
           {ar ? (
             <HBars
               rows={[
@@ -126,8 +126,8 @@ async function Content({ searchParams }: { searchParams: Params }) {
             <p className="empty">{translate("Not connected")}</p>
           )}
         </Panel>
-        <Panel span={7} title={translate("Revenue by department")}>
-          <div className="tw"><table>
+        <Panel span={5} title={translate("Revenue by department")}>
+          <div className="tw compact"><table>
             <thead><tr><th>{translate("Sector")}</th><th className="n">{translate("Actual")}</th><th className="n">{translate("Target")}</th></tr></thead>
             <tbody>{sectors.map((s) => {
               const target = ytdTargets.get(s.key);
@@ -135,7 +135,7 @@ async function Content({ searchParams }: { searchParams: Params }) {
                 <tr key={s.key}>
                   <td>{s.label}</td>
                   <td className="n num">{fmt(s.value / 1e6, 1)}</td>
-                  <td className={`n${target !== undefined ? " num" : ""}`}>{target !== undefined ? fmt(target / 1e6, 1) : <NotConnected />}</td>
+                  <td className={`n${target !== undefined ? " num" : ""}`}>{target !== undefined ? fmt(target / 1e6, 1) : <NotConnected label={translate("Not connected")} />}</td>
                 </tr>
               );
             })}</tbody>
@@ -144,8 +144,8 @@ async function Content({ searchParams }: { searchParams: Params }) {
             Figures in QAR M, January to {MONTHS[o.month]} {o.year}.
           </p>
         </Panel>
-        <Panel span={12} title={translate("Overdue invoices")} src={ar?.overdueInvoices.length ? `${ar.sourceLabel} · QAR` : undefined}>
-          <div className="tw"><table className="sticky-col">
+        <Panel span={7} title={translate("Overdue invoices")} src={ar?.overdueInvoices.length ? `${ar.sourceLabel} · QAR` : undefined}>
+          <div className="tw compact scroll"><table className="sticky-col sticky-head">
             <thead><tr><th>{translate("Invoice")}</th><th>{translate("Account")}</th><th>{translate("Due")}</th><th className="n">{translate("Amount")}</th><th className="n">{translate("Balance")}</th><th>{translate("Status")}</th></tr></thead>
             <tbody>
               {ar?.overdueInvoices.length ? (more ? ar.overdueInvoices : ar.overdueInvoices.slice(0, 10)).map((inv) => {

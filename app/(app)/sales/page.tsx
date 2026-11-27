@@ -148,7 +148,7 @@ async function ManagerTargetsPanel({
   const translate = translator(language);
   return (
     <Panel span={12} title={`${translate("Manager targets")} · ${monthLabel}`}>
-      <div className="tw"><table className="sticky-col">
+      <div className="tw compact scroll"><table className="sticky-col sticky-head">
         <thead><tr><th>{translate("Manager")}</th><th className="n">{translate("Target")}</th><th className="n">{translate("Sales")}</th><th className="n">%</th><th className="n">{translate("Balance")}</th><th className="n">{translate("Daily balance required")}</th><th className="n">{translate("Projected %")}</th></tr></thead>
         <tbody>{tracking.rows.map((r) => <tr key={r.manager}><td>{r.manager}</td><td className="n num">{r.target ? fmt(r.target) : "—"}</td><td className="n num">{fmt(r.sales)}</td><td className="n num">{r.achievedPct === null ? "—" : `${fmt(r.achievedPct, 1)}%`}</td><td className="n num">{r.target ? fmt(r.balance) : "—"}</td><td className="n num">{r.dailyRequired === null ? "—" : fmt(r.dailyRequired)}</td><td className="n num">{r.projectedPct === null ? "—" : `${fmt(r.projectedPct, 1)}%`}</td></tr>)}</tbody>
       </table></div>
@@ -171,12 +171,12 @@ async function SalesmanTargetsPanel({
   const translate = translator(language);
   return (
     <Panel span={12} title={`${translate("Salesman targets by supervisor")} · ${monthLabel}`}>
-      <div className="tw"><table className="sticky-col">
+      <div className="tw compact scroll"><table className="sticky-col sticky-head">
         <thead><tr><th>{translate("Supervisor / salesman")}</th><th>{translate("Channel")}</th><th className="n">{translate("Target")}</th><th className="n">{translate("Sales")}</th><th className="n">%</th><th className="n">{translate("Balance")}</th><th className="n">{translate("Daily balance required")}</th><th className="n">{translate("Projected %")}</th></tr></thead>
         {salesmanTracking.supervisors.map((s) => (
           <tbody key={s.supervisor}>
             <tr style={{ fontWeight: 600 }}><td>{s.supervisor}</td><td /><PaceCells pace={s.total} /></tr>
-            {s.salesmen.map((r) => <tr key={`${r.code}|${r.channel}|${r.department}`}><td style={{ paddingLeft: 20 }}>{r.salesman}</td><td>{[r.channel, r.department].filter(Boolean).join(" · ")}</td><PaceCells pace={r} /></tr>)}
+            {s.salesmen.map((r) => <tr key={`${r.code}|${r.channel}|${r.department}`}><td style={{ paddingInlineStart: 20 }}>{r.salesman}</td><td>{[r.channel, r.department].filter(Boolean).join(" · ")}</td><PaceCells pace={r} /></tr>)}
           </tbody>
         ))}
       </table></div>
@@ -193,7 +193,7 @@ async function ReturnsPanel({ periodIso, monthLabel, language }: { periodIso: st
     <>
       {[[translate("Sales returns by supervisor"), translate("Supervisor"), returns.bySupervisor], [translate("Sales returns by brand"), translate("Brand"), returns.byBrand]].map(([title, head, rows]) => (
         <Panel key={String(title)} span={6} title={`${title} · ${monthLabel}`} src={`${translate("Total returns")} ${fmt(returns.returns)} · ${translate("of sales")} ${fmt(returns.sales)}`}>
-          <div className="tw compact"><table>
+          <div className="tw compact scroll"><table className="sticky-head">
             <thead><tr><th>{head as string}</th><th className="n">{translate("Returns")}</th><th className="n">{translate("Sales")}</th><th className="n">{translate("Return %")}</th></tr></thead>
             <tbody>{(rows as typeof returns.bySupervisor).map((r) => <tr key={r.name}><td>{r.name}</td><td className="n num">{fmt(r.returns)}</td><td className="n num">{fmt(r.sales)}</td><td className="n num">{r.ratePct === null ? "—" : `${fmt(r.ratePct, 1)}%`}</td></tr>)}</tbody>
           </table></div>

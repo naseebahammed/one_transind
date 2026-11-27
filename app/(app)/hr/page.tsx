@@ -58,7 +58,7 @@ async function Content({ searchParams }: { searchParams: Params }) {
         <Kpi label={`${translate("Left")} ${year}`} value={fmt(moves.leavers.reduce((x, y) => x + y, 0))} />
       </div>
       <div className="grid">
-        <section className="panel c12">
+        <section className="panel c6">
           <header><h2>{translate("Employee directory")}</h2></header>
           <div className="mtd"><span className="src">{translate("Counts from the department headcount files; names from the new-hire and leaver lists")}</span></div>
           <nav className="crumbs" aria-label="breadcrumb" style={{ marginBottom: 8 }}>
@@ -79,8 +79,8 @@ async function Content({ searchParams }: { searchParams: Params }) {
             </table></div></>
           )}
         </section>
-        <Panel span={12} title={`${translate("Salesmen")} · ${MONTHS[o.month]} ${o.year}`}>
-          <div className="tw"><table>
+        <Panel span={6} title={`${translate("Salesmen")} · ${MONTHS[o.month]} ${o.year}`}>
+          <div className="tw compact scroll"><table className="sticky-head">
             <thead><tr><th>{translate("Name")}</th><th className="n">{translate("Sales (QAR)")}</th><th className="n">{translate("Customers")}</th><th className="n">{translate("Documents")}</th></tr></thead>
             <tbody>{team.map((m) => <tr key={m.name}><td><span className="who"><span className="avatar">{m.name.split(" ").map((x) => x[0]).join("").slice(0, 2)}</span>{m.name}</span></td><td className="n num">{fmt(m.value)}</td><td className="n num">{m.customers}</td><td className="n num">{fmt(m.docs)}</td></tr>)}</tbody>
           </table></div>

@@ -206,11 +206,15 @@ async function Content({ searchParams }: { searchParams: Params }) {
         <Panel span={5} title={`${translate("Revenue by sector")} (QAR M, Jan–${MONTHS[o.month]} ${o.year})`}>
           <HBars rows={sectors.map((s) => ({ l: s.label, v: s.v / 1e6 }))} unit=" M" />
         </Panel>
-        {fileSales.filter((s) => s.ys.length).map((s) => (
-          <Panel key={s.k} span={12} title={`${s.name} ${translate("sales by month")} (${s.cos.filter((c) => years(reports, keyFor(c), "sales").length).map((c) => c.name).join(", ")})`}>
-            <CompareChart years={s.ys} series={s.ys.map((y) => s.rev(y).map((v) => v / 1e6 || null))} sel={s.ys.at(-1) === o.year ? o.month : -1} />
-          </Panel>
-        ))}
+        {(() => {
+          const visibleFileSales = fileSales.filter((s) => s.ys.length);
+          const fileSpan = visibleFileSales.length >= 2 ? 6 : 12;
+          return visibleFileSales.map((s) => (
+            <Panel key={s.k} span={fileSpan} title={`${s.name} ${translate("sales by month")} (${s.cos.filter((c) => years(reports, keyFor(c), "sales").length).map((c) => c.name).join(", ")})`}>
+              <CompareChart years={s.ys} series={s.ys.map((y) => s.rev(y).map((v) => v / 1e6 || null))} sel={s.ys.at(-1) === o.year ? o.month : -1} />
+            </Panel>
+          ));
+        })()}
         <Panel span={12} title={translate("Needs follow-up")}>
           <div className="tw"><table><tbody>
             <tr>
