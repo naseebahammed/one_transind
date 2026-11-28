@@ -815,7 +815,35 @@ CREATE TABLE app.bank_position(as_of DATE NOT NULL, line INTEGER NOT NULL, bank 
   PRIMARY KEY(as_of, line));
 `;
 
-const MIGRATIONS: readonly (readonly [string, string])[] = [["001_baseline", BASELINE], ["002_standard_data", STANDARD_DATA], ["003_drop_report_files", DROP_REPORT_FILES], ["005_company_expenses", COMPANY_EXPENSES], ["006_company_branches", COMPANY_BRANCHES], ["007_company_has_branches", COMPANY_HAS_BRANCHES], ["008_daily_receipts", DAILY_RECEIPTS], ["009_drop_deals", DROP_DEALS], ["010_drop_invoices", DROP_INVOICES], ["011_enterprise_foundation", ENTERPRISE_FOUNDATION], ["012_rejected_rows_loaded", REJECTED_ROWS_LOADED], ["013_restaurant_cogs", RESTAURANT_COGS], ["014_drop_ownership_pct", DROP_OWNERSHIP_PCT], ["015_fmcg_masters", FMCG_MASTERS], ["016_data_standardization", DATA_STANDARDIZATION], ["017_fmcg_sales_views", FMCG_SALES_VIEWS], ["018_fmcg_balances", FMCG_BALANCES], ["019_fmcg_control", FMCG_CONTROL], ["020_app_optimizations", APP_OPTIMIZATIONS], ["021_app_users", APP_USERS], ["022_erp_outstanding", ERP_OUTSTANDING], ["023_sales_clean", SALES_CLEAN], ["024_employees", EMPLOYEES], ["025_company_departments", COMPANY_DEPARTMENTS], ["026_performance_indexes", PERFORMANCE_INDEXES], ["027_drop_balance_sheet", DROP_BALANCE_SHEET], ["028_financial_and_date_integrity", FINANCIAL_AND_DATE_INTEGRITY], ["029_sales_department_targets", SALES_DEPARTMENT_TARGETS], ["030_sales_clean_line_key", SALES_CLEAN_LINE_KEY], ["031_manual_report_data", MANUAL_REPORT_DATA], ["032_tenancy", TENANCY], ["033_sales_clean_all_lines", SALES_CLEAN_ALL_LINES], ["035_settlements", SETTLEMENTS], ["036_user_access", USER_ACCESS], ["037_user_modules", USER_MODULES], ["038_group_daily_sales", GROUP_DAILY_SALES], ["039_sales_clean_halve_old_copies", SALES_CLEAN_HALVE_OLD_COPIES], ["040_sales_daily", SALES_DAILY], ["041_supplier_ageing", SUPPLIER_AGEING], ["042_follow_mode", FOLLOW_MODE], ["043_logistics_profitability", LOGISTICS_PROFITABILITY], ["044_brand_budget", BRAND_BUDGET], ["045_pos_reports", POS_REPORTS], ["046_bank_position", BANK_POSITION]];
+// Daily dimensional and customer rollups of app.sales_clean so customer pages, dimension breakdowns and customer drill-downs read compact rollups instead of scanning ~8M line items.
+// Additive only; refreshed right after app.sales_clean by scripts/refresh-sales.mjs.
+const SALES_ROLLUPS = [
+  `CREATE MATERIALIZED VIEW IF NOT EXISTS app.sales_daily_dims AS
+     SELECT "DOC_DATE", "DEPT_CODE", "GROUP_NAME", "BRAND", "DOC_TYPE",
+            SUM("NET_AMOUNT") AS "NET_AMOUNT",
+            SUM("NET_COST") AS "NET_COST",
+            SUM("QTY_PCS") AS "QTY_PCS"
+     FROM app.sales_clean
+     GROUP BY "DOC_DATE", "DEPT_CODE", "GROUP_NAME", "BRAND", "DOC_TYPE"`,
+  `CREATE INDEX IF NOT EXISTS sales_daily_dims_date ON app.sales_daily_dims("DOC_DATE")`,
+  `CREATE INDEX IF NOT EXISTS sales_daily_dims_brand_date ON app.sales_daily_dims("BRAND", "DOC_DATE")`,
+  `CREATE INDEX IF NOT EXISTS sales_daily_dims_group_date ON app.sales_daily_dims("GROUP_NAME", "DOC_DATE")`,
+  `CREATE MATERIALIZED VIEW IF NOT EXISTS app.sales_customer_daily AS
+     SELECT "DOC_DATE", "CUST_NO", "BRAND",
+            MAX("CUST_NAME") AS "CUST_NAME",
+            MAX("CUST_CATEGORY") AS "CUST_CATEGORY",
+            MAX("GROUP_NAME") AS "GROUP_NAME",
+            SUM("NET_AMOUNT") AS "NET_AMOUNT",
+            SUM("NET_COST") AS "NET_COST",
+            SUM("QTY_PCS") AS "QTY_PCS"
+     FROM app.sales_clean
+     GROUP BY "DOC_DATE", "CUST_NO", "BRAND"`,
+  `CREATE INDEX IF NOT EXISTS sales_customer_daily_date_cust ON app.sales_customer_daily("DOC_DATE", "CUST_NO")`,
+  `CREATE INDEX IF NOT EXISTS sales_customer_daily_cust_date ON app.sales_customer_daily("CUST_NO", "DOC_DATE")`,
+  `CREATE INDEX IF NOT EXISTS sales_customer_daily_group_date ON app.sales_customer_daily("GROUP_NAME", "DOC_DATE")`,
+].map((sql) => ifTable("app.sales_clean", sql)).join("\n");
+
+const MIGRATIONS: readonly (readonly [string, string])[] = [["001_baseline", BASELINE], ["002_standard_data", STANDARD_DATA], ["003_drop_report_files", DROP_REPORT_FILES], ["005_company_expenses", COMPANY_EXPENSES], ["006_company_branches", COMPANY_BRANCHES], ["007_company_has_branches", COMPANY_HAS_BRANCHES], ["008_daily_receipts", DAILY_RECEIPTS], ["009_drop_deals", DROP_DEALS], ["010_drop_invoices", DROP_INVOICES], ["011_enterprise_foundation", ENTERPRISE_FOUNDATION], ["012_rejected_rows_loaded", REJECTED_ROWS_LOADED], ["013_restaurant_cogs", RESTAURANT_COGS], ["014_drop_ownership_pct", DROP_OWNERSHIP_PCT], ["015_fmcg_masters", FMCG_MASTERS], ["016_data_standardization", DATA_STANDARDIZATION], ["017_fmcg_sales_views", FMCG_SALES_VIEWS], ["018_fmcg_balances", FMCG_BALANCES], ["019_fmcg_control", FMCG_CONTROL], ["020_app_optimizations", APP_OPTIMIZATIONS], ["021_app_users", APP_USERS], ["022_erp_outstanding", ERP_OUTSTANDING], ["023_sales_clean", SALES_CLEAN], ["024_employees", EMPLOYEES], ["025_company_departments", COMPANY_DEPARTMENTS], ["026_performance_indexes", PERFORMANCE_INDEXES], ["027_drop_balance_sheet", DROP_BALANCE_SHEET], ["028_financial_and_date_integrity", FINANCIAL_AND_DATE_INTEGRITY], ["029_sales_department_targets", SALES_DEPARTMENT_TARGETS], ["030_sales_clean_line_key", SALES_CLEAN_LINE_KEY], ["031_manual_report_data", MANUAL_REPORT_DATA], ["032_tenancy", TENANCY], ["033_sales_clean_all_lines", SALES_CLEAN_ALL_LINES], ["035_settlements", SETTLEMENTS], ["036_user_access", USER_ACCESS], ["037_user_modules", USER_MODULES], ["038_group_daily_sales", GROUP_DAILY_SALES], ["039_sales_clean_halve_old_copies", SALES_CLEAN_HALVE_OLD_COPIES], ["040_sales_daily", SALES_DAILY], ["041_supplier_ageing", SUPPLIER_AGEING], ["042_follow_mode", FOLLOW_MODE], ["043_logistics_profitability", LOGISTICS_PROFITABILITY], ["044_brand_budget", BRAND_BUDGET], ["045_pos_reports", POS_REPORTS], ["046_bank_position", BANK_POSITION], ["047_sales_rollups", SALES_ROLLUPS]];
 
 export const LATEST_MIGRATION_ID = MIGRATIONS[MIGRATIONS.length - 1][0];
 

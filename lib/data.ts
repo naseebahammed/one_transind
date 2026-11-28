@@ -11,16 +11,28 @@ import { salesTable } from "@/lib/server-config";
 const departments = () => departmentsWithManual();
 const salesSource = () => `${salesWithManual(salesTable())} s`;
 
-async function hasSalesDaily(): Promise<boolean> {
+async function hasSalesView(view: "app.sales_daily" | "app.sales_daily_dims" | "app.sales_customer_daily"): Promise<boolean> {
   "use cache";
   cacheLife("hours");
-  const { rows: [row] } = await pg.query<{ reg: string | null }>(`SELECT to_regclass('app.sales_daily')::text AS reg`);
+  const { rows: [row] } = await pg.query<{ reg: string | null }>(`SELECT to_regclass($1)::text AS reg`, [view]);
   return Boolean(row?.reg);
 }
 
 /** Compact daily rollup for summary queries (date, department, doc_type, net amount/cost); falls back to salesTable() if app.sales_daily is not present. */
 async function summarySalesSource(): Promise<string> {
-  const base = salesTable() === "app.sales_clean" && (await hasSalesDaily()) ? "app.sales_daily" : salesTable();
+  const base = salesTable() === "app.sales_clean" && (await hasSalesView("app.sales_daily")) ? "app.sales_daily" : salesTable();
+  return `${salesWithManual(base)} s`;
+}
+
+/** Compact daily rollup by department, customer group, brand, and doc_type; falls back to salesTable() if app.sales_daily_dims is not present. */
+async function dimsSalesSource(): Promise<string> {
+  const base = salesTable() === "app.sales_clean" && (await hasSalesView("app.sales_daily_dims")) ? "app.sales_daily_dims" : salesTable();
+  return `${salesWithManual(base)} s`;
+}
+
+/** Compact daily rollup by customer and brand; falls back to salesTable() if app.sales_customer_daily is not present. */
+async function customerSalesSource(): Promise<string> {
+  const base = salesTable() === "app.sales_clean" && (await hasSalesView("app.sales_customer_daily")) ? "app.sales_customer_daily" : salesTable();
   return `${salesWithManual(base)} s`;
 }
 const clampMonth = (month: number) => (Number.isInteger(month) && month >= 0 && month <= 11 ? month : 0);
@@ -114,8 +126,7 @@ export async function getOverviewBrands() {
 export async function getCustomers(pickYear?: number, pickMonth?: number) {
   "use cache";
   cacheLife("hours");
-  const table = salesSource();
-  const latest = await getPeriod(salesTable());
+  const [table, latest] = await Promise.all([customerSalesSource(), getPeriod(salesTable())]);
   let { year, month, day } = latest;
   // Another month (never later than the latest data) is shown whole, not cut at the latest data day.
   if (pickYear !== undefined && pickMonth !== undefined && (pickYear !== year || pickMonth !== month) && pickYear * 12 + pickMonth < year * 12 + month) {
@@ -173,6 +184,7 @@ export async function getBreakdown(month: MonthPick, by: Dim, pickYear?: number)
   "use cache";
   cacheLife("hours");
   const table = salesSource();
+  const dimTable = by === "dept" ? await summarySalesSource() : by === "brand" || by === "group" ? await dimsSalesSource() : table;
   const { start: safeMonth, months } = pickSpan(month);
   const period = await getPeriod(salesTable()), year = pickYear ?? period.year, days = spanDays(period, month, year);
   const cur = ymOf(year, safeMonth), before = months === 12 ? ymOf(year - 1, 0) : ymOf(year, safeMonth - months), d = DIMENSIONS[by];
@@ -180,7 +192,7 @@ export async function getBreakdown(month: MonthPick, by: Dim, pickYear?: number)
     pg.query<{ k: string; ym: string; v: number; c: number; cr: number }>(
       `SELECT ${d.sql} AS k, (CASE WHEN s."DOC_DATE" >= $1::date THEN $1 ELSE $2 END)::text AS ym, SUM(s."NET_AMOUNT")::float8 AS v, SUM(s."NET_COST")::float8 AS c,
               COALESCE(SUM(s."NET_AMOUNT") FILTER (WHERE s."DOC_TYPE" = 'CR'), 0)::float8 AS cr
-       FROM ${table} ${d.join} WHERE ${inSpan('s."DOC_DATE"', days, months, "$1", "$2")} GROUP BY 1,2`, [cur, before]),
+       FROM ${dimTable} ${d.join} WHERE ${inSpan('s."DOC_DATE"', days, months, "$1", "$2")} GROUP BY 1,2`, [cur, before]),
     pg.query<{ customers: number; items: number }>(
       `SELECT COUNT(DISTINCT "CUST_NO")::int AS customers, COUNT(DISTINCT "ITEM_CODE")::int AS items FROM ${table} WHERE ${inMonth('"DOC_DATE"', "$1", days, months)}`, [cur]),
   ]);
@@ -248,7 +260,7 @@ const LEVELS = {
 export async function getDrill(month: MonthPick, kind: "p" | "c", path: string[], depts: string[] = [], pickYear?: number) {
   "use cache";
   cacheLife("hours");
-  const table = salesSource();
+  const table = kind === "c" && path.length <= 1 ? await customerSalesSource() : salesSource();
   const { start: safeMonth, months } = pickSpan(month);
   const safeDepts = depts.map((d) => cleanText(d, 40));
   const period = await getPeriod(salesTable()), year = pickYear ?? period.year, days = spanDays(period, month, year);
@@ -289,7 +301,7 @@ async function getDrillLabel(kind: "p" | "c", depth: number, rawKey: string): Pr
     return row?.label || safeKey;
   }
   if (kind === "c" && depth === 1) {
-    const table = salesSource();
+    const table = await customerSalesSource();
     const { rows: [row] } = await pg.query<{ label: string }>(
       `SELECT "CUST_NAME" AS label FROM ${table} WHERE "CUST_NO" = $1 AND "CUST_NAME" IS NOT NULL LIMIT 1`,
       [safeKey],

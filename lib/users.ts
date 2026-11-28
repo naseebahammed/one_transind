@@ -1,18 +1,27 @@
+import { cacheLife, cacheTag } from "next/cache";
 import { q, q1 } from "@/lib/db";
 import { cleanModules } from "@/lib/modules";
 import { normalizeEmail } from "@/lib/access";
 import { adminEmails } from "@/lib/server-config";
 
+export const USERS_CACHE_TAG = "users";
 export type AppUser = { email: string; created: string; modules: string[] | null };
 
 const EMAIL_RE = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/;
 
 export const listUsers = () => q<AppUser>("SELECT email, created::text AS created, modules FROM app.users ORDER BY email");
 
-/** Single-query lookup of a listed user's access: null when not on app.users, otherwise their modules (null = all). */
-export async function findListedUser(email: string): Promise<{ modules: string[] | null } | null> {
-  const row = await q1<{ modules: string[] | null }>("SELECT modules FROM app.users WHERE email = $1", [normalizeEmail(email)]);
+async function cachedListedUser(normalizedEmail: string): Promise<{ modules: string[] | null } | null> {
+  "use cache";
+  cacheTag(USERS_CACHE_TAG);
+  cacheLife("minutes");
+  const row = await q1<{ modules: string[] | null }>("SELECT modules FROM app.users WHERE email = $1", [normalizedEmail]);
   return row ?? null;
+}
+
+/** Single-query lookup of a listed user's access: null when not on app.users, otherwise their modules (null = all). Cached across requests and expired immediately via updateTag(USERS_CACHE_TAG) on admin edits. */
+export async function findListedUser(email: string): Promise<{ modules: string[] | null } | null> {
+  return cachedListedUser(normalizeEmail(email));
 }
 
 /** A listed user's modules (null = all). A person with no row gets none, never everything. */

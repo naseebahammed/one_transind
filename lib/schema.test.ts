@@ -173,7 +173,7 @@ test("migrate applies 031_manual_report_data additively for all manual report ta
   const recordStep = executed.find((step) => step.sql.startsWith("INSERT INTO app.schema_migrations"));
   assert.ok(recordStep, "expected 031_manual_report_data to be recorded");
   assert.deepEqual(recordStep.params, ["031_manual_report_data"]);
-  assert.equal(LATEST_MIGRATION_ID, "046_bank_position");
+  assert.equal(LATEST_MIGRATION_ID, "047_sales_rollups");
 
   const sql = executed[executed.indexOf(recordStep) - 1].sql;
   assert.doesNotMatch(sql, /\b(DROP\s|DELETE\s+FROM|TRUNCATE\s|UPDATE\s|ALTER\s)\b/i);
@@ -316,4 +316,16 @@ test("migrate applies 046_bank_position additively: one new table, nothing dropp
   const sql = executed[executed.indexOf(record) - 1].sql;
   assert.match(sql, /CREATE TABLE app.bank_position/);
   assert.doesNotMatch(sql, /(DROP|DELETE|TRUNCATE|UPDATE|ALTER)/i);
+});
+
+test("migrate applies 047_sales_rollups additively: creates daily dims and customer rollups guarded by app.sales_clean", async () => {
+  const executed: { sql: string; params?: unknown[] }[] = [];
+  await migrate({ query: async (sql, params) => { executed.push({ sql, params }); return { rows: [] }; } }, "047_sales_rollups");
+  const record = executed.find((step) => step.params?.[0] === "047_sales_rollups");
+  assert.ok(record, "expected 047 to be recorded");
+  const sql = executed[executed.indexOf(record) - 1].sql;
+  assert.equal((sql.match(/^DO 'BEGIN IF to_regclass\(''app\.sales_clean''\) IS NOT NULL THEN EXECUTE ''/gm) ?? []).length, 8);
+  assert.match(sql, /CREATE MATERIALIZED VIEW IF NOT EXISTS app\.sales_daily_dims AS/);
+  assert.match(sql, /CREATE MATERIALIZED VIEW IF NOT EXISTS app\.sales_customer_daily AS/);
+  assert.doesNotMatch(sql, /\b(DROP|DELETE|TRUNCATE|UPDATE|ALTER)\b/i);
 });

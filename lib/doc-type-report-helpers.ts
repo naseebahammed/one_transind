@@ -1,6 +1,7 @@
 // Pure helpers (no imports) for the document-type report, so `node --test` can load them.
 export const DOC_TYPES = ["DO", "IN-DTS", "CR", "DR"] as const;
 export const FIRST_CLEAN_DATE = "2026-01-01";
+export const FINALIZED_STATUS = "FINALIZED";
 
 export type DocTypeRow = { docType: string; value: number; cost: number };
 export type DateRange = { from: string; to: string };

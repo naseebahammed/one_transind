@@ -1,3 +1,25 @@
+export function KpiSkeleton() {
+  return (
+    <div className="kpi" aria-busy="true" style={{ minHeight: 90, display: "grid", gap: 8 }}>
+      <div className="skeleton" style={{ width: "45%", height: 13 }} />
+      <div className="skeleton" style={{ width: "70%", height: 24 }} />
+      <div className="skeleton" style={{ width: "35%", height: 11 }} />
+    </div>
+  );
+}
+
+export function PanelSkeleton({ span = 12, height = 220 }: { span?: number; height?: number }) {
+  return (
+    <div className={`panel c${span}`} aria-busy="true" style={{ minHeight: height, display: "grid", gap: 14, alignContent: "start" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div className="skeleton" style={{ width: 180, height: 18 }} />
+        <div className="skeleton" style={{ width: 90, height: 14 }} />
+      </div>
+      <div className="skeleton" style={{ width: "100%", height: Math.max(80, height - 64) }} />
+    </div>
+  );
+}
+
 export function PageSkeleton({
   kpis = 4,
   hasFilters = false,
