@@ -173,7 +173,7 @@ test("migrate applies 031_manual_report_data additively for all manual report ta
   const recordStep = executed.find((step) => step.sql.startsWith("INSERT INTO app.schema_migrations"));
   assert.ok(recordStep, "expected 031_manual_report_data to be recorded");
   assert.deepEqual(recordStep.params, ["031_manual_report_data"]);
-  assert.equal(LATEST_MIGRATION_ID, "049_sales_doc_types_all_statuses");
+  assert.equal(LATEST_MIGRATION_ID, "050_sales_clean_trading_types");
 
   const sql = executed[executed.indexOf(recordStep) - 1].sql;
   assert.doesNotMatch(sql, /\b(DROP\s|DELETE\s+FROM|TRUNCATE\s|UPDATE\s|ALTER\s)\b/i);
@@ -269,6 +269,21 @@ test("migrate applies 049_sales_doc_types_all_statuses: only app.sales_doc_types
   assert.match(sql, /GROUP BY "DOC_DATE", "DOC_TYPE", "TRANS_STATUS"/);
   assert.doesNotMatch(sql, /FINALIZED/i); // the status is filtered when the report reads, not in the view
   assert.match(sql, /copy_no <= \(copy_count \+ 1\) \/ 2/);
+});
+
+test("migrate applies 050_sales_clean_trading_types: dependents dropped before sales_clean and rebuilt after it, DO IN-DTS DR CR only, no status filter", async () => {
+  const executed: { sql: string; params?: unknown[] }[] = [];
+  await migrate({ query: async (sql, params) => { executed.push({ sql, params }); return { rows: [] }; } }, "050_sales_clean_trading_types");
+  const record = executed.find((step) => step.params?.[0] === "050_sales_clean_trading_types");
+  assert.ok(record, "expected 050 to be recorded");
+  const sql = executed[executed.indexOf(record) - 1].sql;
+  assert.doesNotMatch(sql, /DELETE|TRUNCATE|UPDATE|ALTER|DROP TABLE|CASCADE|INSERT/i);
+  assert.match(sql, /"DOC_TYPE" IN \(''''DO'''',''''IN-DTS'''',''''DR'''',''''CR''''\)/);
+  assert.doesNotMatch(sql, /IN-OT|TRANS_STATUS/);
+  assert.match(sql, /copy_no <= \(copy_count \+ 1\) \/ 2/); // pre-2026 halving kept
+  const at = (text: string) => sql.indexOf(text);
+  for (const rollup of ["sales_customer_daily", "sales_daily_dims", "sales_daily", "sales_monthly"]) assert.ok(at(`DROP MATERIALIZED VIEW IF EXISTS app.${rollup}`) < at("DROP MATERIALIZED VIEW IF EXISTS app.sales_clean"), `${rollup} dropped first`);
+  for (const rollup of ["app.sales_monthly", "app.sales_daily AS", "app.sales_daily_dims AS", "app.sales_customer_daily AS"]) assert.ok(at("CREATE MATERIALIZED VIEW app.sales_clean") < sql.lastIndexOf(rollup), `${rollup} rebuilt after`);
 });
 
 test("migrate applies 041_supplier_ageing additively: one new table, nothing dropped or altered", async () => {
