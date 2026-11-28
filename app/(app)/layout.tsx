@@ -12,6 +12,7 @@ import { SalesToolbar } from "@/components/SalesToolbar";
 import { Nav, NavShell, Title } from "@/components/Shell";
 import { AskAI } from "@/components/AskAI";
 import { FollowMode } from "@/components/FollowMode";
+import { ThemeVersion } from "@/components/ThemeVersion";
 
 const almarai = Almarai({ subsets: ["arabic"], weight: ["700", "800"], variable: "--font-almarai", display: "swap" });
 const ibmPlexArabic = IBM_Plex_Sans_Arabic({ subsets: ["arabic", "latin"], weight: ["400", "500", "600", "700"], variable: "--font-ibm-plex-arabic", display: "swap" });
@@ -92,6 +93,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           <b>One Transind</b>
         </Link>
         <Suspense fallback={<Suspense fallback={<NavShell />}><Nav /></Suspense>}><MenuNav /></Suspense>
+        <ThemeVersion />
         <Suspense fallback={null}><SidebarUser /></Suspense>
       </aside>
       <div className="main">

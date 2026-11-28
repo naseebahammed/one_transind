@@ -1,0 +1,35 @@
+/* V2 (proposed) "Bold & Visual" theme, tokens from OneTransind-Theme-Handoff/theme/globals.css. Applies only when <html data-ui="v2">; V1 is untouched. */
+html[data-ui="v2"]{
+  --bg:#05060f; --panel:rgba(18,22,48,.72); --panel-2:rgba(34,41,86,.55); --ink:#eef1ff; --text:#c9d0f2; --muted:#8e98c8;
+  --line:rgba(120,135,255,.16); --line-strong:rgba(120,135,255,.3);
+  --brand:#7c5cff; --brand-soft:rgba(124,92,255,.18); --cyan:#22d3ee; --accent:#22d3ee;
+  --series:#7c5cff; --series-2:#475182; --grad:linear-gradient(90deg,#7c5cff,#22d3ee);
+  --good:#34d399; --good-bg:rgba(52,211,153,.16); --warn:#fbbf24; --warn-bg:rgba(251,191,36,.16); --bad:#fb7185; --bad-bg:rgba(251,113,133,.16);
+  --chart-1:#7c5cff; --chart-2:#34d399; --chart-3:#fbbf24; --chart-4:#f472b6;
+  --r:18px;
+}
+html[data-ui="v2"] body::before{background:radial-gradient(1200px 600px at 10% -10%,rgba(124,92,255,.22),transparent 60%),radial-gradient(900px 500px at 100% 0%,rgba(34,211,238,.14),transparent 55%)}
+html[data-ui="v2"] .top{background:color-mix(in srgb,var(--bg) 78%,transparent)}
+html[data-ui="v2"] .rail{background:linear-gradient(180deg,rgba(18,22,48,.82),rgba(7,10,26,.78))}
+html[data-ui="v2"] .panel,html[data-ui="v2"] .kpi{background:var(--panel);backdrop-filter:blur(10px);box-shadow:none}
+html[data-ui="v2"] .kpi{position:relative}
+html[data-ui="v2"] .kpi::before{content:"";position:absolute;inset:0 auto 0 0;width:3px;background:linear-gradient(var(--brand),var(--cyan))}
+html[data-ui="v2"] .kpi .v{font-weight:700;letter-spacing:-.5px;text-shadow:none}
+html[data-ui="v2"] .kpi .l{text-transform:uppercase;letter-spacing:.8px}
+html[data-ui="v2"] th{background:var(--bg)}
+html[data-ui="v2"] tbody tr:hover td{background:var(--panel-2)}
+html[data-ui="v2"] .nav a[aria-current="page"]{background:var(--panel-2);box-shadow:inset 0 -2px 0 var(--brand)}
+html[data-ui="v2"] .nav a[aria-current="page"]::before{background:var(--grad)}
+html[data-ui="v2"] .ctl select,html[data-ui="v2"] label.f input,html[data-ui="v2"] label.f select,html[data-ui="v2"] .search{background-color:#0a0d1f}
+
+/* V1 / V2 switch in the navbar */
+.ver{display:grid;gap:4px;padding:8px 4px 4px}
+.ver>span{font-size:10.5px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);padding-inline:6px}
+.ver button{all:unset;box-sizing:border-box;cursor:pointer;display:flex;align-items:baseline;gap:6px;padding:6px 10px;border-radius:10px;color:var(--muted);font-weight:600;border:1px solid transparent}
+.ver button small{font-weight:400;font-size:11px;opacity:.8}
+.ver button:hover{color:var(--ink);background:rgba(255,255,255,.06)}
+.ver button[aria-pressed="true"]{color:var(--ink);background:var(--brand-soft);border-color:var(--brand)}
+.ver button:focus-visible{outline:2px solid var(--cyan)}
+@media (min-width:1101px){.app.mini .ver small,.app.mini .ver>span{display:none}.app.mini .ver button{justify-content:center;padding-inline:4px}}
+@media (max-width:1100px) and (min-width:641px){.ver small,.ver>span{display:none}.ver button{justify-content:center;padding-inline:4px}}
+@media (max-width:640px){.ver{display:none}}
