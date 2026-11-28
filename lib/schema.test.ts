@@ -173,7 +173,7 @@ test("migrate applies 031_manual_report_data additively for all manual report ta
   const recordStep = executed.find((step) => step.sql.startsWith("INSERT INTO app.schema_migrations"));
   assert.ok(recordStep, "expected 031_manual_report_data to be recorded");
   assert.deepEqual(recordStep.params, ["031_manual_report_data"]);
-  assert.equal(LATEST_MIGRATION_ID, "048_sales_doc_types");
+  assert.equal(LATEST_MIGRATION_ID, "049_sales_doc_types_all_statuses");
 
   const sql = executed[executed.indexOf(recordStep) - 1].sql;
   assert.doesNotMatch(sql, /\b(DROP\s|DELETE\s+FROM|TRUNCATE\s|UPDATE\s|ALTER\s)\b/i);
@@ -255,6 +255,20 @@ test("migrate applies 048_sales_doc_types additively: one new view, sales_clean 
   assert.match(sql, /copy_no <= \(copy_count \+ 1\) \/ 2/); // pre-2026 halving kept
   assert.match(sql, /CREATE INDEX sales_doc_types_doc_date ON app\.sales_doc_types\("DOC_DATE"\)/);
   assert.doesNotMatch(sql, /app\.sales_clean/);
+});
+
+test("migrate applies 049_sales_doc_types_all_statuses: only app.sales_doc_types is rebuilt, every status kept as a column", async () => {
+  const executed: { sql: string; params?: unknown[] }[] = [];
+  await migrate({ query: async (sql, params) => { executed.push({ sql, params }); return { rows: [] }; } }, "049_sales_doc_types_all_statuses");
+  const record = executed.find((step) => step.params?.[0] === "049_sales_doc_types_all_statuses");
+  assert.ok(record, "expected 049 to be recorded");
+  const sql = executed[executed.indexOf(record) - 1].sql;
+  assert.equal((sql.match(/DROP/g) ?? []).length, 1);
+  assert.match(sql, /DROP MATERIALIZED VIEW IF EXISTS app\.sales_doc_types/);
+  assert.doesNotMatch(sql, /DELETE|TRUNCATE|UPDATE|ALTER|CASCADE|INSERT|app\.sales_clean/i);
+  assert.match(sql, /GROUP BY "DOC_DATE", "DOC_TYPE", "TRANS_STATUS"/);
+  assert.doesNotMatch(sql, /FINALIZED/i); // the status is filtered when the report reads, not in the view
+  assert.match(sql, /copy_no <= \(copy_count \+ 1\) \/ 2/);
 });
 
 test("migrate applies 041_supplier_ageing additively: one new table, nothing dropped or altered", async () => {
