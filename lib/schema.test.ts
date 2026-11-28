@@ -173,7 +173,7 @@ test("migrate applies 031_manual_report_data additively for all manual report ta
   const recordStep = executed.find((step) => step.sql.startsWith("INSERT INTO app.schema_migrations"));
   assert.ok(recordStep, "expected 031_manual_report_data to be recorded");
   assert.deepEqual(recordStep.params, ["031_manual_report_data"]);
-  assert.equal(LATEST_MIGRATION_ID, "047_sales_rollups");
+  assert.equal(LATEST_MIGRATION_ID, "048_sales_doc_types");
 
   const sql = executed[executed.indexOf(recordStep) - 1].sql;
   assert.doesNotMatch(sql, /\b(DROP\s|DELETE\s+FROM|TRUNCATE\s|UPDATE\s|ALTER\s)\b/i);
@@ -241,6 +241,20 @@ test("migrate applies 040_sales_daily additively: creates app.sales_daily rollup
   assert.match(sql, /GROUP BY "DOC_DATE", "DEPT_CODE", "DOC_TYPE"/);
   assert.match(sql, /CREATE INDEX IF NOT EXISTS sales_daily_doc_date ON app\.sales_daily\("DOC_DATE"\)/);
   assert.match(sql, /CREATE INDEX IF NOT EXISTS sales_daily_dept_date ON app\.sales_daily\("DEPT_CODE", "DOC_DATE"\)/);
+});
+
+test("migrate applies 048_sales_doc_types additively: one new view, sales_clean and its rollups untouched, FINALIZED only", async () => {
+  const executed: { sql: string; params?: unknown[] }[] = [];
+  await migrate({ query: async (sql, params) => { executed.push({ sql, params }); return { rows: [] }; } }, "048_sales_doc_types");
+  const record = executed.find((step) => step.params?.[0] === "048_sales_doc_types");
+  assert.ok(record, "expected 048 to be recorded");
+  const sql = executed[executed.indexOf(record) - 1].sql;
+  assert.doesNotMatch(sql, /DROP|DELETE|TRUNCATE|UPDATE|ALTER|CASCADE|INSERT/i);
+  assert.match(sql, /CREATE MATERIALIZED VIEW app\.sales_doc_types AS/);
+  assert.match(sql, /"DOC_TYPE" IN \(''''CR'''',''''DO'''',''''DR'''',''''IN-DTS''''\) AND "TRANS_STATUS" = ''''FINALIZED''''/);
+  assert.match(sql, /copy_no <= \(copy_count \+ 1\) \/ 2/); // pre-2026 halving kept
+  assert.match(sql, /CREATE INDEX sales_doc_types_doc_date ON app\.sales_doc_types\("DOC_DATE"\)/);
+  assert.doesNotMatch(sql, /app\.sales_clean/);
 });
 
 test("migrate applies 041_supplier_ageing additively: one new table, nothing dropped or altered", async () => {

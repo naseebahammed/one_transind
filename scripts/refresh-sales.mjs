@@ -5,7 +5,7 @@ await c.connect();
 const t0 = Date.now();
 await c.query("REFRESH MATERIALIZED VIEW app.sales_clean");
 console.log(`app.sales_clean refreshed in ${Date.now() - t0}ms:`, (await c.query("SELECT count(*) FROM app.sales_clean")).rows[0]);
-for (const view of ["app.sales_daily", "app.sales_monthly", "app.sales_daily_dims", "app.sales_customer_daily"]) {
+for (const view of ["app.sales_daily", "app.sales_monthly", "app.sales_daily_dims", "app.sales_customer_daily", "app.sales_doc_types"]) {
   const { rows: [exists] } = await c.query("SELECT to_regclass($1)::text AS reg", [view]);
   if (exists?.reg) {
     const started = Date.now();
