@@ -40,7 +40,10 @@ h1{font-size:22px} h2{font-size:16px} h3{font-size:14px}
 .top{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;padding-block:14px;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px));background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:env(safe-area-inset-top,0px);z-index:5}
 .top h1{margin-inline-end:auto}
 .ctl{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
-.ctl select{background:var(--bg);border:1px solid var(--line-strong);border-radius:8px;padding:6px 8px;font-size:13px;color:var(--ink);max-width:220px}
+.ctl select{background:var(--bg);border:1px solid var(--line-strong);border-radius:8px;padding:6px 8px;font-size:13px;color:var(--ink);max-width:220px;transition:border-color .15s ease,opacity .15s ease}
+.ctl[data-pending="true"] select{border-color:var(--cyan);opacity:.72}
+.ctl-spin{width:13px;height:13px;border-radius:50%;border:2px solid var(--line-strong);border-top-color:var(--cyan);animation:ctlSpin .7s linear infinite;flex:none}
+@keyframes ctlSpin{to{transform:rotate(360deg)}}
 .btn{cursor:pointer;border:1px solid var(--line-strong);background:var(--panel);border-radius:8px;padding:6px 12px;font-size:13px;font-weight:600;color:var(--ink)}
 .btn:hover{border-color:var(--brand)}
 .btn.primary{background:var(--brand);color:var(--on-brand);border-color:var(--brand)}

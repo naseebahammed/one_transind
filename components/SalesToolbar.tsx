@@ -10,6 +10,7 @@ export function SalesToolbar({ sectors, language }: { sectors: { key: string; na
   const router = useRouter();
   const sp = useSearchParams();
   const [pending, startTransition] = useTransition();
+  const [sectorPending, startSectorTransition] = useTransition();
   const translate = translator(language);
   const onSales = usePathname().startsWith("/sales");
   const sector = sp.get("s") ?? "", month = sp.get("m");
@@ -32,12 +33,19 @@ export function SalesToolbar({ sectors, language }: { sectors: { key: string; na
   return (
     <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
       {onSales && (
-        <label className="ctl">
+        <label className="ctl" data-pending={sectorPending ? "true" : undefined} aria-busy={sectorPending}>
           <span>{translate("Sector")}</span>{" "}
-          <select value={sector} onChange={(e) => router.push(link("/sales", { m: month ?? undefined, s: e.target.value || undefined }))}>
+          <select
+            value={sector}
+            onChange={(e) => {
+              const next = link("/sales", { m: month ?? undefined, s: e.target.value || undefined });
+              startSectorTransition(() => router.push(next));
+            }}
+          >
             <option value="">{translate("All sectors")}</option>
             {sectors.map((s) => <option key={s.key} value={s.key}>{s.name}</option>)}
           </select>
+          {sectorPending && <span className="ctl-spin" aria-hidden="true" />}
         </label>
       )}
       <button

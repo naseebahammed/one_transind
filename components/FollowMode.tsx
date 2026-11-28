@@ -4,7 +4,10 @@ import { createPortal } from "react-dom";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { FollowState } from "@/lib/following";
 
-const SLOW_MILLISECONDS = 2000;
+// Idle tabs check every 12 s to stay visible as online and catch incoming invites without hammering the DB.
+const IDLE_MILLISECONDS = 12_000;
+// While a request, invite, or picker dropdown is open, check every 2.5 s so responses feel snappy.
+const PENDING_MILLISECONDS = 2500;
 // While following or being followed, check 4 times a second so the mouse pointer moves smoothly.
 const LIVE_MILLISECONDS = 250;
 // While live, every 4th check (1 s) is a full one; the others only move the pointer.
@@ -33,6 +36,7 @@ export function FollowMode() {
   const pendingActions = useRef<QueuedAction[]>([]);
   const mouse = useRef<{ x: number; y: number } | null>(null);
   const live = useRef(false);
+  const pendingRef = useRef(false);
   const followingRef = useRef<FollowState["following"]>(null);
   const moved = useRef(false);
   const ticks = useRef(0);
@@ -80,6 +84,7 @@ export function FollowMode() {
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
+    const nextDelay = () => (live.current ? LIVE_MILLISECONDS : pendingRef.current ? PENDING_MILLISECONDS : IDLE_MILLISECONDS);
     const tick = () => {
       ticks.current += 1;
       const full = !live.current || ticks.current % FULL_EVERY === 0;
@@ -88,16 +93,35 @@ export function FollowMode() {
         // Between full checks: a leader only sends when the mouse moved, a follower only asks when someone is being followed.
         else if (followingRef.current || moved.current) { moved.current = false; void call(undefined, undefined, true); }
       }
-      timer = setTimeout(tick, live.current ? LIVE_MILLISECONDS : SLOW_MILLISECONDS);
+      timer = setTimeout(tick, nextDelay());
+    };
+    const onVisible = () => {
+      if (!document.hidden) {
+        clearTimeout(timer);
+        void call();
+        timer = setTimeout(tick, nextDelay());
+      }
     };
     tick();
-    const track = (event: MouseEvent) => { mouse.current = { x: event.clientX / window.innerWidth, y: event.clientY / window.innerHeight }; moved.current = true; };
+    const track = (event: MouseEvent) => {
+      if (!live.current) return;
+      mouse.current = { x: event.clientX / window.innerWidth, y: event.clientY / window.innerHeight };
+      moved.current = true;
+    };
     window.addEventListener("mousemove", track, { passive: true });
-    return () => { clearTimeout(timer); window.removeEventListener("mousemove", track); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("mousemove", track);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [call]);
 
   // Report a page change at once instead of waiting for the next poll, so followers see it sooner.
   useEffect(() => { void call(); }, [pathname, search, call]);
+
+  // Refresh the online list immediately when opening the Follow/Invite picker.
+  useEffect(() => { if (picking) void call(); }, [picking, call]);
 
   // Close the navbar dropdown when clicking outside or pressing Escape.
   useEffect(() => {
@@ -119,6 +143,7 @@ export function FollowMode() {
   if (!state) return null;
   const { incoming, followers, requested, invitedBy, invited, following, online } = state;
   live.current = Boolean(following) || followers.length > 0;
+  pendingRef.current = Boolean(picking) || Boolean(requested) || incoming.length > 0 || invitedBy.length > 0 || invited.length > 0;
   followingRef.current = following;
   const pointer = following && following.online && !following.blocked ? following.cursor : null;
   const act = (action: string, person: string) => { void call(action, person); };

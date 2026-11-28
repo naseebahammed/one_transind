@@ -14,8 +14,8 @@ import {
 } from "@/lib/follow-rules";
 import type { UserModules } from "@/lib/modules";
 
-/** A browser reports its page every 2 s; someone silent for this long counts as offline. */
-export const ONLINE_SECONDS = 15;
+/** Idle browsers report every 12 s (active follow sessions every 1 s); someone silent for this long counts as offline. */
+export const ONLINE_SECONDS = 35;
 
 export type FollowState = {
   /** People asking to follow me, waiting for my answer. */
