@@ -15,3 +15,20 @@ export async function getDocTypeTotals(range: DateRange, finalizedOnly: boolean)
   );
   return fillDocTypes(rows);
 }
+
+export type DepartmentRow = { code: string; name: string; value: number; cost: number };
+
+/** Same totals as getDocTypeTotals, split by department (label from app.sales_departments, else the code), largest first. */
+export async function getDepartmentTotals(range: DateRange, finalizedOnly: boolean): Promise<DepartmentRow[]> {
+  return q<DepartmentRow>(
+    `SELECT COALESCE(v."DEPT_CODE", '-') AS code, COALESCE(NULLIF(btrim(d.label), ''), v."DEPT_CODE", 'No department') AS name,
+            SUM(v."NET_AMOUNT")::float8 AS value, SUM(v."NET_COST")::float8 AS cost
+     FROM app.sales_doc_types v
+     LEFT JOIN app.sales_departments d ON d.code = v."DEPT_CODE"
+     WHERE v."DOC_TYPE" = ANY($1) AND v."DOC_DATE" >= $2::date AND v."DOC_DATE" < ($3::date + 1)
+       AND (NOT $4::boolean OR upper(v."TRANS_STATUS") = 'FINALIZED')
+     GROUP BY 1, 2
+     ORDER BY value DESC`,
+    [[...DOC_TYPES], range.from, range.to, finalizedOnly],
+  );
+}

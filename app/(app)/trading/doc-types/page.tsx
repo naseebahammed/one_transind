@@ -4,7 +4,7 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { fmt, sum } from "@/lib/format";
 import { link } from "@/lib/url";
-import { getDocTypeTotals } from "@/lib/doc-type-report";
+import { getDepartmentTotals, getDocTypeTotals } from "@/lib/doc-type-report";
 import { parseRange } from "@/lib/doc-type-report-helpers";
 import { Kpi, MarginChip, Panel } from "@/components/ui";
 import { PageSkeleton } from "@/components/PageSkeleton";
@@ -25,7 +25,7 @@ async function Content({ searchParams }: { searchParams: Params }) {
   const keep = finalizedOnly ? "1" : undefined;
   const now = new Date();
   const range = parseRange(from, to, now);
-  const rows = await getDocTypeTotals(range, finalizedOnly);
+  const [rows, departments] = await Promise.all([getDocTypeTotals(range, finalizedOnly), getDepartmentTotals(range, finalizedOnly)]);
   const value = sum(rows.map((r) => r.value)), cost = sum(rows.map((r) => r.cost));
   const monthStart = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1)).toISOString().slice(0, 10);
   const yesterday = parseRange(undefined, undefined, now).from;
@@ -56,6 +56,15 @@ async function Content({ searchParams }: { searchParams: Params }) {
             <tbody>
               {rows.map((r) => <tr key={r.docType}><td>{r.docType}</td><td className="n num">{fmt(r.value)}</td><td className="n num">{fmt(r.cost)}</td><td className="n num">{fmt(r.value - r.cost)}</td><td className="n"><MarginChip s={r.value} c={r.cost} /></td></tr>)}
               <tr><td><b>Total</b></td><td className="n num"><b>{fmt(value)}</b></td><td className="n num"><b>{fmt(cost)}</b></td><td className="n num"><b>{fmt(value - cost)}</b></td><td className="n"><MarginChip s={value} c={cost} /></td></tr>
+            </tbody>
+          </table></div>
+        </Panel>
+        <Panel span={12} title="By department" src="Same total as above">
+          <div className="tw"><table>
+            <thead><tr><th>Department</th><th className="n">Value (QAR)</th><th className="n">Cost (QAR)</th><th className="n">Margin (QAR)</th><th className="n">Margin %</th><th className="n">Share</th></tr></thead>
+            <tbody>
+              {departments.map((d) => <tr key={d.code}><td>{d.name}{d.name !== d.code && ` (${d.code})`}</td><td className="n num">{fmt(d.value)}</td><td className="n num">{fmt(d.cost)}</td><td className="n num">{fmt(d.value - d.cost)}</td><td className="n"><MarginChip s={d.value} c={d.cost} /></td><td className="n num">{fmt(value ? d.value / value * 100 : 0, 1)}%</td></tr>)}
+              <tr><td><b>Total</b></td><td className="n num"><b>{fmt(sum(departments.map((d) => d.value)))}</b></td><td className="n num"><b>{fmt(sum(departments.map((d) => d.cost)))}</b></td><td className="n num"><b>{fmt(sum(departments.map((d) => d.value - d.cost)))}</b></td><td className="n"></td><td className="n num"><b>100%</b></td></tr>
             </tbody>
           </table></div>
         </Panel>

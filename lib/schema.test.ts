@@ -173,7 +173,7 @@ test("migrate applies 031_manual_report_data additively for all manual report ta
   const recordStep = executed.find((step) => step.sql.startsWith("INSERT INTO app.schema_migrations"));
   assert.ok(recordStep, "expected 031_manual_report_data to be recorded");
   assert.deepEqual(recordStep.params, ["031_manual_report_data"]);
-  assert.equal(LATEST_MIGRATION_ID, "050_sales_clean_trading_types");
+  assert.equal(LATEST_MIGRATION_ID, "051_sales_doc_types_by_department");
 
   const sql = executed[executed.indexOf(recordStep) - 1].sql;
   assert.doesNotMatch(sql, /\b(DROP\s|DELETE\s+FROM|TRUNCATE\s|UPDATE\s|ALTER\s)\b/i);
@@ -284,6 +284,19 @@ test("migrate applies 050_sales_clean_trading_types: dependents dropped before s
   const at = (text: string) => sql.indexOf(text);
   for (const rollup of ["sales_customer_daily", "sales_daily_dims", "sales_daily", "sales_monthly"]) assert.ok(at(`DROP MATERIALIZED VIEW IF EXISTS app.${rollup}`) < at("DROP MATERIALIZED VIEW IF EXISTS app.sales_clean"), `${rollup} dropped first`);
   for (const rollup of ["app.sales_monthly", "app.sales_daily AS", "app.sales_daily_dims AS", "app.sales_customer_daily AS"]) assert.ok(at("CREATE MATERIALIZED VIEW app.sales_clean") < sql.lastIndexOf(rollup), `${rollup} rebuilt after`);
+});
+
+test("migrate applies 051_sales_doc_types_by_department: only app.sales_doc_types is rebuilt, now with DEPT_CODE", async () => {
+  const executed: { sql: string; params?: unknown[] }[] = [];
+  await migrate({ query: async (sql, params) => { executed.push({ sql, params }); return { rows: [] }; } }, "051_sales_doc_types_by_department");
+  const record = executed.find((step) => step.params?.[0] === "051_sales_doc_types_by_department");
+  assert.ok(record, "expected 051 to be recorded");
+  const sql = executed[executed.indexOf(record) - 1].sql;
+  assert.equal((sql.match(/DROP/g) ?? []).length, 1);
+  assert.match(sql, /DROP MATERIALIZED VIEW IF EXISTS app\.sales_doc_types/);
+  assert.doesNotMatch(sql, /DELETE|TRUNCATE|UPDATE|ALTER|CASCADE|INSERT|app\.sales_clean/i);
+  assert.match(sql, /GROUP BY "DOC_DATE", "DEPT_CODE", "DOC_TYPE", "TRANS_STATUS"/);
+  assert.match(sql, /copy_no <= \(copy_count \+ 1\) \/ 2/);
 });
 
 test("migrate applies 041_supplier_ageing additively: one new table, nothing dropped or altered", async () => {
